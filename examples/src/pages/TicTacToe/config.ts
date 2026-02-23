@@ -1,5 +1,7 @@
 import { ActionFn, StateMachineConfig } from "@drock07/board-game-toolkit-core";
 
+type Mark = "x" | "o";
+
 const winningPositions = [
   [0, 1, 2],
   [3, 4, 5],
@@ -12,14 +14,19 @@ const winningPositions = [
 ] as const;
 type WinningPosition = (typeof winningPositions)[number];
 
+export const PLAYER_MARK = {
+  player: "x",
+  computer: "o",
+} as const;
+
 export interface TicTacToeState {
-  marks: ("x" | "o" | undefined)[];
+  marks: (Mark | undefined)[];
   playerTurn: "player" | "computer" | null;
   winner: ["player" | "computer", WinningPosition] | "tie" | null;
 }
 
 export const initialState: TicTacToeState = {
-  marks: [],
+  marks: Array(9).fill(undefined),
   playerTurn: null,
   winner: null,
 };
@@ -37,7 +44,7 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
       onEnter: (state) => {
         return {
           ...state,
-          marks: [],
+          marks: Array(9).fill(undefined),
           playerTurn: Math.random() > 0.5 ? "player" : "computer",
           winner: null,
         };
@@ -45,10 +52,6 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
       states: {
         whoStarts: {
           autoadvance: true,
-          onEnter: (state) => {
-            console.log(state.playerTurn, "first");
-            return state;
-          },
           getNext: (state) => state.playerTurn,
         },
         player: {
@@ -61,16 +64,9 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
         computer: {
           autoadvance: true,
           onEnter: (state) => {
-            let emptyIndex = -1;
-            for (let i = 0; i < 9; i++) {
-              const element = state.marks[i];
-              if (element === undefined) {
-                emptyIndex = i;
-                break;
-              }
-            }
-            if (emptyIndex < 0) return state;
-            return pickAction(state, emptyIndex, "o");
+            const bestIndex = findBestMove(state.marks, PLAYER_MARK.computer);
+            if (bestIndex < 0) return state;
+            return pickAction(state, bestIndex, PLAYER_MARK.computer);
           },
           onExit: (state) => ({
             ...state,
@@ -102,8 +98,59 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
   },
 };
 
+function findBestMove(marks: (Mark | undefined)[], mark: Mark): number {
+  let bestScore = -Infinity;
+  let bestIndex = -1;
+
+  for (let i = 0; i < 9; i++) {
+    if (marks[i] !== undefined) continue;
+    const next = [...marks];
+    next[i] = mark;
+    const score = minimax(next, mark === "x" ? "o" : "x", mark);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return bestIndex;
+}
+
+function minimax(
+  marks: (Mark | undefined)[],
+  currentMark: Mark,
+  maximizingMark: Mark,
+): number {
+  const winner = winningPositions.find(
+    (pos) =>
+      pos.every((i) => marks[i] === "x") || pos.every((i) => marks[i] === "o"),
+  );
+
+  if (winner) {
+    return marks[winner[0]] === maximizingMark ? 1 : -1;
+  }
+  if (marks.every((m) => m !== undefined)) return 0;
+
+  const isMaximizing = currentMark === maximizingMark;
+  let best = isMaximizing ? -Infinity : Infinity;
+
+  for (let i = 0; i < 9; i++) {
+    if (marks[i] !== undefined) continue;
+    const next = [...marks];
+    next[i] = currentMark;
+    const score = minimax(
+      next,
+      currentMark === "x" ? "o" : "x",
+      maximizingMark,
+    );
+    best = isMaximizing ? Math.max(best, score) : Math.min(best, score);
+  }
+
+  return best;
+}
+
 function checkForWin(
-  marks: ("x" | "o" | undefined)[],
+  marks: (Mark | undefined)[],
 ): ["player" | "computer", WinningPosition] | "tie" | undefined {
   const winningCombo = winningPositions.find((pos) => {
     return (
@@ -111,10 +158,11 @@ function checkForWin(
     );
   });
 
-  if (!winningCombo) return;
+  if (!winningCombo)
+    return marks.every((m) => m !== undefined) ? "tie" : undefined;
 
   return [
-    marks[winningCombo[0]]! === "x" ? "player" : "computer",
+    marks[winningCombo[0]]! === PLAYER_MARK.player ? "player" : "computer",
     winningCombo,
   ];
 }
@@ -125,7 +173,7 @@ function checkForWin(
 
 export const pickAction: ActionFn<
   TicTacToeState,
-  [index: number, mark: "x" | "o"]
+  [index: number, mark: Mark]
 > = (state, index, mark) => {
   if (index < 0 || index > 8 || state.marks[index] !== undefined) return state;
   const newMarks = [...state.marks];

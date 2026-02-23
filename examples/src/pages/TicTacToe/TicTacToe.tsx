@@ -9,6 +9,7 @@ import clsx from "clsx";
 import {
   initialState,
   pickAction,
+  PLAYER_MARK,
   ticTacToeConfig,
   TicTacToeState,
 } from "./config";
@@ -24,7 +25,7 @@ export function TicTacToe() {
       <div>
         <button
           className="border p-4 disabled:bg-gray-400"
-          disabled={currentStates[1] === "game"}
+          disabled={currentStates.includes("game")}
           onClick={() => advance()}
         >
           Start
@@ -40,13 +41,13 @@ export function TicTacToe() {
       </div>
       <Board
         marks={marks}
-        disabled={currentStates[1] !== "game"}
+        disabled={!currentStates.includes("game")}
         onCellClicked={(index) => {
-          if (currentStates[0] !== "player") return;
-          doAction(pickAction, index, "x");
+          if (!currentStates.includes("player")) return;
+          doAction(pickAction, index, PLAYER_MARK.player);
           advance();
         }}
-        highlightCells={winner?.[1]}
+        highlightCells={Array.isArray(winner) ? winner[1] : undefined}
       />
     </div>
   );
@@ -61,11 +62,7 @@ function Board({
   marks: TicTacToeState["marks"];
   onCellClicked?: (index: number) => void;
   disabled?: boolean;
-  highlightCells?: [
-    0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-    0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-    0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-  ];
+  highlightCells?: readonly number[];
 }) {
   return (
     <div
@@ -77,8 +74,11 @@ function Board({
       )}
     >
       {Array.from({ length: 9 }).map((_, i) => (
-        <div
+        <button
           key={i}
+          type="button"
+          aria-label={`Cell ${i + 1}${marks[i] ? `, ${marks[i]}` : ""}`}
+          disabled={disabled || marks[i] !== undefined}
           className={clsx("size-full p-2", {
             "border-r-2": [0, 1, 3, 4, 6, 7].includes(i),
             "border-b-2": [0, 1, 2, 3, 4, 5].includes(i),
@@ -87,22 +87,26 @@ function Board({
           onClick={() => onCellClicked?.(i)}
         >
           {marks[i] === "x" ? <X /> : marks[i] === "o" ? <O /> : null}
-        </div>
+        </button>
       ))}
     </div>
   );
 }
 
 function O() {
-  return <div className="size-full rounded-full bg-black" />;
+  return (
+    <svg viewBox="0 0 100 100" className="size-full" aria-hidden="true">
+      <circle cx="50" cy="50" r="40" fill="none" stroke="black" strokeWidth="10" />
+    </svg>
+  );
 }
 
 function X() {
   return (
-    <div className="flex size-full items-center justify-center">
-      <div className="h-full w-px rotate-45 border-r-8" />
-      <div className="h-full w-px -rotate-45 border-r-8" />
-    </div>
+    <svg viewBox="0 0 100 100" className="size-full" aria-hidden="true">
+      <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="10" strokeLinecap="round" />
+      <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="10" strokeLinecap="round" />
+    </svg>
   );
 }
 
