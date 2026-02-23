@@ -47,6 +47,7 @@ function startMachine<TState>(
     currentState: config.initial,
   };
   const newEngine: EngineState<TState> = {
+    ...engine,
     machineStack: [...engine.machineStack, machineEntry],
     state,
   };
@@ -75,6 +76,7 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
     currentState: nextStateName,
   };
   const newEngine: EngineState<TState> = {
+    ...engine,
     machineStack: [...machineStack.slice(0, -1), updatedMachine],
     state: engine.state,
   };
@@ -97,6 +99,7 @@ function completeMachine<TState>(
     : engine.state;
   const newStack = machineStack.slice(0, -1);
   const newEngine: EngineState<TState> = {
+    ...engine,
     machineStack: newStack,
     state: exitState,
   };
@@ -122,6 +125,7 @@ export function start<TState>(
   const engine: EngineState<TState> = {
     machineStack: [],
     state: initialState,
+    started: true,
   };
   return startMachine(engine, config);
 }
@@ -140,4 +144,38 @@ export function advance<TState>(
     : engine.state;
 
   return resolveNext({ ...engine, state });
+}
+
+export class StateMachineEngine<TState> {
+  private config: StateMachineConfig<TState>;
+  private engineState: EngineState<TState>;
+
+  public get machineStack(): readonly MachineRuntimeState<TState>[] {
+    return this.engineState.machineStack;
+  }
+  public get state(): TState {
+    return this.engineState.state;
+  }
+
+  constructor(config: StateMachineConfig<TState>, initialState: TState) {
+    this.config = config;
+    this.engineState = {
+      machineStack: [],
+      state: initialState,
+      started: false,
+    };
+  }
+
+  start() {
+    if (this.engineState.started)
+      throw new Error("Cannot start: machine already started");
+    this.engineState = startMachine(
+      { ...this.engineState, started: true },
+      this.config,
+    );
+  }
+
+  advance() {
+    this.engineState = advance(this.engineState);
+  }
 }

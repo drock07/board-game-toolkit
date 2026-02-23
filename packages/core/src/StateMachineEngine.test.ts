@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { start, advance } from "./StateMachineEngine";
+import { describe, it, expect } from "vitest";
+import { start, advance, StateMachineEngine } from "./StateMachineEngine";
 import { StateMachineConfig } from "./types/StateMachineConfig";
 
 interface TestState {
@@ -131,7 +131,7 @@ describe("advance", () => {
   });
 
   it("throws when no active machine", () => {
-    const engine = { machineStack: [], state: initialState };
+    const engine = { machineStack: [], state: initialState, started: false };
     expect(() => advance(engine)).toThrow("Cannot advance: no active machine");
   });
 
@@ -340,5 +340,23 @@ describe("immutability", () => {
 
     expect(original.count).toBe(0);
     expect(original.log).toEqual([]);
+  });
+});
+
+describe("StateMachineEngine class", () => {
+  it("throws when start is called twice", () => {
+    const config = makeConfig();
+    const engine = new StateMachineEngine(config, initialState);
+
+    engine.start();
+
+    expect(() => engine.start()).toThrow("Cannot start: machine already started");
+  });
+
+  it("throws when advance is called before start", () => {
+    const config = makeConfig();
+    const engine = new StateMachineEngine(config, initialState);
+
+    expect(() => engine.advance()).toThrow("Cannot advance: no active machine");
   });
 });

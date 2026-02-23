@@ -15,4 +15,5 @@ export interface MachineRuntimeState<TState = unknown> {
 export interface EngineState<TState> {
   machineStack: MachineRuntimeState<TState>[];
   state: TState;
+  started: boolean;
 }
