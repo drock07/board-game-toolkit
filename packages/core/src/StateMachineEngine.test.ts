@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { start, advance } from "../StateMachineEngine";
-import { StateMachineConfig } from "../types/StateMachineConfig";
+import { start, advance } from "./StateMachineEngine";
+import { StateMachineConfig } from "./types/StateMachineConfig";
 
 interface TestState {
   count: number;
@@ -268,11 +268,17 @@ describe("nested machines", () => {
         a: {
           id: "child",
           initial: "x",
-          onEnter: (state) => ({ ...state, log: [...state.log, "child:enter"] }),
+          onEnter: (state) => ({
+            ...state,
+            log: [...state.log, "child:enter"],
+          }),
           onExit: (state) => ({ ...state, log: [...state.log, "child:exit"] }),
           states: {
             x: {
-              onEnter: (state) => ({ ...state, log: [...state.log, "x:enter"] }),
+              onEnter: (state) => ({
+                ...state,
+                log: [...state.log, "x:enter"],
+              }),
               onExit: (state) => ({ ...state, log: [...state.log, "x:exit"] }),
               getNext: () => null,
             },

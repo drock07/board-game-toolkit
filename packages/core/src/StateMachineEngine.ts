@@ -3,12 +3,11 @@ import {
   StateConfig,
   StateMachineConfig,
 } from "./types/StateMachineConfig";
-import {
-  EngineState,
-  MachineRuntimeState,
-} from "./types/StateMachineEngine";
+import { EngineState, MachineRuntimeState } from "./types/StateMachineEngine";
 
-function peek<TState>(stack: MachineRuntimeState<TState>[]): MachineRuntimeState<TState> | undefined {
+function peek<TState>(
+  stack: MachineRuntimeState<TState>[],
+): MachineRuntimeState<TState> | undefined {
   if (stack.length === 0) return undefined;
   return stack[stack.length - 1];
 }
@@ -64,8 +63,7 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
   const { machineStack } = engine;
   const machine = peek(machineStack)!;
   const currentStateConfig = machine.config.states[machine.currentState];
-  const nextStateName =
-    currentStateConfig.getNext?.(engine.state) ?? null;
+  const nextStateName = currentStateConfig.getNext?.(engine.state) ?? null;
 
   if (nextStateName === null) {
     return completeMachine(engine);
@@ -88,7 +86,9 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
  * Completes the current machine: pops it from the stack, calls its onExit,
  * then resolves the parent's next state (if any).
  */
-function completeMachine<TState>(engine: EngineState<TState>): EngineState<TState> {
+function completeMachine<TState>(
+  engine: EngineState<TState>,
+): EngineState<TState> {
   const { machineStack } = engine;
   const machine = peek(machineStack)!;
 
@@ -109,18 +109,11 @@ function completeMachine<TState>(engine: EngineState<TState>): EngineState<TStat
   return newEngine;
 }
 
-function advance<TState>(engine: EngineState<TState>): EngineState<TState> {
-  const { machineStack } = engine;
-  if (machineStack.length === 0) throw new Error("Cannot advance: no active machine");
-  const machine = peek(machineStack)!;
-
-  const currentStateConfig = machine.config.states[machine.currentState];
-  const state = currentStateConfig.onExit
-    ? currentStateConfig.onExit(engine.state)
-    : engine.state;
-
-  return resolveNext({ ...engine, state });
-}
+/**
+ *
+ * "Public" methods
+ *
+ */
 
 export function start<TState>(
   config: StateMachineConfig<TState>,
@@ -133,4 +126,18 @@ export function start<TState>(
   return startMachine(engine, config);
 }
 
-export { advance };
+export function advance<TState>(
+  engine: EngineState<TState>,
+): EngineState<TState> {
+  const { machineStack } = engine;
+  if (machineStack.length === 0)
+    throw new Error("Cannot advance: no active machine");
+  const machine = peek(machineStack)!;
+
+  const currentStateConfig = machine.config.states[machine.currentState];
+  const state = currentStateConfig.onExit
+    ? currentStateConfig.onExit(engine.state)
+    : engine.state;
+
+  return resolveNext({ ...engine, state });
+}
