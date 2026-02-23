@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { Link, type To } from "react-router";
 import PageLayout from "../components/PageLayout";
 import TicTacToePreview from "./TicTacToe/TicTacToePreview";
+import BlackjackPreview from "./Blackjack/BlackjackPreview";
+import YahtzeePreview from "./Yahtzee/YahtzeePreview";
+import DungeonCrawlPreview from "./DungeonCrawl/DungeonCrawlPreview";
 
 export default function Home() {
   return (
@@ -18,9 +21,24 @@ export default function Home() {
           description="A classic game vs. AI. Demonstrates nested state machines, commands, and auto-advancing states."
           preview={<TicTacToePreview />}
         />
-        <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 p-6 text-sm text-gray-400">
-          More coming soon
-        </div>
+        <GameCard
+          to="blackjack"
+          title="Blackjack"
+          description="Card game vs. dealer. Demonstrates deck management, multiple commands per state, and auto-advancing AI."
+          preview={<BlackjackPreview />}
+        />
+        <GameCard
+          to="yahtzee"
+          title="Yahtzee"
+          description="Dice game with multi-phase turns. Demonstrates dice keeping/rerolling, scoring validation, and nested turns."
+          preview={<YahtzeePreview />}
+        />
+        <GameCard
+          to="dungeon-crawl"
+          title="Dungeon Crawl"
+          description="Board game with cards, dice, and tokens. Demonstrates deeply nested machines and complex state."
+          preview={<DungeonCrawlPreview />}
+        />
       </div>
     </PageLayout>
   );
