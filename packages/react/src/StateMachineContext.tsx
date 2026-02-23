@@ -14,6 +14,7 @@ import {
   ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useState,
 } from "react";
 
@@ -32,17 +33,19 @@ const Context = createContext<StateMachineContextValue<any> | null>(null);
 export interface StateMachineContextProps<TState> {
   config: StateMachineConfig<TState>;
   initialState: TState;
+  autostart?: boolean;
   children?: ReactNode;
 }
 export function StateMachineContext<TState>({
   config,
   initialState,
+  autostart = false,
   children,
 }: StateMachineContextProps<TState>) {
   const [engine, setEngine] = useState(() => createEngine(initialState));
 
   const start = useCallback(() => {
-    setEngine((e) => toolkitStart(e, config));
+    setEngine((e) => (e.started ? e : toolkitStart(e, config)));
   }, [config]);
 
   const advance = useCallback(() => {
@@ -56,6 +59,12 @@ export function StateMachineContext<TState>({
     ) => void
   >((action, ...args) => {
     setEngine((e) => toolkitDoAction(e, action, ...args));
+  }, []);
+
+  useEffect(() => {
+    if (autostart) {
+      start();
+    }
   }, []);
 
   return (
@@ -111,4 +120,24 @@ export function createBoundActionHook<TState, TArgs extends unknown[]>(
       [doAction],
     );
   };
+}
+
+export function withStateMachineContext<TState>(
+  component: React.FC,
+  config: StateMachineConfig<TState>,
+  initialState: TState,
+  options?: {
+    autostart?: boolean;
+  },
+) {
+  const Component = component;
+  return () => (
+    <StateMachineContext
+      config={config}
+      initialState={initialState}
+      autostart={options?.autostart ?? false}
+    >
+      <Component />
+    </StateMachineContext>
+  );
 }
