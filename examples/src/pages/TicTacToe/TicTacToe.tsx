@@ -6,6 +6,7 @@ import {
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
+import PageLayout from "../../components/PageLayout";
 import {
   initialState,
   ticTacToeConfig,
@@ -25,57 +26,55 @@ export function TicTacToe() {
   const showOverlay = !isPlaying;
 
   return (
-    <div className="mx-auto max-w-md space-y-4">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold">Tic-tac-toe</h1>
-        <State includes="game">
-          <p
-            className={clsx("text-lg font-medium", {
-              "text-blue-600": playerTurn === "player",
-              "text-red-500": playerTurn === "computer",
-            })}
-          >
-            {playerTurn === "player" ? "Your turn" : "Computer's turn"}
-          </p>
-        </State>
-      </div>
+    <PageLayout title="Tic-Tac-Toe">
+      <div className="mx-auto max-w-md space-y-4">
+        <p
+          className={clsx("text-lg font-medium", {
+            invisible: !isPlaying,
+            "text-blue-600": playerTurn === "player",
+            "text-red-500": playerTurn === "computer",
+          })}
+        >
+          {playerTurn === "player" ? "Your turn" : "Computer's turn"}
+        </p>
 
-      <div className="relative">
-        <div className={clsx({ "blur-sm": showOverlay })}>
-          <Board
-            marks={marks}
-            disabled={!isPlaying}
-            onCellClicked={(index) => {
-              if (!currentStates.includes("player")) return;
-              dispatch({ type: "placeMark", index });
-              advance();
-            }}
-            highlightCells={Array.isArray(winner) ? winner[1] : undefined}
-          />
-        </div>
-
-        {showOverlay && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-            <State includes="end">
-              <p className="text-2xl font-bold">
-                {winner === "tie"
-                  ? "It's a tie!"
-                  : Array.isArray(winner) && winner[0] === "player"
-                    ? "You win!"
-                    : "Computer wins!"}
-              </p>
-            </State>
-
-            <button
-              className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-lg font-medium shadow-sm hover:bg-gray-50"
-              onClick={() => advance()}
-            >
-              {currentStates.includes("end") ? "Play again" : "Start"}
-            </button>
+        <div className="relative">
+          <div className={clsx({ "blur-sm": showOverlay })}>
+            <Board
+              marks={marks}
+              disabled={!isPlaying}
+              onCellClicked={(index) => {
+                if (!currentStates.includes("player")) return;
+                dispatch({ type: "placeMark", index });
+                advance();
+              }}
+              highlightCells={Array.isArray(winner) ? winner[1] : undefined}
+            />
           </div>
-        )}
+
+          {showOverlay && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <State includes="end">
+                <p className="text-2xl font-bold">
+                  {winner === "tie"
+                    ? "It's a tie!"
+                    : Array.isArray(winner) && winner[0] === "player"
+                      ? "You win!"
+                      : "Computer wins!"}
+                </p>
+              </State>
+
+              <button
+                className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-lg font-medium shadow-sm hover:bg-gray-50"
+                onClick={() => advance()}
+              >
+                {currentStates.includes("end") ? "Play again" : "Start"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
 
