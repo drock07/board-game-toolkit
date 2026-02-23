@@ -3,6 +3,7 @@ import {
   createEngine,
   EngineState,
   getCurrentState,
+  getMachineCurrentState,
   StateMachineConfig,
   advance as toolkitAdvance,
   doAction as toolkitDoAction,
@@ -74,6 +75,19 @@ export function useStateMachineEngineState<TState>() {
     started: engine.started,
     currentState: getCurrentState(engine),
   };
+}
+
+export function useStateMachineCurrentState<TState>(): string[];
+export function useStateMachineCurrentState<TState>(
+  machineId: string,
+): string | undefined;
+export function useStateMachineCurrentState<TState>(machineId?: string) {
+  const engine = useStateMachine<TState>().engine;
+  if (machineId) {
+    return getMachineCurrentState(engine, machineId);
+  } else {
+    return getCurrentState(engine);
+  }
 }
 
 export function useStateMachineState<TState>() {

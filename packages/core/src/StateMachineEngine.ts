@@ -179,6 +179,16 @@ export function getCurrentState<TState>(engine: EngineState<TState>): string[] {
   return [...engine.machineStack].reverse().map((m) => m.currentState);
 }
 
+export function getMachineCurrentState<TState>(
+  engine: EngineState<TState>,
+  machineId: string,
+): string | undefined {
+  const machine = engine.machineStack.find((m) => m.config.id === machineId);
+  if (!machine) return;
+
+  return machine.currentState;
+}
+
 export class StateMachineEngine<TState> {
   private config: StateMachineConfig<TState>;
   private engineState: EngineState<TState>;
@@ -198,18 +208,22 @@ export class StateMachineEngine<TState> {
     this.engineState = createEngine(initialState);
   }
 
-  start() {
+  public start() {
     this.engineState = start(this.engineState, this.config);
   }
 
-  advance() {
+  public advance() {
     this.engineState = advance(this.engineState);
   }
 
-  doAction<TArgs extends unknown[]>(
+  public doAction<TArgs extends unknown[]>(
     action: ActionFn<TState, TArgs>,
     ...args: TArgs
   ) {
     this.engineState = doAction(this.engineState, action, ...args);
+  }
+
+  public getCurrentStateForMachine(machineId: string) {
+    return getMachineCurrentState(this.engineState, machineId);
   }
 }
