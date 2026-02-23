@@ -19,36 +19,60 @@ export function TicTacToe() {
   const { marks, playerTurn, winner } = useStateMachineState<TicTacToeState>();
   const { advance, doAction } = useStateMachineActions<TicTacToeState>();
 
+  const isPlaying = currentStates.includes("game");
+  const showOverlay = !isPlaying;
+
   return (
-    <div>
-      <h1 className="mb-8 text-2xl font-bold">Tic-tac-toe</h1>
-      <div>
-        <button
-          className="border p-4 disabled:bg-gray-400"
-          disabled={currentStates.includes("game")}
-          onClick={() => advance()}
-        >
-          Start
-        </button>
-
+    <div className="mx-auto max-w-md space-y-4">
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-bold">Tic-tac-toe</h1>
         <State includes="game">
-          <div>Player turn: {playerTurn}</div>
-        </State>
-
-        <State includes="end">
-          <div>Winner: {Array.isArray(winner) ? winner[0] : winner}</div>
+          <p
+            className={clsx("text-lg font-medium", {
+              "text-blue-600": playerTurn === "player",
+              "text-red-500": playerTurn === "computer",
+            })}
+          >
+            {playerTurn === "player" ? "Your turn" : "Computer's turn"}
+          </p>
         </State>
       </div>
-      <Board
-        marks={marks}
-        disabled={!currentStates.includes("game")}
-        onCellClicked={(index) => {
-          if (!currentStates.includes("player")) return;
-          doAction(pickAction, index, PLAYER_MARK.player);
-          advance();
-        }}
-        highlightCells={Array.isArray(winner) ? winner[1] : undefined}
-      />
+
+      <div className="relative">
+        <div className={clsx({ "blur-sm": showOverlay })}>
+          <Board
+            marks={marks}
+            disabled={!isPlaying}
+            onCellClicked={(index) => {
+              if (!currentStates.includes("player")) return;
+              doAction(pickAction, index, PLAYER_MARK.player);
+              advance();
+            }}
+            highlightCells={Array.isArray(winner) ? winner[1] : undefined}
+          />
+        </div>
+
+        {showOverlay && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <State includes="end">
+              <p className="text-2xl font-bold">
+                {winner === "tie"
+                  ? "It's a tie!"
+                  : Array.isArray(winner) && winner[0] === "player"
+                    ? "You win!"
+                    : "Computer wins!"}
+              </p>
+            </State>
+
+            <button
+              className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-lg font-medium shadow-sm hover:bg-gray-50"
+              onClick={() => advance()}
+            >
+              {currentStates.includes("end") ? "Play again" : "Start"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -65,47 +89,49 @@ function Board({
   highlightCells?: readonly number[];
 }) {
   return (
-    <div
-      className={clsx(
-        "mx-auto grid aspect-square w-xl grid-cols-3 grid-rows-3 rounded-lg p-4",
-        {
-          "bg-gray-200": disabled,
-        },
-      )}
-    >
-      {Array.from({ length: 9 }).map((_, i) => (
-        <button
-          key={i}
-          type="button"
-          aria-label={`Cell ${i + 1}${marks[i] ? `, ${marks[i]}` : ""}`}
-          disabled={disabled || marks[i] !== undefined}
-          className={clsx("size-full p-2", {
-            "border-r-2": [0, 1, 3, 4, 6, 7].includes(i),
-            "border-b-2": [0, 1, 2, 3, 4, 5].includes(i),
-            "bg-green-400": highlightCells?.includes(i),
-          })}
-          onClick={() => onCellClicked?.(i)}
-        >
-          {marks[i] === "x" ? <X /> : marks[i] === "o" ? <O /> : null}
-        </button>
-      ))}
+    <div className="grid aspect-square grid-cols-3 grid-rows-3 rounded-lg border border-gray-300 bg-gray-100">
+      {Array.from({ length: 9 }).map((_, i) => {
+        const isInteractive = !disabled && marks[i] === undefined;
+        return (
+          <button
+            key={i}
+            type="button"
+            aria-label={`Cell ${i + 1}${marks[i] ? `, ${marks[i]}` : ""}`}
+            disabled={disabled || marks[i] !== undefined}
+            className={clsx(
+              "flex items-center justify-center bg-white p-3",
+              "focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500",
+              {
+                "border-r border-gray-300": i % 3 !== 2,
+                "border-b border-gray-300": i < 6,
+                "bg-green-100": highlightCells?.includes(i),
+                "cursor-pointer hover:bg-gray-50": isInteractive,
+                "cursor-default": !isInteractive,
+              },
+            )}
+            onClick={() => onCellClicked?.(i)}
+          >
+            {marks[i] === "x" ? <X /> : marks[i] === "o" ? <O /> : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 function O() {
   return (
-    <svg viewBox="0 0 100 100" className="size-full" aria-hidden="true">
-      <circle cx="50" cy="50" r="40" fill="none" stroke="black" strokeWidth="10" />
+    <svg viewBox="0 0 100 100" className="size-full text-red-500" aria-hidden="true">
+      <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="10" />
     </svg>
   );
 }
 
 function X() {
   return (
-    <svg viewBox="0 0 100 100" className="size-full" aria-hidden="true">
-      <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="10" strokeLinecap="round" />
-      <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="10" strokeLinecap="round" />
+    <svg viewBox="0 0 100 100" className="size-full text-blue-600" aria-hidden="true">
+      <line x1="10" y1="10" x2="90" y2="90" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+      <line x1="90" y1="10" x2="10" y2="90" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
     </svg>
   );
 }
