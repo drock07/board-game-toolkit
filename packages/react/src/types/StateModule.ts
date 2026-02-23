@@ -1,4 +1,4 @@
-import { StateMachineConfig } from "@board-game-toolkit/core";
+import { StateMachineConfig } from "@drock07/board-game-toolkit-core";
 import { ReactNode } from "react";
 
 export type StateModule<TState> = StateLeafModule | StateMachineModule<TState>;

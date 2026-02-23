@@ -1,11 +1,11 @@
-# @board-game-toolkit/react
+# @drock07/board-game-toolkit-react
 
-React bindings for `@board-game-toolkit/core`. Provides a context provider, hooks, and components for integrating the state machine engine into React applications.
+React bindings for `@drock07/board-game-toolkit-core`. Provides a context provider, hooks, and components for integrating the state machine engine into React applications.
 
 ## Installation
 
 ```bash
-pnpm add @board-game-toolkit/react @board-game-toolkit/core
+pnpm add @drock07/board-game-toolkit-react @drock07/board-game-toolkit-core
 ```
 
 Requires React 19 or higher.
@@ -18,7 +18,7 @@ import {
   useStateMachineActions,
   useStateMachineState,
   State,
-} from "@board-game-toolkit/react";
+} from "@drock07/board-game-toolkit-react";
 
 function App() {
   return (
@@ -120,7 +120,7 @@ const { started, currentState } = useStateMachineEngineState<GameState>();
 Factory that creates a custom hook for a specific action. Useful for creating reusable action hooks that can be shared across components.
 
 ```tsx
-import { ActionFn } from "@board-game-toolkit/core";
+import { ActionFn } from "@drock07/board-game-toolkit-core";
 
 const addScore: ActionFn<GameState, [points: number]> = (state, points) => ({
   ...state,
@@ -173,7 +173,7 @@ Conditionally renders children based on the current state. Supports three matchi
 Automatically renders the correct component tree based on the current machine state. Uses `StateModule` definitions to map states to components and supports nested machines with optional layouts.
 
 ```tsx
-import { StateTree, StateMachineModule, StateLeafModule } from "@board-game-toolkit/react";
+import { StateTree, StateMachineModule, StateLeafModule } from "@drock07/board-game-toolkit-react";
 
 const drawModule: StateLeafModule = {
   component: DrawScreen,

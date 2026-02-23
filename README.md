@@ -6,8 +6,8 @@ A TypeScript toolkit for building board games with state machine-driven game flo
 
 | Package | Description |
 | --- | --- |
-| [@board-game-toolkit/core](packages/core/) | Framework-agnostic state machine engine |
-| [@board-game-toolkit/react](packages/react/) | React bindings (context, hooks, components) |
+| [@drock07/board-game-toolkit-core](packages/core/) | Framework-agnostic state machine engine |
+| [@drock07/board-game-toolkit-react](packages/react/) | React bindings (context, hooks, components) |
 
 ## Development
 

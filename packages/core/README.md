@@ -1,11 +1,11 @@
-# @board-game-toolkit/core
+# @drock07/board-game-toolkit-core
 
 Framework-agnostic state machine engine for modeling board game flow. Supports nested machines, lifecycle hooks, actions, and auto-advancing states.
 
 ## Installation
 
 ```bash
-pnpm add @board-game-toolkit/core
+pnpm add @drock07/board-game-toolkit-core
 ```
 
 ## Concepts
@@ -15,7 +15,7 @@ pnpm add @board-game-toolkit/core
 A state machine is defined as a config object with an `id`, an `initial` state, and a map of `states`. Each state can define lifecycle hooks and transition logic.
 
 ```ts
-import { StateMachineConfig } from "@board-game-toolkit/core";
+import { StateMachineConfig } from "@drock07/board-game-toolkit-core";
 
 interface GameState {
   score: number;
@@ -82,7 +82,7 @@ const gameConfig: StateMachineConfig<GameState> = {
 Actions are typed functions that modify game state without affecting the machine flow. Define them as standalone functions:
 
 ```ts
-import { ActionFn } from "@board-game-toolkit/core";
+import { ActionFn } from "@drock07/board-game-toolkit-core";
 
 const addScore: ActionFn<GameState, [points: number]> = (state, points) => ({
   ...state,
@@ -97,7 +97,7 @@ const addScore: ActionFn<GameState, [points: number]> = (state, points) => ({
 The functional API is fully immutable — every operation returns a new `EngineState` object.
 
 ```ts
-import { createEngine, start, advance, doAction } from "@board-game-toolkit/core";
+import { createEngine, start, advance, doAction } from "@drock07/board-game-toolkit-core";
 
 let engine = createEngine<GameState>({ score: 0, round: 1 });
 engine = start(engine, gameConfig);
@@ -118,7 +118,7 @@ engine = advance(engine);
 The `StateMachineEngine` class wraps the functional API with mutable internal state, if you prefer an imperative style.
 
 ```ts
-import { StateMachineEngine } from "@board-game-toolkit/core";
+import { StateMachineEngine } from "@drock07/board-game-toolkit-core";
 
 const engine = new StateMachineEngine(gameConfig, { score: 0, round: 1 });
 engine.start();
@@ -135,7 +135,7 @@ engine.advance();
 `getCurrentState` returns the active state names ordered from most-specific (leaf) to least-specific (root):
 
 ```ts
-import { getCurrentState } from "@board-game-toolkit/core";
+import { getCurrentState } from "@drock07/board-game-toolkit-core";
 
 // If the "round" machine is active and in "draw" state:
 getCurrentState(engine); // ["draw", "round"]
@@ -144,7 +144,7 @@ getCurrentState(engine); // ["draw", "round"]
 You can also look up a specific machine's current state by ID:
 
 ```ts
-import { getMachineCurrentState } from "@board-game-toolkit/core";
+import { getMachineCurrentState } from "@drock07/board-game-toolkit-core";
 
 getMachineCurrentState(engine, "round"); // "draw"
 getMachineCurrentState(engine, "game");  // "round"

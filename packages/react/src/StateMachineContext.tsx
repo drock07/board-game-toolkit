@@ -8,7 +8,7 @@ import {
   advance as toolkitAdvance,
   doAction as toolkitDoAction,
   start as toolkitStart,
-} from "@board-game-toolkit/core";
+} from "@drock07/board-game-toolkit-core";
 import {
   createContext,
   ReactNode,
