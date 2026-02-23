@@ -3,7 +3,11 @@ import {
   StateConfig,
   StateMachineConfig,
 } from "./types/StateMachineConfig";
-import { EngineState, MachineRuntimeState } from "./types/StateMachineEngine";
+import {
+  ActionFn,
+  EngineState,
+  MachineRuntimeState,
+} from "./types/StateMachineEngine";
 
 function peek<TState>(
   stack: MachineRuntimeState<TState>[],
@@ -118,16 +122,28 @@ function completeMachine<TState>(
  *
  */
 
-export function start<TState>(
-  config: StateMachineConfig<TState>,
+export function createEngine<TState>(
   initialState: TState,
 ): EngineState<TState> {
-  const engine: EngineState<TState> = {
+  return {
     machineStack: [],
     state: initialState,
-    started: true,
+    started: false,
   };
-  return startMachine(engine, config);
+}
+
+export function start<TState>(
+  engine: EngineState<TState>,
+  config: StateMachineConfig<TState>,
+): EngineState<TState> {
+  if (engine.started) throw new Error("Cannot start: machine already started");
+  return startMachine(
+    {
+      ...engine,
+      started: true,
+    },
+    config,
+  );
 }
 
 export function advance<TState>(
@@ -146,6 +162,19 @@ export function advance<TState>(
   return resolveNext({ ...engine, state });
 }
 
+export function doAction<TState, TArgs extends unknown[]>(
+  engine: EngineState<TState>,
+  action: ActionFn<TState, TArgs>,
+  ...args: TArgs
+): EngineState<TState> {
+  if (!engine.started)
+    throw new Error("Cannot perform action: machine not started");
+  return {
+    ...engine,
+    state: action(engine.state, ...args),
+  };
+}
+
 export class StateMachineEngine<TState> {
   private config: StateMachineConfig<TState>;
   private engineState: EngineState<TState>;
@@ -159,23 +188,21 @@ export class StateMachineEngine<TState> {
 
   constructor(config: StateMachineConfig<TState>, initialState: TState) {
     this.config = config;
-    this.engineState = {
-      machineStack: [],
-      state: initialState,
-      started: false,
-    };
+    this.engineState = createEngine(initialState);
   }
 
   start() {
-    if (this.engineState.started)
-      throw new Error("Cannot start: machine already started");
-    this.engineState = startMachine(
-      { ...this.engineState, started: true },
-      this.config,
-    );
+    this.engineState = start(this.engineState, this.config);
   }
 
   advance() {
     this.engineState = advance(this.engineState);
+  }
+
+  doAction<TArgs extends unknown[]>(
+    action: ActionFn<TState, TArgs>,
+    ...args: TArgs
+  ) {
+    this.engineState = doAction(this.engineState, action, ...args);
   }
 }

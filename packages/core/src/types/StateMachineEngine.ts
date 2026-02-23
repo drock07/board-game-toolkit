@@ -17,3 +17,8 @@ export interface EngineState<TState> {
   state: TState;
   started: boolean;
 }
+
+export type ActionFn<TState, TArgs extends unknown[]> = (
+  state: TState,
+  ...args: TArgs
+) => TState;

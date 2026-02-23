@@ -1,21 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
- * An action function that receives the current state and additional args,
- * and returns a new state.
- */
-export type ActionFn<TState> = (
-  state: TState,
-  ...args: any[]
-) => TState;
-export type BoundActionFn = (...args: any[]) => void;
-
-/**
- * A record of action functions.
- */
-export type ActionsRecord<TState> = Record<string, ActionFn<TState>>;
-
-/**
  * Base configuration shared by states and machines.
  */
 interface BaseConfig<TState> {
@@ -25,8 +10,6 @@ interface BaseConfig<TState> {
   onExit?: (state: TState) => TState;
   /** Determines the next state (null = complete/terminal) */
   getNext?: (state: TState) => string | null;
-  /** Actions that can be dispatched while in this state/machine */
-  actions?: ActionsRecord<TState>;
   /** Whether to automatically advance after entering this state */
   autoadvance?: boolean | ((state: TState) => boolean);
 }
@@ -63,24 +46,3 @@ export function isMachine<TState>(
 ): config is StateMachineConfig<TState> {
   return "states" in config && "initial" in config && "id" in config;
 }
-
-/**
- * Helper to extract action function signatures without the state param.
- * Transforms (state, arg1, arg2) => TState into (arg1, arg2) => void
- */
-export type BoundActions<TActions extends ActionsRecord<any>> = {
-  [K in keyof TActions]: TActions[K] extends (
-    state: any,
-    ...args: infer Args
-  ) => any
-    ? (...args: Args) => void
-    : never;
-};
-
-/**
- * Extract and bind actions from a state machine config object.
- * Usage: type MyActions = ExtractActions<typeof myStateMachineConfig>;
- */
-export type ExtractActions<T> = T extends { actions: infer A extends ActionsRecord<any> }
-  ? BoundActions<A>
-  : never;

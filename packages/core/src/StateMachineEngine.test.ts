@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { start, advance, StateMachineEngine } from "./StateMachineEngine";
+import {
+  createEngine,
+  start,
+  advance,
+  doAction,
+  StateMachineEngine,
+} from "./StateMachineEngine";
 import { StateMachineConfig } from "./types/StateMachineConfig";
 
 interface TestState {
@@ -26,7 +32,7 @@ function makeConfig(
 describe("start", () => {
   it("initializes engine with the machine on the stack", () => {
     const config = makeConfig();
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.machineStack).toHaveLength(1);
     expect(engine.machineStack[0].currentState).toBe("a");
@@ -37,7 +43,7 @@ describe("start", () => {
     const config = makeConfig({
       onEnter: (state) => ({ ...state, log: [...state.log, "machine:enter"] }),
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.state.log).toContain("machine:enter");
   });
@@ -52,7 +58,7 @@ describe("start", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.state.log).toContain("a:enter");
   });
@@ -68,7 +74,7 @@ describe("start", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.state.log).toEqual(["machine:enter", "a:enter"]);
   });
@@ -77,7 +83,7 @@ describe("start", () => {
 describe("advance", () => {
   it("transitions to the next state", () => {
     const config = makeConfig();
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("a");
 
@@ -99,7 +105,7 @@ describe("advance", () => {
         },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
     const next = advance(engine);
 
     expect(next.state.log).toEqual(["a:exit", "b:enter"]);
@@ -111,7 +117,7 @@ describe("advance", () => {
         a: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
     const next = advance(engine);
 
     expect(next.machineStack).toHaveLength(0);
@@ -124,7 +130,7 @@ describe("advance", () => {
         a: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
     const next = advance(engine);
 
     expect(next.state.log).toContain("machine:exit");
@@ -148,7 +154,7 @@ describe("advance", () => {
         },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.state.count).toBe(1);
 
@@ -174,7 +180,7 @@ describe("autoadvance", () => {
       },
     });
     // start should auto-advance past 'a' into 'b'
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("b");
     expect(engine.state.log).toEqual(["a:enter", "b:enter"]);
@@ -190,7 +196,7 @@ describe("autoadvance", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("b");
   });
@@ -205,7 +211,7 @@ describe("autoadvance", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("a");
   });
@@ -226,7 +232,7 @@ describe("nested machines", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.machineStack).toHaveLength(2);
     expect(engine.machineStack[0].config.id).toBe("test");
@@ -248,7 +254,7 @@ describe("nested machines", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     // nested machine is active at state x
     expect(engine.machineStack).toHaveLength(2);
@@ -287,7 +293,7 @@ describe("nested machines", () => {
         },
       },
     };
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
 
     expect(engine.state.log).toEqual(["child:enter", "x:enter"]);
 
@@ -317,7 +323,7 @@ describe("immutability", () => {
         },
       },
     });
-    const engine = start(config, initialState);
+    const engine = start(createEngine(initialState), config);
     const snapshot = { ...engine, state: { ...engine.state } };
 
     advance(engine);
@@ -335,11 +341,52 @@ describe("immutability", () => {
         },
       },
     });
-    const original = { count: 0, log: [] };
-    start(config, original);
+    const original: TestState = { count: 0, log: [] };
+    start(createEngine(original), config);
 
     expect(original.count).toBe(0);
     expect(original.log).toEqual([]);
+  });
+});
+
+describe("doAction", () => {
+  it("applies the action to the state", () => {
+    const config = makeConfig();
+    const engine = start(createEngine(initialState), config);
+
+    const next = doAction(engine, (state) => ({ ...state, count: 42 }));
+
+    expect(next.state.count).toBe(42);
+  });
+
+  it("passes extra args through to the action", () => {
+    const config = makeConfig();
+    const engine = start(createEngine(initialState), config);
+
+    const increment = (state: TestState, amount: number) => ({
+      ...state,
+      count: state.count + amount,
+    });
+    const next = doAction(engine, increment, 5);
+
+    expect(next.state.count).toBe(5);
+  });
+
+  it("throws when machine not started", () => {
+    const engine = createEngine(initialState);
+
+    expect(() =>
+      doAction(engine, (state) => state),
+    ).toThrow("Cannot perform action: machine not started");
+  });
+
+  it("does not mutate the original engine state", () => {
+    const config = makeConfig();
+    const engine = start(createEngine(initialState), config);
+
+    doAction(engine, (state) => ({ ...state, count: 99 }));
+
+    expect(engine.state.count).toBe(0);
   });
 });
 
@@ -358,5 +405,24 @@ describe("StateMachineEngine class", () => {
     const engine = new StateMachineEngine(config, initialState);
 
     expect(() => engine.advance()).toThrow("Cannot advance: no active machine");
+  });
+
+  it("doAction applies the action to the state", () => {
+    const config = makeConfig();
+    const engine = new StateMachineEngine(config, initialState);
+    engine.start();
+
+    engine.doAction((state) => ({ ...state, count: 7 }));
+
+    expect(engine.state.count).toBe(7);
+  });
+
+  it("doAction throws when machine not started", () => {
+    const config = makeConfig();
+    const engine = new StateMachineEngine(config, initialState);
+
+    expect(() =>
+      engine.doAction((state) => state),
+    ).toThrow("Cannot perform action: machine not started");
   });
 });
