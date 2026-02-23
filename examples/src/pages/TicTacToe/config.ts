@@ -1,4 +1,4 @@
-import { ActionFn, StateMachineConfig } from "@drock07/board-game-toolkit-core";
+import { StateMachineConfig } from "@drock07/board-game-toolkit-core";
 
 type Mark = "x" | "o";
 
@@ -25,13 +25,18 @@ export interface TicTacToeState {
   winner: ["player" | "computer", WinningPosition] | "tie" | null;
 }
 
+export type TicTacToeCommand = { type: "placeMark"; index: number };
+
 export const initialState: TicTacToeState = {
   marks: Array(9).fill(undefined),
   playerTurn: null,
   winner: null,
 };
 
-export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
+export const ticTacToeConfig: StateMachineConfig<
+  TicTacToeState,
+  TicTacToeCommand
+> = {
   id: "tictactoe",
   initial: "start",
   states: {
@@ -51,6 +56,19 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
       },
       states: {
         player: {
+          actions: {
+            placeMark: {
+              validate: (state, cmd) => {
+                const index = cmd.index;
+                return index >= 0 && index <= 8 && state.marks[index] === undefined;
+              },
+              execute: (state, cmd) => {
+                const newMarks = [...state.marks];
+                newMarks[cmd.index] = PLAYER_MARK.player;
+                return { ...state, marks: newMarks };
+              },
+            },
+          },
           onExit: (state) => ({
             ...state,
             playerTurn: "computer",
@@ -62,7 +80,9 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
           onEnter: (state) => {
             const bestIndex = findBestMove(state.marks, PLAYER_MARK.computer);
             if (bestIndex < 0) return state;
-            return pickAction(state, bestIndex, PLAYER_MARK.computer);
+            const newMarks = [...state.marks];
+            newMarks[bestIndex] = PLAYER_MARK.computer;
+            return { ...state, marks: newMarks };
           },
           onExit: (state) => ({
             ...state,
@@ -162,20 +182,3 @@ function checkForWin(
     winningCombo,
   ];
 }
-
-/**
- * Actions
- */
-
-export const pickAction: ActionFn<
-  TicTacToeState,
-  [index: number, mark: Mark]
-> = (state, index, mark) => {
-  if (index < 0 || index > 8 || state.marks[index] !== undefined) return state;
-  const newMarks = [...state.marks];
-  newMarks[index] = mark;
-  return {
-    ...state,
-    marks: newMarks,
-  };
-};

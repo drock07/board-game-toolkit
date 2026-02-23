@@ -3,7 +3,8 @@ import {
   createEngine,
   start,
   advance,
-  doAction,
+  dispatch,
+  canDispatch,
   StateMachineEngine,
 } from "./StateMachineEngine";
 import { StateMachineConfig } from "./types/StateMachineConfig";
@@ -13,11 +14,16 @@ interface TestState {
   log: string[];
 }
 
+type TestCommand =
+  | { type: "increment"; amount: number }
+  | { type: "set"; value: number }
+  | { type: "noop" };
+
 const initialState: TestState = { count: 0, log: [] };
 
 function makeConfig(
-  overrides: Partial<StateMachineConfig<TestState>> = {},
-): StateMachineConfig<TestState> {
+  overrides: Partial<StateMachineConfig<TestState, TestCommand>> = {},
+): StateMachineConfig<TestState, TestCommand> {
   return {
     id: "test",
     initial: "a",
@@ -137,7 +143,7 @@ describe("advance", () => {
   });
 
   it("throws when no active machine", () => {
-    const engine = { machineStack: [], state: initialState, started: false };
+    const engine = createEngine(initialState);
     expect(() => advance(engine)).toThrow("Cannot advance: no active machine");
   });
 
@@ -267,7 +273,7 @@ describe("nested machines", () => {
   });
 
   it("calls lifecycle hooks in correct order for nested machines", () => {
-    const config: StateMachineConfig<TestState> = {
+    const config: StateMachineConfig<TestState, TestCommand> = {
       id: "parent",
       initial: "a",
       states: {
@@ -349,44 +355,232 @@ describe("immutability", () => {
   });
 });
 
-describe("doAction", () => {
-  it("applies the action to the state", () => {
-    const config = makeConfig();
+describe("dispatch", () => {
+  it("applies the execute handler to the state", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
     const engine = start(createEngine(initialState), config);
 
-    const next = doAction(engine, (state) => ({ ...state, count: 42 }));
+    const next = dispatch(engine, { type: "set", value: 42 });
 
     expect(next.state.count).toBe(42);
   });
 
-  it("passes extra args through to the action", () => {
-    const config = makeConfig();
+  it("passes the narrowed command type to execute", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            increment: {
+              execute: (state, cmd) => ({
+                ...state,
+                count: state.count + cmd.amount,
+              }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
     const engine = start(createEngine(initialState), config);
 
-    const increment = (state: TestState, amount: number) => ({
-      ...state,
-      count: state.count + amount,
-    });
-    const next = doAction(engine, increment, 5);
+    const next = dispatch(engine, { type: "increment", amount: 5 });
 
     expect(next.state.count).toBe(5);
   });
 
-  it("throws when machine not started", () => {
-    const engine = createEngine(initialState);
-
-    expect(() =>
-      doAction(engine, (state) => state),
-    ).toThrow("Cannot perform action: machine not started");
-  });
-
-  it("does not mutate the original engine state", () => {
+  it("throws when no handler for command type in current state", () => {
     const config = makeConfig();
     const engine = start(createEngine(initialState), config);
 
-    doAction(engine, (state) => ({ ...state, count: 99 }));
+    expect(() => dispatch(engine, { type: "set", value: 1 })).toThrow(
+      "No handler for command 'set' in state 'a'",
+    );
+  });
+
+  it("throws when validate returns false", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              validate: (_state, cmd) => cmd.value >= 0,
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    expect(() => dispatch(engine, { type: "set", value: -1 })).toThrow(
+      "Command 'set' failed validation",
+    );
+  });
+
+  it("succeeds when validate returns true", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              validate: (_state, cmd) => cmd.value >= 0,
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 10 });
+
+    expect(next.state.count).toBe(10);
+  });
+
+  it("records command in history", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const cmd1 = { type: "set" as const, value: 1 };
+    const cmd2 = { type: "set" as const, value: 2 };
+    const after1 = dispatch(engine, cmd1);
+    const after2 = dispatch(after1, cmd2);
+
+    expect(after1.history).toEqual([cmd1]);
+    expect(after2.history).toEqual([cmd1, cmd2]);
+  });
+
+  it("throws when machine not started", () => {
+    const engine = createEngine<TestState, TestCommand>(initialState);
+
+    expect(() => dispatch(engine, { type: "noop" })).toThrow(
+      "Cannot dispatch: machine not started",
+    );
+  });
+
+  it("does not mutate the original engine state", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    dispatch(engine, { type: "set", value: 99 });
 
     expect(engine.state.count).toBe(0);
+    expect(engine.history).toEqual([]);
+  });
+});
+
+describe("canDispatch", () => {
+  it("returns true when handler exists and no validate", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    expect(canDispatch(engine, { type: "set", value: 1 })).toBe(true);
+  });
+
+  it("returns true when validate passes", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              validate: (_state, cmd) => cmd.value >= 0,
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    expect(canDispatch(engine, { type: "set", value: 5 })).toBe(true);
+  });
+
+  it("returns false when validate fails", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              validate: (_state, cmd) => cmd.value >= 0,
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    expect(canDispatch(engine, { type: "set", value: -1 })).toBe(false);
+  });
+
+  it("returns false when no handler exists", () => {
+    const config = makeConfig();
+    const engine = start(createEngine(initialState), config);
+
+    expect(canDispatch(engine, { type: "set", value: 1 })).toBe(false);
+  });
+
+  it("returns false when machine not started", () => {
+    const engine = createEngine<TestState, TestCommand>(initialState);
+
+    expect(canDispatch(engine, { type: "noop" })).toBe(false);
   });
 });
 
@@ -407,22 +601,70 @@ describe("StateMachineEngine class", () => {
     expect(() => engine.advance()).toThrow("Cannot advance: no active machine");
   });
 
-  it("doAction applies the action to the state", () => {
-    const config = makeConfig();
+  it("dispatch applies the command to the state", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
     const engine = new StateMachineEngine(config, initialState);
     engine.start();
 
-    engine.doAction((state) => ({ ...state, count: 7 }));
+    engine.dispatch({ type: "set", value: 7 });
 
     expect(engine.state.count).toBe(7);
   });
 
-  it("doAction throws when machine not started", () => {
-    const config = makeConfig();
+  it("dispatch records in history", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
     const engine = new StateMachineEngine(config, initialState);
+    engine.start();
 
-    expect(() =>
-      engine.doAction((state) => state),
-    ).toThrow("Cannot perform action: machine not started");
+    engine.dispatch({ type: "set", value: 7 });
+
+    expect(engine.history).toEqual([{ type: "set", value: 7 }]);
+  });
+
+  it("canDispatch returns correct values", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              validate: (_state, cmd) => cmd.value >= 0,
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = new StateMachineEngine(config, initialState);
+    engine.start();
+
+    expect(engine.canDispatch({ type: "set", value: 5 })).toBe(true);
+    expect(engine.canDispatch({ type: "set", value: -1 })).toBe(false);
+    expect(engine.canDispatch({ type: "noop" })).toBe(false);
   });
 });

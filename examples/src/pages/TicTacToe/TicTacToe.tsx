@@ -8,16 +8,18 @@ import {
 import clsx from "clsx";
 import {
   initialState,
-  pickAction,
-  PLAYER_MARK,
   ticTacToeConfig,
+  TicTacToeCommand,
   TicTacToeState,
 } from "./config";
 
 export function TicTacToe() {
   const currentStates = useStateMachineCurrentState<TicTacToeState>();
   const { marks, playerTurn, winner } = useStateMachineState<TicTacToeState>();
-  const { advance, doAction } = useStateMachineActions<TicTacToeState>();
+  const { advance, dispatch } = useStateMachineActions<
+    TicTacToeState,
+    TicTacToeCommand
+  >();
 
   const isPlaying = currentStates.includes("game");
   const showOverlay = !isPlaying;
@@ -45,7 +47,7 @@ export function TicTacToe() {
             disabled={!isPlaying}
             onCellClicked={(index) => {
               if (!currentStates.includes("player")) return;
-              doAction(pickAction, index, PLAYER_MARK.player);
+              dispatch({ type: "placeMark", index });
               advance();
             }}
             highlightCells={Array.isArray(winner) ? winner[1] : undefined}

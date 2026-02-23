@@ -29,7 +29,7 @@ function App() {
 }
 
 function Game() {
-  const { start } = useStateMachineActions<GameState>();
+  const { start } = useStateMachineActions<GameState, GameCommand>();
 
   return (
     <>
@@ -61,7 +61,7 @@ Wraps your app and manages the engine state internally. Pass your machine config
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `config` | `StateMachineConfig<TState>` | The state machine configuration |
+| `config` | `StateMachineConfig<TState, TCommand>` | The state machine configuration |
 | `initialState` | `TState` | The initial game state |
 | `children` | `ReactNode` | Child components |
 
@@ -76,12 +76,12 @@ const gameState = useStateMachineState<GameState>();
 // gameState.score, gameState.round, etc.
 ```
 
-### `useStateMachineActions<TState>()`
+### `useStateMachineActions<TState, TCommand>()`
 
-Returns the engine action functions: `start`, `advance`, and `doAction`.
+Returns the engine action functions: `start`, `advance`, `dispatch`, and `canDispatch`.
 
 ```tsx
-const { start, advance, doAction } = useStateMachineActions<GameState>();
+const { start, advance, dispatch, canDispatch } = useStateMachineActions<GameState, GameCommand>();
 
 // Start the machine
 start();
@@ -89,8 +89,13 @@ start();
 // Advance to the next state
 advance();
 
-// Apply a typed action
-doAction(addScore, 10);
+// Dispatch a command
+dispatch({ type: "addScore", points: 10 });
+
+// Check if a command can be dispatched
+if (canDispatch({ type: "addScore", points: 10 })) {
+  // command is valid in the current state
+}
 ```
 
 ### `useStateMachineCurrentState()`
@@ -115,27 +120,47 @@ Returns engine-level metadata: whether the machine has started and the current s
 const { started, currentState } = useStateMachineEngineState<GameState>();
 ```
 
-### `createBoundActionHook(action)`
+## Commands
 
-Factory that creates a custom hook for a specific action. Useful for creating reusable action hooks that can be shared across components.
+Actions are defined as command objects with a `type` discriminant. Define a command union for your game, then declare handlers in the state machine config:
 
 ```tsx
-import { ActionFn } from "@drock07/board-game-toolkit-core";
+// Define your command types
+type GameCommand =
+  | { type: "addScore"; points: number }
+  | { type: "drawCard" };
 
-const addScore: ActionFn<GameState, [points: number]> = (state, points) => ({
-  ...state,
-  score: state.score + points,
-});
-
-// Create a reusable hook
-const useAddScore = createBoundActionHook(addScore);
-
-// Use in any component
-function ScoreButton() {
-  const addScore = useAddScore();
-  return <button onClick={() => addScore(10)}>+10 Points</button>;
-}
+// Define your config with command handlers
+const gameConfig: StateMachineConfig<GameState, GameCommand> = {
+  id: "game",
+  initial: "playing",
+  states: {
+    playing: {
+      actions: {
+        addScore: {
+          validate: (state, cmd) => cmd.points > 0,
+          execute: (state, cmd) => ({
+            ...state,
+            score: state.score + cmd.points,
+          }),
+        },
+        drawCard: {
+          execute: (state) => ({
+            ...state,
+            hand: [...state.hand, state.deck[0]],
+            deck: state.deck.slice(1),
+          }),
+        },
+      },
+      getNext: () => null,
+    },
+  },
+};
 ```
+
+Each handler receives the narrowed command type — `addScore`'s handler gets `{ type: "addScore"; points: number }`, not the full union. The `validate` function is optional and controls whether the command is allowed in the current state.
+
+All dispatched commands are recorded in `engine.history` for debugging, replay, or undo.
 
 ## Components
 

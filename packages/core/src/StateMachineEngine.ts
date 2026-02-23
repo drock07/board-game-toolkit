@@ -1,10 +1,10 @@
 import {
+  ActionHandler,
   isMachine,
   StateConfig,
   StateMachineConfig,
 } from "./types/StateMachineConfig";
 import {
-  ActionFn,
   EngineState,
   MachineRuntimeState,
 } from "./types/StateMachineEngine";
@@ -132,18 +132,33 @@ function completeMachine<TState>(
 }
 
 /**
+ * Finds the action handler for the given command type in the current leaf state.
+ */
+function findActionHandler<TState>(
+  engine: EngineState<TState>,
+  commandType: string,
+): ActionHandler<TState, any> | undefined {
+  const machine = peek(engine.machineStack);
+  if (!machine) return undefined;
+
+  const currentStateConfig = machine.config.states[machine.currentState];
+  return currentStateConfig.actions?.[commandType];
+}
+
+/**
  *
  * "Public" methods
  *
  */
 
-export function createEngine<TState>(
+export function createEngine<TState, TCommand extends { type: string } = any>(
   initialState: TState,
-): EngineState<TState> {
+): EngineState<TState, TCommand> {
   return {
     machineStack: [],
     state: initialState,
     started: false,
+    history: [],
   };
 }
 
@@ -177,17 +192,47 @@ export function advance<TState>(
   return resolveNext({ ...engine, state });
 }
 
-export function doAction<TState, TArgs extends unknown[]>(
-  engine: EngineState<TState>,
-  action: ActionFn<TState, TArgs>,
-  ...args: TArgs
-): EngineState<TState> {
+export function dispatch<TState, TCommand extends { type: string }>(
+  engine: EngineState<TState, TCommand>,
+  command: TCommand,
+): EngineState<TState, TCommand> {
   if (!engine.started)
-    throw new Error("Cannot perform action: machine not started");
+    throw new Error("Cannot dispatch: machine not started");
+
+  const handler = findActionHandler(engine, command.type);
+  if (!handler) {
+    const machine = peek(engine.machineStack);
+    const stateName = machine?.currentState ?? "unknown";
+    throw new Error(
+      `No handler for command '${command.type}' in state '${stateName}'`,
+    );
+  }
+
+  if (handler.validate && !handler.validate(engine.state, command)) {
+    throw new Error(
+      `Command '${command.type}' failed validation in current state`,
+    );
+  }
+
   return {
     ...engine,
-    state: action(engine.state, ...args),
+    state: handler.execute(engine.state, command),
+    history: [...engine.history, command],
   };
+}
+
+export function canDispatch<TState, TCommand extends { type: string }>(
+  engine: EngineState<TState, TCommand>,
+  command: TCommand,
+): boolean {
+  if (!engine.started) return false;
+
+  const handler = findActionHandler(engine, command.type);
+  if (!handler) return false;
+
+  if (handler.validate) return handler.validate(engine.state, command);
+
+  return true;
 }
 
 export function getCurrentState<TState>(engine: EngineState<TState>): string[] {
@@ -204,11 +249,14 @@ export function getMachineCurrentState<TState>(
   return machine.currentState;
 }
 
-export class StateMachineEngine<TState> {
-  private config: StateMachineConfig<TState>;
-  private engineState: EngineState<TState>;
+export class StateMachineEngine<
+  TState,
+  TCommand extends { type: string } = any,
+> {
+  private config: StateMachineConfig<TState, TCommand>;
+  private engineState: EngineState<TState, TCommand>;
 
-  public get machineStack(): readonly MachineRuntimeState<TState>[] {
+  public get machineStack(): readonly MachineRuntimeState<TState, TCommand>[] {
     return this.engineState.machineStack;
   }
   public get state(): TState {
@@ -217,8 +265,14 @@ export class StateMachineEngine<TState> {
   public get currentState(): string[] {
     return getCurrentState(this.engineState);
   }
+  public get history(): readonly TCommand[] {
+    return this.engineState.history;
+  }
 
-  constructor(config: StateMachineConfig<TState>, initialState: TState) {
+  constructor(
+    config: StateMachineConfig<TState, TCommand>,
+    initialState: TState,
+  ) {
     this.config = config;
     this.engineState = createEngine(initialState);
   }
@@ -231,11 +285,12 @@ export class StateMachineEngine<TState> {
     this.engineState = advance(this.engineState);
   }
 
-  public doAction<TArgs extends unknown[]>(
-    action: ActionFn<TState, TArgs>,
-    ...args: TArgs
-  ) {
-    this.engineState = doAction(this.engineState, action, ...args);
+  public dispatch(command: TCommand) {
+    this.engineState = dispatch(this.engineState, command);
+  }
+
+  public canDispatch(command: TCommand): boolean {
+    return canDispatch(this.engineState, command);
   }
 
   public getCurrentStateForMachine(machineId: string) {
