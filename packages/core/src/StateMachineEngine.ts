@@ -46,9 +46,18 @@ function startMachine<TState>(
   config: StateMachineConfig<TState>,
 ): EngineState<TState> {
   const state = config.onEnter ? config.onEnter(engine.state) : engine.state;
+  const initial =
+    typeof config.initial === "function"
+      ? config.initial(state)
+      : config.initial;
+  if (!(initial in config.states)) {
+    throw new Error(
+      `Machine '${config.id}': initial state '${initial}' not found in states [${Object.keys(config.states).join(", ")}]`,
+    );
+  }
   const machineEntry: MachineRuntimeState<TState> = {
     config,
-    currentState: config.initial,
+    currentState: initial,
   };
   const newEngine: EngineState<TState> = {
     ...engine,
@@ -56,7 +65,7 @@ function startMachine<TState>(
     state,
   };
 
-  return transitionTo(newEngine, config.states[config.initial]);
+  return transitionTo(newEngine, config.states[initial]);
 }
 
 /**
@@ -72,6 +81,12 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
 
   if (nextStateName === null) {
     return completeMachine(engine);
+  }
+
+  if (!(nextStateName in machine.config.states)) {
+    throw new Error(
+      `Machine '${machine.config.id}': getNext returned '${nextStateName}' from state '${machine.currentState}', but it was not found in states [${Object.keys(machine.config.states).join(", ")}]`,
+    );
   }
 
   const nextStateConfig = machine.config.states[nextStateName];

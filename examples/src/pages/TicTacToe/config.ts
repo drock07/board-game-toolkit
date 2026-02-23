@@ -40,7 +40,7 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
     },
     game: {
       id: "game",
-      initial: "whoStarts",
+      initial: (state) => state.playerTurn!,
       onEnter: (state) => {
         return {
           ...state,
@@ -50,10 +50,6 @@ export const ticTacToeConfig: StateMachineConfig<TicTacToeState> = {
         };
       },
       states: {
-        whoStarts: {
-          autoadvance: true,
-          getNext: (state) => state.playerTurn,
-        },
         player: {
           onExit: (state) => ({
             ...state,

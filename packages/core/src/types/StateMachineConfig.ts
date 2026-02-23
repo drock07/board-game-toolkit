@@ -33,7 +33,7 @@ export interface StateMachineConfig<TState = any> extends BaseConfig<TState> {
   /** Unique identifier for this machine */
   id: string;
   /** Initial state when this machine starts */
-  initial: string;
+  initial: string | ((state: TState) => string);
   /** States in this machine (can be StateConfig or nested StateMachineConfig) */
   states: Record<string, StateConfig<TState> | StateMachineConfig<TState>>;
 }
