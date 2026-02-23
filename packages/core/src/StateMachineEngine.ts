@@ -175,6 +175,10 @@ export function doAction<TState, TArgs extends unknown[]>(
   };
 }
 
+export function getCurrentState<TState>(engine: EngineState<TState>): string[] {
+  return [...engine.machineStack].reverse().map((m) => m.currentState);
+}
+
 export class StateMachineEngine<TState> {
   private config: StateMachineConfig<TState>;
   private engineState: EngineState<TState>;
@@ -184,6 +188,9 @@ export class StateMachineEngine<TState> {
   }
   public get state(): TState {
     return this.engineState.state;
+  }
+  public get currentState(): string[] {
+    return getCurrentState(this.engineState);
   }
 
   constructor(config: StateMachineConfig<TState>, initialState: TState) {
