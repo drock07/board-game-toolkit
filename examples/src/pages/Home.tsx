@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import { Link, type To } from "react-router";
 import PageLayout from "../components/PageLayout";
-import TicTacToePreview from "./TicTacToe/TicTacToePreview";
 import BlackjackPreview from "./Blackjack/BlackjackPreview";
-import YahtzeePreview from "./Yahtzee/YahtzeePreview";
 import DungeonCrawlPreview from "./DungeonCrawl/DungeonCrawlPreview";
+import TicTacToePreview from "./TicTacToe/TicTacToePreview";
+import YahtzeePreview from "./Yahtzee/YahtzeePreview";
 
 export default function Home() {
   return (
-    <PageLayout>
+    <PageLayout className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="text-2xl font-bold">Examples</h1>
       <p className="mt-2 text-gray-600">
         Sample games built with Board Game Toolkit.

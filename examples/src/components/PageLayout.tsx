@@ -5,17 +5,19 @@ interface PageLayoutProps {
   title?: string;
   tools?: ReactNode;
   children: ReactNode;
+  className?: string;
 }
 
 export default function PageLayout({
   title,
   tools,
   children,
+  className,
 }: PageLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="grid size-full grid-cols-1 grid-rows-[auto_1fr] overflow-hidden bg-gray-50 text-gray-900">
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4">
+        <div className="flex items-center gap-4 px-6 py-4">
           {title && (
             <Link
               to="/"
@@ -37,9 +39,7 @@ export default function PageLayout({
             </Link>
           )}
 
-          <Link to="/" className="text-lg font-semibold">
-            Board Game Toolkit
-          </Link>
+          <span className="text-lg font-semibold">Board Game Toolkit</span>
 
           {title && (
             <span className="text-sm font-medium text-gray-700">{title}</span>
@@ -49,7 +49,7 @@ export default function PageLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-10">{children}</main>
+      <main className={className}>{children}</main>
     </div>
   );
 }
