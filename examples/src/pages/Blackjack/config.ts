@@ -1,37 +1,20 @@
 import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
-
-// --- Card Types ---
-
-export type Suit = "hearts" | "diamonds" | "clubs" | "spades";
-export type Rank =
-  | "A"
-  | "2"
-  | "3"
-  | "4"
-  | "5"
-  | "6"
-  | "7"
-  | "8"
-  | "9"
-  | "10"
-  | "J"
-  | "Q"
-  | "K";
-
-export interface Card {
-  suit: Suit;
-  rank: Rank;
-}
+import {
+  type PlayingCard,
+  createPlayingCardDeck,
+  shuffle,
+  drawOne,
+} from "@drock07/board-game-toolkit-core";
 
 // --- Game State ---
 
 export interface BlackjackState {
-  deck: Card[];
-  playerHand: Card[];
-  dealerHand: Card[];
+  deck: PlayingCard[];
+  playerHand: PlayingCard[];
+  dealerHand: PlayingCard[];
   playerMoney: number;
   bet: number;
-  playerStood: boolean;
+  playerAction: "hit" | "stand" | null;
   result: "win" | "lose" | "push" | "blackjack" | null;
 }
 
@@ -40,50 +23,15 @@ export type BlackjackCommand =
   | { type: "hit" }
   | { type: "stand" };
 
-// --- Helpers ---
+// --- Blackjack-specific Helpers ---
 
-const SUITS: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
-const RANKS: Rank[] = [
-  "A",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "J",
-  "Q",
-  "K",
-];
-
-function createDeck(): Card[] {
-  const deck: Card[] = [];
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      deck.push({ suit, rank });
-    }
-  }
-  return deck;
+function cardValue(card: PlayingCard): number {
+  if (card.rank === "A") return 11;
+  if (["K", "Q", "J"].includes(card.rank)) return 10;
+  return parseInt(card.rank);
 }
 
-function shuffleDeck(deck: Card[]): Card[] {
-  const shuffled = [...deck];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-function drawCard(deck: Card[]): [Card, Card[]] {
-  const [card, ...rest] = deck;
-  return [card, rest];
-}
-
-export function handTotal(hand: Card[]): number {
+export function handTotal(hand: PlayingCard[]): number {
   let total = hand.reduce((sum, card) => sum + cardValue(card), 0);
   let aces = hand.filter((c) => c.rank === "A").length;
   while (total > 21 && aces > 0) {
@@ -91,29 +39,6 @@ export function handTotal(hand: Card[]): number {
     aces--;
   }
   return total;
-}
-
-function cardValue(card: Card): number {
-  if (card.rank === "A") return 11;
-  if (["K", "Q", "J"].includes(card.rank)) return 10;
-  return parseInt(card.rank);
-}
-
-export function suitSymbol(suit: Suit): string {
-  switch (suit) {
-    case "hearts":
-      return "♥";
-    case "diamonds":
-      return "♦";
-    case "clubs":
-      return "♣";
-    case "spades":
-      return "♠";
-  }
-}
-
-export function isRedSuit(suit: Suit): boolean {
-  return suit === "hearts" || suit === "diamonds";
 }
 
 // --- Initial State ---
@@ -124,7 +49,7 @@ export const initialState: BlackjackState = {
   dealerHand: [],
   playerMoney: 1000,
   bet: 0,
-  playerStood: false,
+  playerAction: null,
   result: null,
 };
 
@@ -140,11 +65,11 @@ export const blackjackConfig: StateMachineConfig<
     betting: {
       onEnter: (state) => ({
         ...state,
-        deck: shuffleDeck(createDeck()),
+        deck: shuffle(createPlayingCardDeck()),
         playerHand: [],
         dealerHand: [],
         bet: 0,
-        playerStood: false,
+        playerAction: null,
         result: null,
       }),
       actions: {
@@ -163,18 +88,18 @@ export const blackjackConfig: StateMachineConfig<
     dealing: {
       autoadvance: true,
       onEnter: (state) => {
-        let deck = [...state.deck];
-        const playerHand: Card[] = [];
-        const dealerHand: Card[] = [];
+        let deck = state.deck;
+        const playerHand: PlayingCard[] = [];
+        const dealerHand: PlayingCard[] = [];
 
-        let card: Card;
-        [card, deck] = drawCard(deck);
+        let card: PlayingCard;
+        [card, deck] = drawOne(deck);
         playerHand.push(card);
-        [card, deck] = drawCard(deck);
+        [card, deck] = drawOne(deck);
         dealerHand.push(card);
-        [card, deck] = drawCard(deck);
+        [card, deck] = drawOne(deck);
         playerHand.push(card);
-        [card, deck] = drawCard(deck);
+        [card, deck] = drawOne(deck);
         dealerHand.push(card);
 
         return { ...state, deck, playerHand, dealerHand };
@@ -185,21 +110,26 @@ export const blackjackConfig: StateMachineConfig<
       },
     },
     playerTurn: {
-      onEnter: (state) => ({ ...state, playerStood: false }),
+      onEnter: (state) => ({ ...state, playerAction: null }),
       actions: {
         hit: {
           validate: (state) => handTotal(state.playerHand) < 21,
           execute: (state) => {
-            const [card, deck] = drawCard(state.deck);
-            return { ...state, deck, playerHand: [...state.playerHand, card] };
+            const [card, deck] = drawOne(state.deck);
+            return {
+              ...state,
+              deck,
+              playerHand: [...state.playerHand, card],
+              playerAction: "hit",
+            };
           },
         },
         stand: {
-          execute: (state) => ({ ...state, playerStood: true }),
+          execute: (state) => ({ ...state, playerAction: "stand" }),
         },
       },
       getNext: (state) => {
-        if (state.playerStood || handTotal(state.playerHand) === 21)
+        if (state.playerAction === "stand" || handTotal(state.playerHand) === 21)
           return "dealerTurn";
         if (handTotal(state.playerHand) > 21) return "settle";
         return "playerTurn";
@@ -208,12 +138,12 @@ export const blackjackConfig: StateMachineConfig<
     dealerTurn: {
       autoadvance: true,
       onEnter: (state) => {
-        let deck = [...state.deck];
+        let deck = state.deck;
         const dealerHand = [...state.dealerHand];
         while (handTotal(dealerHand) < 17) {
-          const [card, rest] = drawCard(deck);
+          let card: PlayingCard;
+          [card, deck] = drawOne(deck);
           dealerHand.push(card);
-          deck = rest;
         }
         return { ...state, deck, dealerHand };
       },

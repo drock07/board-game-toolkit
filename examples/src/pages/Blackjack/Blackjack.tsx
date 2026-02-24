@@ -1,4 +1,11 @@
 import {
+  type PlayingCard as PlayingCardType,
+  isPlayingCardRedSuit,
+  playingCardSuitSymbol,
+} from "@drock07/board-game-toolkit-core";
+import {
+  CardBack,
+  CardShape,
   useStateMachineActions,
   useStateMachineCurrentState,
   useStateMachineState,
@@ -10,11 +17,8 @@ import {
   blackjackConfig,
   type BlackjackCommand,
   type BlackjackState,
-  type Card as CardType,
   handTotal,
   initialState,
-  isRedSuit,
-  suitSymbol,
 } from "./config";
 
 export function Blackjack() {
@@ -146,7 +150,7 @@ function Hand({
   showTotal,
 }: {
   label: string;
-  cards: CardType[];
+  cards: PlayingCardType[];
   hiddenIndexes?: number[];
   showTotal?: boolean;
 }) {
@@ -171,7 +175,7 @@ function Hand({
       <div className="flex flex-wrap gap-2">
         {cards.length > 0 ? (
           cards.map((card, i) => (
-            <PlayingCard
+            <PlayingCardView
               key={i}
               card={card}
               faceDown={hiddenIndexes?.includes(i)}
@@ -219,32 +223,24 @@ function ResultBanner({
   );
 }
 
-function PlayingCard({
+function PlayingCardView({
   card,
   faceDown,
 }: {
-  card: CardType;
+  card: PlayingCardType;
   faceDown?: boolean;
 }) {
   if (faceDown) {
-    return (
-      <div className="flex h-24 w-16 items-center justify-center rounded-lg border-2 border-blue-200 bg-blue-50 shadow-sm">
-        <div className="grid grid-cols-3 gap-1 opacity-30">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-          ))}
-        </div>
-      </div>
-    );
+    return <CardBack />;
   }
 
-  const red = isRedSuit(card.suit);
-  const symbol = suitSymbol(card.suit);
+  const red = isPlayingCardRedSuit(card.suit);
+  const symbol = playingCardSuitSymbol(card.suit);
 
   return (
-    <div
+    <CardShape
       className={clsx(
-        "flex h-24 w-16 flex-col rounded-lg border border-gray-200 bg-white p-1.5 shadow-sm",
+        "flex flex-col border border-gray-200 bg-white p-1.5 shadow-sm",
         red ? "text-red-500" : "text-gray-900",
       )}
     >
@@ -255,14 +251,12 @@ function PlayingCard({
       <div className="flex flex-1 items-center justify-center text-xl">
         {symbol}
       </div>
-    </div>
+    </CardShape>
   );
 }
 
 function CardPlaceholder() {
-  return (
-    <div className="flex h-24 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300" />
-  );
+  return <CardShape className="border border-dashed border-gray-300" />;
 }
 
 export default withStateMachineContext(
