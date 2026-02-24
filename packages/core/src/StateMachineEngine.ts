@@ -4,10 +4,7 @@ import {
   StateConfig,
   StateMachineConfig,
 } from "./types/StateMachineConfig";
-import {
-  EngineState,
-  MachineRuntimeState,
-} from "./types/StateMachineEngine";
+import { EngineState, MachineRuntimeState } from "./types/StateMachineEngine";
 
 function peek<TState>(
   stack: MachineRuntimeState<TState>[],
@@ -196,8 +193,7 @@ export function dispatch<TState, TCommand extends { type: string }>(
   engine: EngineState<TState, TCommand>,
   command: TCommand,
 ): EngineState<TState, TCommand> {
-  if (!engine.started)
-    throw new Error("Cannot dispatch: machine not started");
+  if (!engine.started) throw new Error("Cannot dispatch: machine not started");
 
   const handler = findActionHandler(engine, command.type);
   if (!handler) {
