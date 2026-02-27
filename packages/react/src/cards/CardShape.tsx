@@ -1,7 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-
-const DEFAULT_CARD_WIDTH = 64;
-const DEFAULT_ASPECT_RATIO = 5 / 7;
+import { useCardDimensionsContext } from "./CardDimensionsContext";
 
 export interface CardShapeProps {
   /** Card width in pixels. Height is derived from aspectRatio. Default: 64 */
@@ -19,17 +17,21 @@ export interface CardShapeProps {
 }
 
 export function CardShape({
-  cardWidth = DEFAULT_CARD_WIDTH,
-  aspectRatio = DEFAULT_ASPECT_RATIO,
+  cardWidth: customWidth,
+  aspectRatio: customAspectRatio,
   className,
   style,
   children,
   overlay,
 }: CardShapeProps) {
-  const borderRadius = Math.round(cardWidth * 0.08);
+  const { width: inheritedWidth, aspectRatio: inheritedAspectRatio } =
+    useCardDimensionsContext();
+  const width = customWidth ?? inheritedWidth;
+  const aspectRatio = customAspectRatio ?? inheritedAspectRatio;
+  const borderRadius = Math.round(width * 0.08);
 
   const defaultStyle: CSSProperties = {
-    width: cardWidth,
+    width: width,
     aspectRatio: `${aspectRatio}`,
     borderRadius,
     overflow: "hidden",
@@ -45,7 +47,7 @@ export function CardShape({
   if (!overlay) return card;
 
   return (
-    <div style={{ position: "relative", width: cardWidth }}>
+    <div style={{ position: "relative", width: width }}>
       {card}
       {overlay}
     </div>

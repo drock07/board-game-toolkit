@@ -8,22 +8,70 @@ export default function DungeonCrawlPreview() {
         const x = 10 + col * 25;
         const y = 10 + row * 25;
         return (
-          <rect key={i} x={x} y={y} width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1" strokeOpacity="0.2" />
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width="25"
+            height="25"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeOpacity="0.4"
+          />
         );
       })}
 
       {/* Player token */}
-      <circle cx={22.5} cy={22.5} r="6" className="fill-blue-500" opacity="0.6" />
+      <circle
+        cx={22.5}
+        cy={22.5}
+        r="6"
+        className="fill-blue-500"
+        opacity="0.8"
+      />
 
       {/* Enemy token */}
-      <circle cx={72.5} cy={72.5} r="6" className="fill-red-500" opacity="0.4" />
+      <circle
+        cx={72.5}
+        cy={72.5}
+        r="6"
+        className="fill-red-500"
+        opacity="0.6"
+      />
 
       {/* Treasure */}
-      <rect x={55} y={17} width="10" height="10" rx="1" className="fill-yellow-400" opacity="0.5" />
+      <rect
+        x={55}
+        y={17}
+        width="10"
+        height="10"
+        rx="1"
+        className="fill-yellow-400"
+        opacity="0.8"
+      />
 
       {/* Sword icon */}
-      <line x1="30" y1="80" x2="45" y2="65" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" strokeLinecap="round" />
-      <line x1="43" y1="67" x2="47" y2="63" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" strokeLinecap="round" />
+      <line
+        x1="30"
+        y1="80"
+        x2="45"
+        y2="65"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeOpacity="0.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="43"
+        y1="67"
+        x2="47"
+        y2="63"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeOpacity="0.4"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

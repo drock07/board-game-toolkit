@@ -2,8 +2,8 @@ import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
 import {
   type PlayingCard,
   createPlayingCardDeck,
-  shuffle,
   drawOne,
+  shuffle,
 } from "@drock07/board-game-toolkit-core";
 
 // --- Game State ---
@@ -47,7 +47,7 @@ export const initialState: BlackjackState = {
   deck: [],
   playerHand: [],
   dealerHand: [],
-  playerMoney: 1000,
+  playerMoney: 100,
   bet: 0,
   playerAction: null,
   result: null,
@@ -129,7 +129,10 @@ export const blackjackConfig: StateMachineConfig<
         },
       },
       getNext: (state) => {
-        if (state.playerAction === "stand" || handTotal(state.playerHand) === 21)
+        if (
+          state.playerAction === "stand" ||
+          handTotal(state.playerHand) === 21
+        )
           return "dealerTurn";
         if (handTotal(state.playerHand) > 21) return "settle";
         return "playerTurn";

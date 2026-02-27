@@ -1,25 +1,27 @@
 import {
-  type PlayingCard as PlayingCardType,
-  isPlayingCardRedSuit,
-  playingCardSuitSymbol,
-} from "@drock07/board-game-toolkit-core";
-import {
   CardBack,
+  CardDimensionsContext,
   CardShape,
+  StandardPlayingCard,
   useStateMachineActions,
   useStateMachineCurrentState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
-import PageLayout from "../../components/PageLayout";
+import PageLayout, {
+  GlassButton,
+  GlassContainer,
+} from "../../components/PageLayout";
 import {
-  blackjackConfig,
   type BlackjackCommand,
   type BlackjackState,
+  blackjackConfig,
   handTotal,
   initialState,
 } from "./config";
+
+const CARD_WIDTH = 150;
 
 export function Blackjack() {
   const currentStates = useStateMachineCurrentState<BlackjackState>();
@@ -34,160 +36,158 @@ export function Blackjack() {
   const isSettled = currentStates.includes("settle");
   const isGameOver = currentStates.includes("gameOver");
   const dealerHidden = isPlayerTurn;
-  const hasCards = state.playerHand.length > 0;
 
   return (
-    <PageLayout title="Blackjack">
-      <div className="mx-auto max-w-md space-y-6">
-        {/* Money & Bet */}
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-semibold">${state.playerMoney}</span>
-          {state.bet > 0 && (
-            <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
-              Bet: ${state.bet}
-            </span>
-          )}
-        </div>
-
-        {/* Dealer Hand */}
-        <Hand
-          label="Dealer"
-          cards={state.dealerHand}
-          hiddenIndexes={dealerHidden ? [1] : undefined}
-          showTotal={hasCards && !dealerHidden}
-        />
-
-        {/* Player Hand */}
-        <Hand
-          label="You"
-          cards={state.playerHand}
-          showTotal={hasCards}
-        />
-
-        {/* Result Banner */}
-        {isSettled && <ResultBanner result={state.result} busted={handTotal(state.playerHand) > 21} />}
-
-        {isGameOver && (
-          <div className="rounded-lg bg-gray-100 p-4 text-center">
-            <p className="text-lg font-bold text-gray-700">Game Over</p>
-            <p className="text-sm text-gray-500">Out of money.</p>
-          </div>
-        )}
-
-        {/* Controls */}
-        <div className="flex flex-wrap gap-2">
-          {isBetting && (
-            <>
-              <p className="w-full text-sm text-gray-500">Place your bet</p>
-              {[10, 25, 50, 100].map((amount) => (
-                <button
-                  key={amount}
-                  disabled={amount > state.playerMoney}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+    <CardDimensionsContext width={150}>
+      <PageLayout
+        title="Blackjack"
+        topRight={
+          <>
+            {state.bet > 0 && (
+              <GlassContainer className="text-sm font-medium">
+                Bet: ${state.bet}
+              </GlassContainer>
+            )}
+            <GlassContainer className="text-lg font-semibold">
+              ${state.playerMoney}
+            </GlassContainer>
+          </>
+        }
+        bottomCenter={
+          <>
+            {isBetting && (
+              <>
+                <div className="flex flex-col items-center gap-1">
+                  <div className="text-sm text-white">Bet:</div>
+                  <div className="flex gap-2">
+                    {[10, 25, 50, 100].map((amount) => (
+                      <GlassButton
+                        key={amount}
+                        circle
+                        disabled={!isBetting || amount > state.playerMoney}
+                        onClick={() => {
+                          dispatch({ type: "placeBet", amount });
+                          advance();
+                        }}
+                      >
+                        ${amount}
+                      </GlassButton>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            {isPlayerTurn && (
+              <>
+                <GlassButton
+                  disabled={!isPlayerTurn}
                   onClick={() => {
-                    dispatch({ type: "placeBet", amount });
+                    dispatch({ type: "hit" });
                     advance();
                   }}
                 >
-                  ${amount}
-                </button>
-              ))}
-            </>
-          )}
+                  Hit
+                </GlassButton>
+                <GlassButton
+                  disabled={!isPlayerTurn}
+                  onClick={() => {
+                    dispatch({ type: "stand" });
+                    advance();
+                  }}
+                >
+                  Stand
+                </GlassButton>
+              </>
+            )}
+            {isSettled && (
+              <GlassButton onClick={() => advance()}>Deal Again</GlassButton>
+            )}
+            {isGameOver && (
+              <GlassButton onClick={() => advance()}>Play Again</GlassButton>
+            )}
+          </>
+        }
+      >
+        <div className="relative flex size-full flex-col text-white">
+          <PageLayout.SafeInset />
+          <div className="flex flex-1 flex-col overflow-auto">
+            <div className="flex flex-1 flex-col items-center justify-center gap-4">
+              {/* dealer hand */}
+              <div className="flex flex-col">
+                <div className="mb-12 text-center text-2xl">
+                  Dealer{" "}
+                  {dealerHidden || handTotal(state.dealerHand) === 0
+                    ? null
+                    : ` (${handTotal(state.dealerHand)})`}
+                </div>
+                {state.dealerHand.length > 0 ? (
+                  dealerHidden ? (
+                    <div className="relative translate-x-4">
+                      <CardBack className="absolute -top-8 -left-8" />
+                      <StandardPlayingCard card={state.dealerHand[1]} />
+                    </div>
+                  ) : (
+                    <div className="flex gap-4">
+                      {state.dealerHand.map((card) => (
+                        <StandardPlayingCard
+                          key={`${card.rank}${card.suit}`}
+                          card={card}
+                        />
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <CardPlaceholder />
+                )}
+              </div>
 
-          {isPlayerTurn && (
-            <>
-              <button
-                className="rounded-lg border border-gray-300 bg-white px-6 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
-                onClick={() => {
-                  dispatch({ type: "hit" });
-                  advance();
-                }}
-              >
-                Hit
-              </button>
-              <button
-                className="rounded-lg border border-gray-300 bg-white px-6 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
-                onClick={() => {
-                  dispatch({ type: "stand" });
-                  advance();
-                }}
-              >
-                Stand
-              </button>
-            </>
-          )}
+              {/* messages */}
+              <div className="flex h-22 items-center justify-center">
+                {isSettled && (
+                  <ResultBanner
+                    result={state.result}
+                    busted={handTotal(state.playerHand) > 21}
+                  />
+                )}
+              </div>
 
-          {isSettled && (
-            <button
-              className="rounded-lg border border-gray-300 bg-white px-6 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
-              onClick={() => advance()}
-            >
-              Deal Again
-            </button>
-          )}
-
+              {/* player hand */}
+              <div>
+                <div className="flex gap-4">
+                  {state.playerHand.length > 0 ? (
+                    state.playerHand.map((card) => (
+                      <StandardPlayingCard
+                        key={`${card.rank}${card.suit}`}
+                        card={card}
+                      />
+                    ))
+                  ) : (
+                    <CardPlaceholder />
+                  )}
+                </div>
+                <div className="mt-4 text-center text-2xl">
+                  You
+                  {handTotal(state.playerHand) === 0
+                    ? null
+                    : ` (${handTotal(state.playerHand)})`}
+                </div>
+              </div>
+            </div>
+            <div className="h-24 w-full" />
+          </div>
           {isGameOver && (
-            <button
-              className="rounded-lg border border-gray-300 bg-white px-6 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
-              onClick={() => advance()}
-            >
-              Play Again
-            </button>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-gray-100 p-4 text-center">
+              <p className="text-lg font-bold text-gray-700">Game Over</p>
+              <p className="text-sm text-gray-500">Out of money.</p>
+            </div>
           )}
         </div>
-      </div>
-    </PageLayout>
+      </PageLayout>
+    </CardDimensionsContext>
   );
 }
 
 // --- Sub-components ---
-
-function Hand({
-  label,
-  cards,
-  hiddenIndexes,
-  showTotal,
-}: {
-  label: string;
-  cards: PlayingCardType[];
-  hiddenIndexes?: number[];
-  showTotal?: boolean;
-}) {
-  const total = handTotal(cards);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <h3 className="text-sm font-medium text-gray-500">{label}</h3>
-        {showTotal && (
-          <span
-            className={clsx("text-sm", {
-              "text-red-500": total > 21,
-              "text-green-600": total === 21,
-              "text-gray-400": total < 21,
-            })}
-          >
-            {total}
-          </span>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {cards.length > 0 ? (
-          cards.map((card, i) => (
-            <PlayingCardView
-              key={i}
-              card={card}
-              faceDown={hiddenIndexes?.includes(i)}
-            />
-          ))
-        ) : (
-          <CardPlaceholder />
-        )}
-      </div>
-    </div>
-  );
-}
 
 function ResultBanner({
   result,
@@ -223,40 +223,12 @@ function ResultBanner({
   );
 }
 
-function PlayingCardView({
-  card,
-  faceDown,
-}: {
-  card: PlayingCardType;
-  faceDown?: boolean;
-}) {
-  if (faceDown) {
-    return <CardBack />;
-  }
-
-  const red = isPlayingCardRedSuit(card.suit);
-  const symbol = playingCardSuitSymbol(card.suit);
-
+function CardPlaceholder({ className }: { className?: string }) {
   return (
     <CardShape
-      className={clsx(
-        "flex flex-col border border-gray-200 bg-white p-1.5 shadow-sm",
-        red ? "text-red-500" : "text-gray-900",
-      )}
-    >
-      <div className="leading-none">
-        <div className="text-sm font-bold">{card.rank}</div>
-        <div className="-mt-0.5 text-xs">{symbol}</div>
-      </div>
-      <div className="flex flex-1 items-center justify-center text-xl">
-        {symbol}
-      </div>
-    </CardShape>
+      className={clsx("border border-dashed border-gray-300", className)}
+    />
   );
-}
-
-function CardPlaceholder() {
-  return <CardShape className="border border-dashed border-gray-300" />;
 }
 
 export default withStateMachineContext(

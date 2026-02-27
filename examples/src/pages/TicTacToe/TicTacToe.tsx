@@ -9,14 +9,14 @@ import clsx from "clsx";
 import PageLayout from "../../components/PageLayout";
 import {
   initialState,
-  ticTacToeConfig,
   TicTacToeCommand,
+  ticTacToeConfig,
   TicTacToeState,
 } from "./config";
 
 export function TicTacToe() {
   const currentStates = useStateMachineCurrentState<TicTacToeState>();
-  const { marks, playerTurn, winner } = useStateMachineState<TicTacToeState>();
+  const { marks, winner } = useStateMachineState<TicTacToeState>();
   const { advance, dispatch } = useStateMachineActions<
     TicTacToeState,
     TicTacToeCommand
@@ -27,18 +27,10 @@ export function TicTacToe() {
 
   return (
     <PageLayout title="Tic-Tac-Toe">
-      <div className="mx-auto max-w-md space-y-4">
-        <p
-          className={clsx("text-lg font-medium", {
-            invisible: !isPlaying,
-            "text-blue-600": playerTurn === "player",
-            "text-red-500": playerTurn === "computer",
-          })}
-        >
-          {playerTurn === "player" ? "Your turn" : "Computer's turn"}
-        </p>
+      <div className="flex h-full flex-col items-center gap-4 px-4 pb-12">
+        <PageLayout.SafeInset />
 
-        <div className="relative">
+        <div className="relative aspect-square min-h-0 max-w-full flex-1">
           <div className={clsx({ "blur-sm": showOverlay })}>
             <Board
               marks={marks}
@@ -55,7 +47,7 @@ export function TicTacToe() {
           {showOverlay && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <State includes="end">
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-bold text-white">
                   {winner === "tie"
                     ? "It's a tie!"
                     : Array.isArray(winner) && winner[0] === "player"
@@ -65,7 +57,7 @@ export function TicTacToe() {
               </State>
 
               <button
-                className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-lg font-medium shadow-sm hover:bg-gray-50"
+                className="cursor-pointer rounded-lg border border-gray-300 bg-white px-6 py-3 text-lg font-medium shadow-sm hover:bg-gray-50"
                 onClick={() => advance()}
               >
                 {currentStates.includes("end") ? "Play again" : "Start"}
@@ -90,7 +82,7 @@ function Board({
   highlightCells?: readonly number[];
 }) {
   return (
-    <div className="grid aspect-square grid-cols-3 grid-rows-3 rounded-lg border border-gray-300 bg-gray-100">
+    <div className="grid aspect-square grid-cols-3 grid-rows-3">
       {Array.from({ length: 9 }).map((_, i) => {
         const isInteractive = !disabled && marks[i] === undefined;
         return (
@@ -100,19 +92,24 @@ function Board({
             aria-label={`Cell ${i + 1}${marks[i] ? `, ${marks[i]}` : ""}`}
             disabled={disabled || marks[i] !== undefined}
             className={clsx(
-              "flex items-center justify-center bg-white p-3",
+              "flex items-center justify-center p-3",
               "focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-blue-500",
               {
-                "border-r border-gray-300": i % 3 !== 2,
-                "border-b border-gray-300": i < 6,
-                "bg-green-100": highlightCells?.includes(i),
-                "cursor-pointer hover:bg-gray-50": isInteractive,
-                "cursor-default": !isInteractive,
+                "border-r-6 border-white": i % 3 !== 2,
+                "border-b-6 border-white": i < 6,
               },
             )}
             onClick={() => onCellClicked?.(i)}
           >
-            {marks[i] === "x" ? <X /> : marks[i] === "o" ? <O /> : null}
+            <div
+              className={clsx("size-full rounded-lg", {
+                "bg-green-100/20": highlightCells?.includes(i),
+                "cursor-pointer bg-white/10 hover:bg-white/20": isInteractive,
+                "cursor-default": !isInteractive,
+              })}
+            >
+              {marks[i] === "x" ? <X /> : marks[i] === "o" ? <O /> : null}
+            </div>
           </button>
         );
       })}
@@ -122,17 +119,48 @@ function Board({
 
 function O() {
   return (
-    <svg viewBox="0 0 100 100" className="size-full text-red-500" aria-hidden="true">
-      <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="10" />
+    <svg
+      viewBox="0 0 100 100"
+      className="size-full text-red-500"
+      aria-hidden="true"
+    >
+      <circle
+        cx="50"
+        cy="50"
+        r="40"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="10"
+      />
     </svg>
   );
 }
 
 function X() {
   return (
-    <svg viewBox="0 0 100 100" className="size-full text-blue-600" aria-hidden="true">
-      <line x1="10" y1="10" x2="90" y2="90" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-      <line x1="90" y1="10" x2="10" y2="90" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 100 100"
+      className="size-full text-blue-600"
+      aria-hidden="true"
+    >
+      <line
+        x1="10"
+        y1="10"
+        x2="90"
+        y2="90"
+        stroke="currentColor"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
+      <line
+        x1="90"
+        y1="10"
+        x2="10"
+        y2="90"
+        stroke="currentColor"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

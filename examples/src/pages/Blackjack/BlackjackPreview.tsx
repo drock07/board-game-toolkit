@@ -2,20 +2,101 @@ export default function BlackjackPreview() {
   return (
     <svg viewBox="0 0 120 120" className="size-24" aria-hidden="true">
       {/* Back card (dealer hidden) */}
-      <rect x="10" y="15" width="40" height="56" rx="4" fill="none" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
-      <line x1="15" y1="20" x2="45" y2="66" stroke="currentColor" strokeWidth="1" strokeOpacity="0.15" />
-      <line x1="45" y1="20" x2="15" y2="66" stroke="currentColor" strokeWidth="1" strokeOpacity="0.15" />
+      <rect
+        x="10"
+        y="15"
+        width="40"
+        height="56"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeOpacity="0.3"
+      />
+      <line
+        x1="15"
+        y1="20"
+        x2="45"
+        y2="66"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeOpacity="0.3"
+      />
+      <line
+        x1="45"
+        y1="20"
+        x2="15"
+        y2="66"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeOpacity="0.3"
+      />
 
       {/* Front card (dealer showing) */}
-      <rect x="30" y="10" width="40" height="56" rx="4" fill="white" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
-      <text x="36" y="28" fontSize="14" fontWeight="bold" fill="currentColor" opacity="0.5">K</text>
+      <rect
+        x="30"
+        y="10"
+        width="40"
+        height="56"
+        rx="4"
+        fill="currentColor"
+        stroke="#B8B8B8"
+        strokeWidth="2"
+        strokeOpacity="0.3"
+      />
+      <text
+        x="36"
+        y="28"
+        fontSize="14"
+        fontWeight="bold"
+        fill="#D63B11"
+        opacity="0.5"
+      >
+        K
+      </text>
 
       {/* Player cards */}
-      <rect x="50" y="58" width="40" height="56" rx="4" fill="white" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
-      <text x="56" y="76" fontSize="14" fontWeight="bold" className="fill-blue-500">A</text>
+      <rect
+        x="50"
+        y="58"
+        width="40"
+        height="56"
+        rx="4"
+        fill="currentColor"
+        stroke="#B8B8B8"
+        strokeWidth="2"
+        strokeOpacity="0.3"
+      />
+      <text
+        x="56"
+        y="76"
+        fontSize="14"
+        fontWeight="bold"
+        className="fill-blue-500"
+      >
+        A
+      </text>
 
-      <rect x="70" y="52" width="40" height="56" rx="4" fill="white" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
-      <text x="76" y="70" fontSize="14" fontWeight="bold" className="fill-blue-500">J</text>
+      <rect
+        x="70"
+        y="52"
+        width="40"
+        height="56"
+        rx="4"
+        fill="currentColor"
+        stroke="#B8B8B8"
+        strokeWidth="2"
+        strokeOpacity="0.3"
+      />
+      <text
+        x="76"
+        y="70"
+        fontSize="14"
+        fontWeight="bold"
+        className="fill-blue-500"
+      >
+        J
+      </text>
     </svg>
   );
 }
