@@ -34,7 +34,8 @@ export function StandardD6({
   pipColor = "black",
   borderColor = "#5b5b5b",
   ...props
-}: StandardD6Props & Omit<ComponentPropsWithoutRef<"svg">, "viewBox">) {
+}: StandardD6Props &
+  Omit<ComponentPropsWithoutRef<"svg">, keyof StandardD6Props | "viewBox">) {
   const faceValue = useRollingAnimation(value, Dice.D6, rolling);
 
   if (faceValue === null) {

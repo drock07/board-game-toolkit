@@ -1,4 +1,9 @@
-import type { CSSProperties, ReactNode } from "react";
+import {
+  forwardRef,
+  type ComponentPropsWithRef,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useCardDimensionsContext } from "./CardDimensionsContext";
 
 export interface CardShapeProps {
@@ -16,40 +21,53 @@ export interface CardShapeProps {
   overlay?: ReactNode;
 }
 
-export function CardShape({
-  cardWidth: customWidth,
-  aspectRatio: customAspectRatio,
-  className,
-  style,
-  children,
-  overlay,
-}: CardShapeProps) {
-  const { width: inheritedWidth, aspectRatio: inheritedAspectRatio } =
-    useCardDimensionsContext();
-  const width = customWidth ?? inheritedWidth;
-  const aspectRatio = customAspectRatio ?? inheritedAspectRatio;
-  const borderRadius = Math.round(width * 0.08);
+export const CardShape = forwardRef<
+  HTMLDivElement,
+  CardShapeProps & Omit<ComponentPropsWithRef<"div">, keyof CardShapeProps>
+>(
+  (
+    {
+      cardWidth: customWidth,
+      aspectRatio: customAspectRatio,
+      style,
+      children,
+      overlay,
+      ...props
+    },
+    ref,
+  ) => {
+    const { width: inheritedWidth, aspectRatio: inheritedAspectRatio } =
+      useCardDimensionsContext();
+    const width = customWidth ?? inheritedWidth;
+    const aspectRatio = customAspectRatio ?? inheritedAspectRatio;
+    const borderRadius = Math.round(width * 0.08);
 
-  const defaultStyle: CSSProperties = {
-    width: width,
-    aspectRatio: `${aspectRatio}`,
-    borderRadius,
-    overflow: "hidden",
-    boxSizing: "border-box",
-  };
+    const card = (
+      <div
+        ref={ref}
+        {...props}
+        style={{
+          ...{
+            width: width,
+            aspectRatio: `${aspectRatio}`,
+            borderRadius,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          },
+          ...style,
+        }}
+      >
+        {children}
+      </div>
+    );
 
-  const card = (
-    <div className={className} style={{ ...defaultStyle, ...style }}>
-      {children}
-    </div>
-  );
+    if (!overlay) return card;
 
-  if (!overlay) return card;
-
-  return (
-    <div style={{ position: "relative", width: width }}>
-      {card}
-      {overlay}
-    </div>
-  );
-}
+    return (
+      <div style={{ position: "relative", width: width }}>
+        {card}
+        {overlay}
+      </div>
+    );
+  },
+);

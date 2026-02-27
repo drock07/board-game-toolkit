@@ -100,11 +100,12 @@ export function GlassContainer({
 type GlassIconButtonProps<T extends React.ElementType = "button"> = {
   as?: T;
   icon: React.FC<{ className?: string }>;
-} & Omit<React.ComponentPropsWithoutRef<T>, "as" | "icon">;
+};
 export function GlassIconButton<T extends React.ElementType = "button">({
   icon: Icon,
   ...props
-}: GlassIconButtonProps<T>) {
+}: GlassIconButtonProps<T> &
+  Omit<React.ComponentPropsWithoutRef<T>, keyof GlassIconButtonProps<T>>) {
   return (
     <GlassButton {...(props as GlassButtonProps)}>
       <Icon className="size-6" />
@@ -115,12 +116,13 @@ export function GlassIconButton<T extends React.ElementType = "button">({
 type GlassButtonProps<T extends React.ElementType = "button"> = {
   as?: T;
   circle?: boolean;
-} & Omit<React.ComponentPropsWithoutRef<T>, "as" | "circle">;
+};
 export function GlassButton<T extends React.ElementType = "button">({
   as: Tag = "button" as T,
   circle = false,
   ...props
-}: GlassButtonProps<T>) {
+}: GlassButtonProps<T> &
+  Omit<React.ComponentPropsWithoutRef<T>, keyof GlassButtonProps<T>>) {
   const Component = Tag as React.ElementType;
   return (
     <Component
