@@ -1,5 +1,9 @@
-export type * from "./types/StateMachineConfig";
-export type * from "./types/StateMachineEngine";
+export type * from "./cards";
+export type * from "./dice";
+export type * from "./stateMachine";
 
-export * from "./StateMachineEngine";
-export * from "./cards";
+import * as Cards from "./cards";
+import * as Dice from "./dice";
+import * as StateMachine from "./stateMachine";
+
+export { Cards, Dice, StateMachine };

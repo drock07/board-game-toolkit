@@ -21,8 +21,6 @@ import {
   initialState,
 } from "./config";
 
-const CARD_WIDTH = 150;
-
 export function Blackjack() {
   const currentStates = useStateMachineCurrentState<BlackjackState>();
   const state = useStateMachineState<BlackjackState>();

@@ -14,19 +14,23 @@ export function shuffle<T>(items: T[]): T[] {
   }
   return shuffled;
 }
-
+/** Draws a single item from the front of the array. Returns `[item, remaining]`. */
+export function draw<T>(items: T[]): [T, T[]];
 /** Draws `count` items from the front of the array. Returns `[drawn, remaining]`. */
-export function draw<T>(items: T[], count: number): [T[], T[]] {
+export function draw<T>(items: T[], count: number): [T[], T[]];
+export function draw<T>(items: T[], count?: number): [T, T[]] | [T[], T[]] {
+  if (items.length === 0) {
+    throw new Error("Cannot draw from an empty collection");
+  }
+
+  if (count === undefined) {
+    return [items[0], items.slice(1)];
+  }
+
   if (count > items.length) {
     throw new Error(
       `Cannot draw ${count} items from collection of ${items.length}`,
     );
   }
   return [items.slice(0, count), items.slice(count)];
-}
-
-/** Draws a single item from the front of the array. Returns `[item, remaining]`. */
-export function drawOne<T>(items: T[]): [T, T[]] {
-  const [drawn, remaining] = draw(items, 1);
-  return [drawn[0], remaining];
 }

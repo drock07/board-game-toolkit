@@ -16,6 +16,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./dice": {
+      "types": "./dist/dice/index.d.ts",
+      "import": "./dist/dice/index.js"
+    },
+    "./cards": {
+      "types": "./dist/cards/index.d.ts",
+      "import": "./dist/cards/index.js"
+    },
+    "./stateMachine": {
+      "types": "./dist/stateMachine/index.d.ts",
+      "import": "./dist/stateMachine/index.js"
     }
   },
   "files": ["dist"],

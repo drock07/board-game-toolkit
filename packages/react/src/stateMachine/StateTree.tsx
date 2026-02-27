@@ -4,7 +4,7 @@ import {
   StateLeafModule,
   StateMachineModule,
   StateModule,
-} from "./types/StateModule";
+} from "./StateModule";
 
 export interface StateTreeProps<TState> {
   module: StateModule<TState>;

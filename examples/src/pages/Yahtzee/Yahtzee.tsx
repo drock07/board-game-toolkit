@@ -1,4 +1,5 @@
 import {
+  StandardD6,
   useStateMachineActions,
   useStateMachineCurrentState,
   useStateMachineState,
@@ -9,7 +10,6 @@ import { ReactNode } from "react";
 import PageLayout from "../../components/PageLayout";
 import {
   computeScoreSummary,
-  DieRoll,
   initialState,
   SCORE_INDEX,
   ScoreIndex,
@@ -29,64 +29,68 @@ export function Yahtzee() {
   const { grandTotal } = computeScoreSummary(score);
 
   return (
-    <PageLayout title="Yahtzee" className="flex size-full">
-      <div className="flex flex-1 flex-col items-center justify-center gap-8">
-        {currentState === "gameOver" ? (
-          <GameOverPanel grandTotal={grandTotal} onPlayAgain={advance} />
-        ) : (
-          <>
-            <div>{currentState === "roll" && `Roll ${roll}`}</div>
-            <div className="flex items-center gap-4">
-              {dice?.map((roll, i) => (
-                <Die
-                  key={i}
-                  pips={roll}
-                  outline={heldDice[i]}
-                  onClick={() => {
-                    if (currentState === "roll")
-                      dispatch({ type: "toggleHold", index: i });
-                  }}
-                />
-              )) ?? (
-                <>
-                  <Die />
-                  <Die />
-                  <Die />
-                  <Die />
-                  <Die />
-                </>
-              )}
-            </div>
-            <div>
-              <button
-                className="min-w-24 cursor-pointer rounded bg-indigo-500 p-3 text-white disabled:cursor-default disabled:bg-indigo-200"
-                disabled={
-                  currentState !== "setup" && !canDispatch({ type: "roll" })
-                }
-                onClick={() => {
-                  if (currentState === "roll") {
-                    dispatch({ type: "roll" });
+    <PageLayout title="Yahtzee">
+      <div className="flex size-full flex-col text-white">
+        <PageLayout.SafeInset />
+        <div className="p-4">
+          <HorizontalScoreSheet
+            score={score}
+            showHighlights={currentState === "scoreTurn"}
+            canClickScore={(index) => canDispatch({ type: "score", index })}
+            onScoreClicked={(index) => {
+              dispatch({ type: "score", index });
+              advance();
+            }}
+          />
+        </div>
+        <div className="flex-1">
+          {currentState === "gameOver" ? (
+            <GameOverPanel grandTotal={grandTotal} onPlayAgain={advance} />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-4">
+              <div>{currentState === "roll" && `Roll ${roll}`}</div>
+              <div className="flex items-center gap-4">
+                {dice?.map((roll, i) => (
+                  <StandardD6
+                    key={i}
+                    value={roll}
+                    className={clsx("size-24", {
+                      "rounded-xl outline-4 outline-gray-400": heldDice[i],
+                    })}
+                    onClick={() => {
+                      if (currentState === "roll")
+                        dispatch({ type: "toggleHold", index: i });
+                    }}
+                  />
+                )) ?? (
+                  <>
+                    <StandardD6 value={null} className="size-24" />
+                    <StandardD6 value={null} className="size-24" />
+                    <StandardD6 value={null} className="size-24" />
+                    <StandardD6 value={null} className="size-24" />
+                    <StandardD6 value={null} className="size-24" />
+                  </>
+                )}
+              </div>
+              <div>
+                <button
+                  className="min-w-24 cursor-pointer rounded bg-indigo-500 p-3 text-white disabled:cursor-default disabled:bg-indigo-200"
+                  disabled={
+                    currentState !== "setup" && !canDispatch({ type: "roll" })
                   }
-                  advance();
-                }}
-              >
-                Roll
-              </button>
+                  onClick={() => {
+                    if (currentState === "roll") {
+                      dispatch({ type: "roll" });
+                    }
+                    advance();
+                  }}
+                >
+                  Roll
+                </button>
+              </div>
             </div>
-          </>
-        )}
-      </div>
-
-      <div className="p-4">
-        <ScoreSheet
-          score={score}
-          showHighlights={currentState === "scoreTurn"}
-          canClickScore={(index) => canDispatch({ type: "score", index })}
-          onScoreClicked={(index) => {
-            dispatch({ type: "score", index });
-            advance();
-          }}
-        />
+          )}
+        </div>
       </div>
     </PageLayout>
   );
@@ -103,7 +107,7 @@ function GameOverPanel({
     <div className="flex flex-col items-center gap-6 text-center">
       <div>
         <div className="text-4xl font-bold text-gray-800">Game Over!</div>
-        <div className="mt-1 text-gray-500">Final score</div>
+        <div className="mt-1 text-white">Final score</div>
       </div>
       <div className="text-7xl font-bold text-amber-500">{grandTotal}</div>
       <button
@@ -112,296 +116,6 @@ function GameOverPanel({
       >
         Play Again
       </button>
-    </div>
-  );
-}
-
-function Die({
-  pips,
-  size = "size-16",
-  onClick,
-  outline = false,
-}: {
-  pips?: DieRoll;
-  size?: string;
-  onClick?: () => void;
-  outline?: boolean;
-}) {
-  if (!pips) {
-    return (
-      <div
-        className={clsx(
-          "flex items-center justify-center rounded-[20%] border bg-white text-3xl",
-          size,
-        )}
-      >
-        ?
-      </div>
-    );
-  }
-  return (
-    <svg
-      viewBox="0 0 30 30"
-      className={clsx("cursor-pointer rounded-[20%] border bg-white", size, {
-        "outline-4 outline-gray-300": outline,
-      })}
-      onClick={onClick}
-    >
-      {[1, 3, 5].includes(pips) && (
-        <circle cx={15} cy={15} r="2.5" fill="black" />
-      )}
-      {[4, 5, 6].includes(pips) && (
-        <circle cx={8} cy={8} r="2.5" fill="black" />
-      )}
-      {[2, 3, 4, 5, 6].includes(pips) && (
-        <circle cx={22} cy={8} r="2.5" fill="black" />
-      )}
-      {[2, 3, 4, 5, 6].includes(pips) && (
-        <circle cx={8} cy={22} r="2.5" fill="black" />
-      )}
-      {[4, 5, 6].includes(pips) && (
-        <circle cx={22} cy={22} r="2.5" fill="black" />
-      )}
-      {pips === 6 && (
-        <>
-          <circle cx={8} cy={15} r="2.5" fill="black" />
-          <circle cx={22} cy={15} r="2.5" fill="black" />
-        </>
-      )}
-    </svg>
-  );
-}
-
-function ScoreSheet({
-  score,
-  showHighlights = false,
-  canClickScore,
-  onScoreClicked,
-}: {
-  score: YahtzeeState["score"];
-  showHighlights?: boolean;
-  canClickScore?: (index: ScoreIndex) => boolean;
-  onScoreClicked?: (index: ScoreIndex) => void;
-}) {
-  const { upperSubtotal, upperBonus, upperTotal, lowerTotal, grandTotal } =
-    computeScoreSummary(score);
-
-  return (
-    <div className="w-52 overflow-hidden rounded-lg border border-gray-300 bg-white text-xs shadow-sm">
-      <SectionHeader>Upper Section</SectionHeader>
-      <ScoreRow
-        value={score[SCORE_INDEX.aces]}
-        label="Aces"
-        hint={
-          <>
-            Count all <Die pips={1} size="size-4" />
-          </>
-        }
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.aces)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.aces)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.twos]}
-        label="Twos"
-        hint={
-          <>
-            Count all <Die pips={2} size="size-4" />
-          </>
-        }
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.twos)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.twos)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.threes]}
-        label="Threes"
-        hint={
-          <>
-            Count all <Die pips={3} size="size-4" />
-          </>
-        }
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.threes)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.threes)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.fours]}
-        label="Fours"
-        hint={
-          <>
-            Count all <Die pips={4} size="size-4" />
-          </>
-        }
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.fours)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fours)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.fives]}
-        label="Fives"
-        hint={
-          <>
-            Count all <Die pips={5} size="size-4" />
-          </>
-        }
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.fives)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fives)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.sixes]}
-        label="Sixes"
-        hint={
-          <>
-            Count all <Die pips={6} size="size-4" />
-          </>
-        }
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.sixes)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.sixes)}
-      />
-      <SubtotalRow label="Subtotal" value={upperSubtotal} />
-      <BonusRow label="Bonus" note="≥63 → +35" value={upperBonus} />
-      <SubtotalRow label="Upper Total" value={upperTotal} />
-
-      <SectionHeader>Lower Section</SectionHeader>
-      <ScoreRow
-        value={score[SCORE_INDEX.threeOfAKind]}
-        label="3 of a Kind"
-        hint="Sum all dice"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.threeOfAKind)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.threeOfAKind)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.fourOfAKind]}
-        label="4 of a Kind"
-        hint="Sum all dice"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.fourOfAKind)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fourOfAKind)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.fullHouse]}
-        label="Full House"
-        hint="25 pts"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.fullHouse)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fullHouse)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.smallStraight]}
-        label="Sm. Straight"
-        hint="30 pts"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.smallStraight)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.smallStraight)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.largeStraight]}
-        label="Lg. Straight"
-        hint="40 pts"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.largeStraight)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.largeStraight)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.YAHTZEE]}
-        label="YAHTZEE"
-        hint="50 pts"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.YAHTZEE)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.YAHTZEE)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.chance]}
-        label="Chance"
-        hint="Sum all dice"
-        showHighlight={showHighlights}
-        disabled={!canClickScore?.(SCORE_INDEX.chance)}
-        onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.chance)}
-      />
-      <ScoreRow
-        value={score[SCORE_INDEX.yahtzeeBonuses]}
-        label="Yahtzee Bonus"
-        hint="100 pts ea."
-      />
-      <SubtotalRow label="Lower Total" value={lowerTotal} />
-
-      <div className="flex items-center justify-between bg-amber-600 px-2 py-1.5 font-bold text-white">
-        <span>Grand Total</span>
-        <ScoreBox value={grandTotal} />
-      </div>
-    </div>
-  );
-}
-
-function SectionHeader({ children }: { children: ReactNode }) {
-  return (
-    <div className="bg-amber-400 px-2 py-1 text-center font-bold tracking-wide text-amber-900">
-      {children}
-    </div>
-  );
-}
-
-function ScoreRow({
-  label,
-  hint,
-  value,
-  showHighlight,
-  disabled = false,
-  onScoreClicked,
-}: {
-  label: string;
-  hint?: ReactNode;
-  value?: number;
-  showHighlight?: boolean;
-  disabled?: boolean;
-  onScoreClicked?: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-2 py-1 odd:bg-white even:bg-gray-50">
-      <div className="min-w-0">
-        <div className="font-medium text-gray-800">{label}</div>
-        {hint && (
-          <div className="flex items-center gap-2 text-gray-400">{hint}</div>
-        )}
-      </div>
-      <ScoreBox
-        value={value}
-        highlight={showHighlight && value === undefined && !disabled}
-        onClick={!disabled ? onScoreClicked : undefined}
-      />
-    </div>
-  );
-}
-
-function SubtotalRow({ label, value }: { label: string; value?: number }) {
-  return (
-    <div className="flex items-center justify-between border-b border-gray-200 bg-amber-50 px-2 py-1">
-      <span className="font-semibold text-amber-900">{label}</span>
-      <ScoreBox value={value} />
-    </div>
-  );
-}
-
-function BonusRow({
-  label,
-  note,
-  value,
-}: {
-  label: string;
-  note: string;
-  value?: number;
-}) {
-  return (
-    <div className="flex items-center justify-between border-b border-gray-200 bg-amber-50 px-2 py-1">
-      <div>
-        <div className="font-semibold text-amber-900">{label}</div>
-        <div className="text-amber-600">{note}</div>
-      </div>
-      <ScoreBox value={value} />
     </div>
   );
 }
@@ -426,6 +140,237 @@ function ScoreBox({
       onClick={onClick}
     >
       {value ?? ""}
+    </div>
+  );
+}
+
+// --- Horizontal Score Sheet ---
+
+function HorizontalScoreSheet({
+  score,
+  showHighlights = false,
+  canClickScore,
+  onScoreClicked,
+}: {
+  score: YahtzeeState["score"];
+  showHighlights?: boolean;
+  canClickScore?: (index: ScoreIndex) => boolean;
+  onScoreClicked?: (index: ScoreIndex) => void;
+}) {
+  const { upperSubtotal, upperBonus, upperTotal, lowerTotal, grandTotal } =
+    computeScoreSummary(score);
+
+  return (
+    <div className="flex flex-col gap-1 text-xs">
+      {/* Upper Section */}
+      <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
+        <HorizontalSectionHeader>Upper</HorizontalSectionHeader>
+        <HorizontalScoreCol
+          label="Aces"
+          hint={<StandardD6 value={1} className="size-4" />}
+          value={score[SCORE_INDEX.aces]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.aces)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.aces)}
+        />
+        <HorizontalScoreCol
+          label="Twos"
+          hint={<StandardD6 value={2} className="size-4" />}
+          value={score[SCORE_INDEX.twos]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.twos)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.twos)}
+        />
+        <HorizontalScoreCol
+          label="Threes"
+          hint={<StandardD6 value={3} className="size-4" />}
+          value={score[SCORE_INDEX.threes]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.threes)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.threes)}
+        />
+        <HorizontalScoreCol
+          label="Fours"
+          hint={<StandardD6 value={4} className="size-4" />}
+          value={score[SCORE_INDEX.fours]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.fours)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fours)}
+        />
+        <HorizontalScoreCol
+          label="Fives"
+          hint={<StandardD6 value={5} className="size-4" />}
+          value={score[SCORE_INDEX.fives]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.fives)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fives)}
+        />
+        <HorizontalScoreCol
+          label="Sixes"
+          hint={<StandardD6 value={6} className="size-4" />}
+          value={score[SCORE_INDEX.sixes]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.sixes)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.sixes)}
+        />
+        <HorizontalSummaryCol label="Subtotal" value={upperSubtotal} />
+        <HorizontalSummaryCol
+          label="Bonus"
+          hint="≥63 → +35"
+          value={upperBonus}
+        />
+        <HorizontalSummaryCol label="Total" value={upperTotal} emphasized />
+      </div>
+
+      {/* Lower Section */}
+      <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
+        <HorizontalSectionHeader>Lower</HorizontalSectionHeader>
+        <HorizontalScoreCol
+          label="3 of a Kind"
+          hint="Sum all"
+          value={score[SCORE_INDEX.threeOfAKind]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.threeOfAKind)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.threeOfAKind)}
+        />
+        <HorizontalScoreCol
+          label="4 of a Kind"
+          hint="Sum all"
+          value={score[SCORE_INDEX.fourOfAKind]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.fourOfAKind)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fourOfAKind)}
+        />
+        <HorizontalScoreCol
+          label="Full House"
+          hint="25 pts"
+          value={score[SCORE_INDEX.fullHouse]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.fullHouse)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.fullHouse)}
+        />
+        <HorizontalScoreCol
+          label="Sm. Str."
+          hint="30 pts"
+          value={score[SCORE_INDEX.smallStraight]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.smallStraight)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.smallStraight)}
+        />
+        <HorizontalScoreCol
+          label="Lg. Str."
+          hint="40 pts"
+          value={score[SCORE_INDEX.largeStraight]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.largeStraight)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.largeStraight)}
+        />
+        <HorizontalScoreCol
+          label="YAHTZEE"
+          hint="50 pts"
+          value={score[SCORE_INDEX.YAHTZEE]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.YAHTZEE)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.YAHTZEE)}
+        />
+        <HorizontalScoreCol
+          label="Chance"
+          hint="Sum all"
+          value={score[SCORE_INDEX.chance]}
+          showHighlight={showHighlights}
+          disabled={!canClickScore?.(SCORE_INDEX.chance)}
+          onScoreClicked={() => onScoreClicked?.(SCORE_INDEX.chance)}
+        />
+        <HorizontalScoreCol
+          label="YZ Bonus"
+          hint="100 ea."
+          value={score[SCORE_INDEX.yahtzeeBonuses]}
+        />
+        <HorizontalSummaryCol label="Total" value={lowerTotal} />
+        <HorizontalGrandTotalCol value={grandTotal} />
+      </div>
+    </div>
+  );
+}
+
+function HorizontalSectionHeader({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex w-14 shrink-0 items-center justify-center bg-amber-400 text-center font-bold tracking-wide text-amber-900">
+      {children}
+    </div>
+  );
+}
+
+function HorizontalScoreCol({
+  label,
+  hint,
+  value,
+  showHighlight,
+  disabled = false,
+  onScoreClicked,
+}: {
+  label: string;
+  hint?: ReactNode;
+  value?: number;
+  showHighlight?: boolean;
+  disabled?: boolean;
+  onScoreClicked?: () => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5 border-l border-gray-100 px-1 py-1.5">
+      <div className="text-center leading-tight font-medium text-gray-800">
+        {label}
+      </div>
+      <div className="flex h-5 items-center justify-center leading-tight text-gray-400">
+        {hint}
+      </div>
+      <ScoreBox
+        value={value}
+        highlight={showHighlight && value === undefined && !disabled}
+        onClick={!disabled ? onScoreClicked : undefined}
+      />
+    </div>
+  );
+}
+
+function HorizontalSummaryCol({
+  label,
+  hint,
+  value,
+  emphasized = false,
+}: {
+  label: string;
+  hint?: string;
+  value?: number;
+  emphasized?: boolean;
+}) {
+  return (
+    <div
+      className={clsx(
+        "flex min-w-0 flex-1 flex-col items-center gap-0.5 border-l px-1 py-1.5",
+        emphasized
+          ? "border-amber-200 bg-amber-100"
+          : "border-gray-200 bg-amber-50",
+      )}
+    >
+      <div className="text-center leading-tight font-semibold text-amber-900">
+        {label}
+      </div>
+      <div className="flex h-5 items-center leading-tight text-amber-600">
+        {hint ?? ""}
+      </div>
+      <ScoreBox value={value} />
+    </div>
+  );
+}
+
+function HorizontalGrandTotalCol({ value }: { value: number }) {
+  return (
+    <div className="flex w-16 shrink-0 flex-col items-center justify-center gap-0.5 bg-amber-600 px-1 py-1.5">
+      <div className="text-center leading-tight font-bold text-white">
+        Grand Total
+      </div>
+      <ScoreBox value={value} />
     </div>
   );
 }

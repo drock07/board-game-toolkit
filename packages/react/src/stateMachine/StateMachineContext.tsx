@@ -1,13 +1,7 @@
 import {
-  createEngine,
   EngineState,
-  getCurrentState,
-  getMachineCurrentState,
+  StateMachine,
   StateMachineConfig,
-  advance as toolkitAdvance,
-  dispatch as toolkitDispatch,
-  canDispatch as toolkitCanDispatch,
-  start as toolkitStart,
 } from "@drock07/board-game-toolkit-core";
 import {
   createContext,
@@ -50,24 +44,24 @@ export function StateMachineContext<
   children,
 }: StateMachineContextProps<TState, TCommand>) {
   const [engine, setEngine] = useState(() =>
-    createEngine<TState, TCommand>(initialState),
+    StateMachine.createEngine<TState, TCommand>(initialState),
   );
 
   const start = useCallback(() => {
-    setEngine((e) => (e.started ? e : toolkitStart(e, config)));
+    setEngine((e) => (e.started ? e : StateMachine.start(e, config)));
   }, [config]);
 
   const advance = useCallback(() => {
-    setEngine((e) => toolkitAdvance(e));
+    setEngine((e) => StateMachine.advance(e));
   }, []);
 
   const dispatchCommand = useCallback((command: TCommand) => {
-    setEngine((e) => toolkitDispatch(e, command));
+    setEngine((e) => StateMachine.dispatch(e, command));
   }, []);
 
   const canDispatchCommand = useCallback(
     (command: TCommand) => {
-      return toolkitCanDispatch(engine, command);
+      return StateMachine.canDispatch(engine, command);
     },
     [engine],
   );
@@ -93,10 +87,7 @@ export function StateMachineContext<
   );
 }
 
-function useStateMachine<
-  TState,
-  TCommand extends { type: string } = any,
->() {
+function useStateMachine<TState, TCommand extends { type: string } = any>() {
   const ctx = useContext(Context);
   if (!ctx) throw new Error("useStateMachine must be used within a provider");
   return ctx as StateMachineContextValue<TState, TCommand>;
@@ -106,7 +97,7 @@ export function useStateMachineEngineState<TState>() {
   const engine = useStateMachine<TState>().engine;
   return {
     started: engine.started,
-    currentState: getCurrentState(engine),
+    currentState: StateMachine.getCurrentState(engine),
   };
 }
 
@@ -117,9 +108,9 @@ export function useStateMachineCurrentState<TState>(
 export function useStateMachineCurrentState<TState>(machineId?: string) {
   const engine = useStateMachine<TState>().engine;
   if (machineId) {
-    return getMachineCurrentState(engine, machineId);
+    return StateMachine.getMachineCurrentState(engine, machineId);
   } else {
-    return getCurrentState(engine);
+    return StateMachine.getCurrentState(engine);
   }
 }
 

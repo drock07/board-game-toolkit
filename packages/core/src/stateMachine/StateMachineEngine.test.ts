@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { StateMachineConfig } from "./StateMachineConfig";
 import {
-  createEngine,
-  start,
   advance,
-  dispatch,
   canDispatch,
+  createEngine,
+  dispatch,
+  start,
   StateMachineEngine,
 } from "./StateMachineEngine";
-import { StateMachineConfig } from "./types/StateMachineConfig";
 
 interface TestState {
   count: number;
@@ -591,7 +591,9 @@ describe("StateMachineEngine class", () => {
 
     engine.start();
 
-    expect(() => engine.start()).toThrow("Cannot start: machine already started");
+    expect(() => engine.start()).toThrow(
+      "Cannot start: machine already started",
+    );
   });
 
   it("throws when advance is called before start", () => {
