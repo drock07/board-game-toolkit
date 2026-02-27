@@ -1,4 +1,8 @@
-import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
+import {
+  Dice,
+  type D6Result,
+  type StateMachineConfig,
+} from "@drock07/board-game-toolkit-core";
 
 // --- Constants ---
 
@@ -21,8 +25,7 @@ export const SCORE_INDEX = {
 
 // --- Types ---
 
-export type DieRoll = 1 | 2 | 3 | 4 | 5 | 6;
-export type YahtzeeDice = [DieRoll, DieRoll, DieRoll, DieRoll, DieRoll];
+export type YahtzeeDice = [D6Result, D6Result, D6Result, D6Result, D6Result];
 export type HeldDice = [boolean, boolean, boolean, boolean, boolean];
 export type ScoreIndex = (typeof SCORE_INDEX)[keyof typeof SCORE_INDEX];
 
@@ -64,7 +67,7 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
     setup: {
       onExit: (state) => ({
         ...state,
-        dice: [rollDice(), rollDice(), rollDice(), rollDice(), rollDice()],
+        dice: Dice.roll(Dice.D6, 5) as YahtzeeDice,
         roll: 1,
         heldDice: [false, false, false, false, false],
       }),
@@ -81,7 +84,7 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
             return {
               ...state,
               dice: state.heldDice.map((isHeld, i) =>
-                isHeld && state.dice ? state.dice[i] : rollDice(),
+                isHeld && state.dice ? state.dice[i] : Dice.roll(Dice.D6),
               ) as YahtzeeDice,
             };
           },
@@ -146,10 +149,10 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
                 score[index] = dice.filter((d) => d === 6).length * 6;
                 break;
               case 6: // three of a kind
-                score[index] = hasNOfAKind(dice, 3) ? dice.reduce(sum, 0) : 0;
+                score[index] = hasNOfAKind(dice, 3) ? sum(dice) : 0;
                 break;
               case 7: // four of a kind
-                score[index] = hasNOfAKind(dice, 4) ? dice.reduce(sum, 0) : 0;
+                score[index] = hasNOfAKind(dice, 4) ? sum(dice) : 0;
                 break;
               case 8: // full house
                 score[index] = isFullHouse(dice) ? 25 : 0;
@@ -164,7 +167,7 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
                 score[index] = hasNOfAKind(dice, 5) ? 50 : 0;
                 break;
               case 12: // chance
-                score[index] = dice.reduce(sum, 0);
+                score[index] = sum(dice);
                 break;
             }
             return { ...state, score };
@@ -189,8 +192,8 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
   },
 };
 
-function sum(s: number, d: DieRoll): number {
-  return s + d;
+function sum(dice: YahtzeeDice): number {
+  return dice.reduce((sum, dieValue) => sum + dieValue, 0);
 }
 
 function hasNOfAKind(dice: YahtzeeDice, n: number): boolean {
@@ -215,10 +218,6 @@ function longestRun(dice: YahtzeeDice): number {
     longest = Math.max(longest, current);
   }
   return longest;
-}
-
-function rollDice(): DieRoll {
-  return [1, 2, 3, 4, 5, 6][Math.floor(Math.random() * 6)] as DieRoll;
 }
 
 export function computeScoreSummary(
