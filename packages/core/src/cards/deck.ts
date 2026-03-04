@@ -16,21 +16,48 @@ export function shuffle<T>(items: T[]): T[] {
 }
 /** Draws a single item from the front of the array. Returns `[item, remaining]`. */
 export function draw<T>(items: T[]): [T, T[]];
+export function draw<T>(items: T[], reshuffleFrom: T[]): [T, T[], T[]];
 /** Draws `count` items from the front of the array. Returns `[drawn, remaining]`. */
 export function draw<T>(items: T[], count: number): [T[], T[]];
-export function draw<T>(items: T[], count?: number): [T, T[]] | [T[], T[]] {
-  if (items.length === 0) {
+export function draw<T>(
+  items: T[],
+  count: number,
+  reshuffleFrom: T[],
+): [T[], T[], T[]];
+export function draw<T>(
+  items: T[],
+  countOrReshuffleFrom?: number | T[],
+  reshuffleFrom?: T[],
+): [T, T[]] | [T, T[], T[]] | [T[], T[]] | [T[], T[], T[]] {
+  const count =
+    typeof countOrReshuffleFrom === "number" ? countOrReshuffleFrom : 1;
+  const reshuffleDeck = Array.isArray(countOrReshuffleFrom)
+    ? countOrReshuffleFrom
+    : reshuffleFrom;
+
+  let drawDeck = items;
+  if (reshuffleDeck && drawDeck.length < count) {
+    drawDeck = [...items, ...shuffle(reshuffleDeck)];
+  }
+
+  if (drawDeck.length === 0) {
     throw new Error("Cannot draw from an empty collection");
   }
 
-  if (count === undefined) {
-    return [items[0], items.slice(1)];
-  }
-
-  if (count > items.length) {
+  if (count > drawDeck.length) {
     throw new Error(
-      `Cannot draw ${count} items from collection of ${items.length}`,
+      `Cannot draw ${count} items from collection of ${drawDeck.length}`,
     );
   }
-  return [items.slice(0, count), items.slice(count)];
+
+  if (count === 1) {
+    if (reshuffleDeck) return [drawDeck[0], drawDeck.slice(1), []];
+    return [drawDeck[0], drawDeck.slice(1)];
+  }
+
+  if (reshuffleDeck) {
+    return [drawDeck.slice(0, count), drawDeck.slice(count), []];
+  }
+
+  return [drawDeck.slice(0, count), drawDeck.slice(count)];
 }
