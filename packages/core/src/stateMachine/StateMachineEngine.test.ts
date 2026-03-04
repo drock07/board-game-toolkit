@@ -117,6 +117,32 @@ describe("advance", () => {
     expect(next.state.log).toEqual(["a:exit", "b:enter"]);
   });
 
+  it("calls getNext before onExit", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          onExit: (state) => ({ ...state, count: state.count + 1 }),
+          getNext: (state) => (state.count === 0 ? "b" : "c"),
+        },
+        b: {
+          onEnter: (state) => ({ ...state, log: [...state.log, "b:enter"] }),
+          getNext: () => null,
+        },
+        c: {
+          onEnter: (state) => ({ ...state, log: [...state.log, "c:enter"] }),
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    // getNext sees count=0, routes to "b"; then onExit increments to 1
+    const next = advance(engine);
+
+    expect(next.machineStack[0].currentState).toBe("b");
+    expect(next.state.count).toBe(1);
+  });
+
   it("pops machine from stack when final state returns null", () => {
     const config = makeConfig({
       states: {
@@ -507,6 +533,318 @@ describe("dispatch", () => {
 
     expect(engine.state.count).toBe(0);
     expect(engine.history).toEqual([]);
+  });
+});
+
+describe("action-triggered transitions", () => {
+  it("transitions to target state when execute returns transitionTo", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("b", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 42 });
+
+    expect(next.state.count).toBe(42);
+    expect(next.machineStack[0].currentState).toBe("b");
+  });
+
+  it("calls onExit for current state and onEnter for target state", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          onExit: (state) => ({ ...state, log: [...state.log, "a:exit"] }),
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("b", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: {
+          onEnter: (state) => ({ ...state, log: [...state.log, "b:enter"] }),
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 1 });
+
+    expect(next.state.log).toEqual(["a:exit", "b:enter"]);
+  });
+
+  it("records command in history when transitioning", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("b", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 5 });
+
+    expect(next.history).toEqual([{ type: "set", value: 5 }]);
+  });
+
+  it("throws when target state does not exist", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("nonexistent", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    expect(() => dispatch(engine, { type: "set", value: 1 })).toThrow(
+      "triggered transition to 'nonexistent'",
+    );
+  });
+
+  it("handles autoadvance on the target state", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("b", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: {
+          autoadvance: true,
+          getNext: () => "c",
+        },
+        c: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 1 });
+
+    expect(next.machineStack[0].currentState).toBe("c");
+  });
+
+  it("can transition to a nested machine state", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("nested", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        nested: {
+          id: "nested",
+          initial: "x",
+          states: {
+            x: { getNext: () => null },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 10 });
+
+    expect(next.machineStack).toHaveLength(2);
+    expect(next.machineStack[1].config.id).toBe("nested");
+    expect(next.machineStack[1].currentState).toBe("x");
+  });
+
+  it("works without transition — backward compatible", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+
+    const next = dispatch(engine, { type: "set", value: 42 });
+
+    expect(next.state.count).toBe(42);
+    expect(next.machineStack[0].currentState).toBe("a");
+  });
+});
+
+describe("transition data", () => {
+  it("passes data from getNext tuple to onEnter", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          getNext: (state): [string, unknown] => [
+            "b",
+            { result: state.count > 0 ? "win" : "lose" },
+          ],
+        },
+        b: {
+          onEnter: (state, data) => {
+            const { result } = data as { result: string };
+            return { ...state, log: [...state.log, `result:${result}`] };
+          },
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+    const next = advance(engine);
+
+    expect(next.state.log).toEqual(["result:lose"]);
+  });
+
+  it("passes data from action transitionTo to onEnter", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo(
+                  "b",
+                  { ...state, count: cmd.value },
+                  { returnTo: "a" },
+                ),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: {
+          onEnter: (state, data) => {
+            const { returnTo } = data as { returnTo: string };
+            return { ...state, log: [...state.log, `returnTo:${returnTo}`] };
+          },
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+    const next = dispatch(engine, { type: "set", value: 42 });
+
+    expect(next.state.count).toBe(42);
+    expect(next.state.log).toEqual(["returnTo:a"]);
+  });
+
+  it("passes data to nested machine onEnter", () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          getNext: (): [string, unknown] => ["nested", { fromA: true }],
+        },
+        nested: {
+          id: "nested",
+          initial: "x",
+          onEnter: (state, data) => {
+            const { fromA } = data as { fromA: boolean };
+            return {
+              ...state,
+              log: [...state.log, `fromA:${fromA}`],
+            };
+          },
+          states: {
+            x: { getNext: () => null },
+          },
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+    const next = advance(engine);
+
+    expect(next.state.log).toEqual(["fromA:true"]);
+  });
+
+  it("data is undefined when getNext returns plain string", () => {
+    let receivedData: unknown = "sentinel";
+    const config = makeConfig({
+      states: {
+        a: {
+          getNext: () => "b",
+        },
+        b: {
+          onEnter: (state, data) => {
+            receivedData = data;
+            return state;
+          },
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+    advance(engine);
+
+    expect(receivedData).toBeUndefined();
+  });
+
+  it("data is undefined when transitionTo called without data", () => {
+    let receivedData: unknown = "sentinel";
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd, transitionTo) =>
+                transitionTo("b", { ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: {
+          onEnter: (state, data) => {
+            receivedData = data;
+            return state;
+          },
+          getNext: () => null,
+        },
+      },
+    });
+    const engine = start(createEngine(initialState), config);
+    dispatch(engine, { type: "set", value: 1 });
+
+    expect(receivedData).toBeUndefined();
   });
 });
 

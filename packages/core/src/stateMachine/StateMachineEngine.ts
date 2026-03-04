@@ -1,6 +1,9 @@
 import {
   ActionHandler,
+  createTransitionSignal,
+  GetNextResult,
   isMachine,
+  isTransitionSignal,
   StateConfig,
   StateMachineConfig,
 } from "./StateMachineConfig";
@@ -34,16 +37,57 @@ function peek<TState>(
   return stack[stack.length - 1];
 }
 
-function transitionTo<TState>(
+/**
+ * Parses the result of getNext into a target name and optional data.
+ */
+function parseGetNextResult(
+  result: GetNextResult,
+): { target: string; data?: unknown } | null {
+  if (result === null) return null;
+  if (Array.isArray(result)) {
+    return { target: result[0], data: result[1] };
+  }
+  return { target: result };
+}
+
+/**
+ * Enters a state or machine. Handles onEnter, pushing machines onto the
+ * stack, resolving initial states, and triggering autoadvance.
+ */
+function enterState<TState>(
   engine: EngineState<TState>,
   stateConfig: StateConfig<TState> | StateMachineConfig<TState>,
+  data?: unknown,
 ): EngineState<TState> {
   if (isMachine(stateConfig)) {
-    return startMachine(engine, stateConfig);
+    const state = stateConfig.onEnter
+      ? stateConfig.onEnter(engine.state, data)
+      : engine.state;
+    const initial =
+      typeof stateConfig.initial === "function"
+        ? stateConfig.initial(state)
+        : stateConfig.initial;
+    if (!(initial in stateConfig.states)) {
+      throw new Error(
+        `Machine '${stateConfig.id}': initial state '${initial}' not found in states [${Object.keys(stateConfig.states).join(", ")}]`,
+      );
+    }
+    const machineEntry: MachineRuntimeState<TState> = {
+      config: stateConfig,
+      currentState: initial,
+    };
+    const newEngine: EngineState<TState> = {
+      ...engine,
+      machineStack: [...engine.machineStack, machineEntry],
+      state,
+    };
+    // Enter the initial state (no transition data for initial sub-states)
+    return enterState(newEngine, stateConfig.states[initial]);
   }
 
+  // Simple state
   const state = stateConfig.onEnter
-    ? stateConfig.onEnter(engine.state)
+    ? stateConfig.onEnter(engine.state, data)
     : engine.state;
   const newEngine = { ...engine, state };
 
@@ -53,53 +97,59 @@ function transitionTo<TState>(
       : stateConfig.autoadvance;
 
   if (shouldAutoAdvance) {
-    return advance(newEngine);
+    return resolveNext(newEngine);
   }
 
   return newEngine;
 }
 
-function startMachine<TState>(
-  engine: EngineState<TState>,
-  config: StateMachineConfig<TState>,
-): EngineState<TState> {
-  const state = config.onEnter ? config.onEnter(engine.state) : engine.state;
-  const initial =
-    typeof config.initial === "function"
-      ? config.initial(state)
-      : config.initial;
-  if (!(initial in config.states)) {
-    throw new Error(
-      `Machine '${config.id}': initial state '${initial}' not found in states [${Object.keys(config.states).join(", ")}]`,
-    );
-  }
-  const machineEntry: MachineRuntimeState<TState> = {
-    config,
-    currentState: initial,
-  };
-  const newEngine: EngineState<TState> = {
-    ...engine,
-    machineStack: [...engine.machineStack, machineEntry],
-    state,
-  };
-
-  return transitionTo(newEngine, config.states[initial]);
-}
-
 /**
- * Resolves the next state for the current machine and transitions to it.
- * Does NOT call onExit for the current state — the caller is responsible
- * for that (advance handles it, completeMachine skips it).
+ * The "leave" flow: resolves getNext for routing, calls onExit, then
+ * either enters the target state or pops the machine and recurses on
+ * the parent.
  */
 function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
   const { machineStack } = engine;
   const machine = peek(machineStack)!;
   const currentStateConfig = machine.config.states[machine.currentState];
-  const nextStateName = currentStateConfig.getNext?.(engine.state) ?? null;
 
-  if (nextStateName === null) {
-    return completeMachine(engine);
+  // 1. Route: determine where to go
+  const rawNext = currentStateConfig.getNext?.(engine.state) ?? null;
+  const parsed = parseGetNextResult(rawNext);
+
+  // 2. Exit: run onExit after routing decision
+  const exitState = currentStateConfig.onExit
+    ? currentStateConfig.onExit(engine.state)
+    : engine.state;
+
+  if (parsed === null) {
+    // Machine complete — pop stack
+    const newStack = machineStack.slice(0, -1);
+
+    // Call the machine's own onExit (distinct from the leaf state's onExit
+    // which already ran above). When this machine is nested, the parent's
+    // resolveNext will call onExit on its state entry (which is this machine
+    // config), so we only call it here for the top-level machine.
+    const machineExitState =
+      newStack.length === 0 && machine.config.onExit
+        ? machine.config.onExit(exitState)
+        : exitState;
+
+    const newEngine: EngineState<TState> = {
+      ...engine,
+      machineStack: newStack,
+      state: machineExitState,
+    };
+
+    if (newStack.length > 0) {
+      return resolveNext(newEngine);
+    }
+    // Top-level machine completed
+    return newEngine;
   }
+
+  // 3. Transition to target state
+  const { target: nextStateName, data } = parsed;
 
   if (!(nextStateName in machine.config.states)) {
     throw new Error(
@@ -107,7 +157,6 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
     );
   }
 
-  const nextStateConfig = machine.config.states[nextStateName];
   const updatedMachine: MachineRuntimeState<TState> = {
     ...machine,
     currentState: nextStateName,
@@ -115,38 +164,10 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
   const newEngine: EngineState<TState> = {
     ...engine,
     machineStack: [...machineStack.slice(0, -1), updatedMachine],
-    state: engine.state,
-  };
-
-  return transitionTo(newEngine, nextStateConfig);
-}
-
-/**
- * Completes the current machine: pops it from the stack, calls its onExit,
- * then resolves the parent's next state (if any).
- */
-function completeMachine<TState>(
-  engine: EngineState<TState>,
-): EngineState<TState> {
-  const { machineStack } = engine;
-  const machine = peek(machineStack)!;
-
-  const exitState = machine.config.onExit
-    ? machine.config.onExit(engine.state)
-    : engine.state;
-  const newStack = machineStack.slice(0, -1);
-  const newEngine: EngineState<TState> = {
-    ...engine,
-    machineStack: newStack,
     state: exitState,
   };
 
-  if (newStack.length > 0) {
-    // Parent machine resumes — resolve its next state directly
-    return resolveNext(newEngine);
-  }
-  // Top-level machine completed
-  return newEngine;
+  return enterState(newEngine, machine.config.states[nextStateName], data);
 }
 
 /**
@@ -185,7 +206,7 @@ export function start<TState>(
   config: StateMachineConfig<TState>,
 ): EngineState<TState> {
   if (engine.started) throw new Error("Cannot start: machine already started");
-  return startMachine(
+  return enterState(
     {
       ...engine,
       started: true,
@@ -200,14 +221,8 @@ export function advance<TState>(
   const { machineStack } = engine;
   if (machineStack.length === 0)
     throw new Error("Cannot advance: no active machine");
-  const machine = peek(machineStack)!;
 
-  const currentStateConfig = machine.config.states[machine.currentState];
-  const state = currentStateConfig.onExit
-    ? currentStateConfig.onExit(engine.state)
-    : engine.state;
-
-  return resolveNext({ ...engine, state });
+  return resolveNext(engine);
 }
 
 export function dispatch<TState, TCommand extends { type: string }>(
@@ -231,10 +246,51 @@ export function dispatch<TState, TCommand extends { type: string }>(
     );
   }
 
+  const result = handler.execute(
+    engine.state,
+    command,
+    createTransitionSignal,
+  );
+
+  const newHistory = [...engine.history, command];
+
+  if (isTransitionSignal(result)) {
+    const { machineStack } = engine;
+    const machine = peek(machineStack)!;
+    const targetName = result.target;
+
+    if (!(targetName in machine.config.states)) {
+      throw new Error(
+        `Machine '${machine.config.id}': action '${command.type}' triggered transition to '${targetName}', but it was not found in states [${Object.keys(machine.config.states).join(", ")}]`,
+      );
+    }
+
+    // Exit current state
+    const currentStateConfig = machine.config.states[machine.currentState];
+    const exitState = currentStateConfig.onExit
+      ? currentStateConfig.onExit(result.state)
+      : result.state;
+
+    // Update machine to point at the target state
+    const updatedMachine: MachineRuntimeState<TState> = {
+      ...machine,
+      currentState: targetName,
+    };
+    const newEngine: EngineState<TState, TCommand> = {
+      ...engine,
+      machineStack: [...machineStack.slice(0, -1), updatedMachine],
+      state: exitState,
+      history: newHistory,
+    };
+
+    // Enter the target state (handles onEnter, autoadvance, nested machines)
+    return enterState(newEngine, machine.config.states[targetName], result.data);
+  }
+
   return {
     ...engine,
-    state: handler.execute(engine.state, command),
-    history: [...engine.history, command],
+    state: result,
+    history: newHistory,
   };
 }
 
