@@ -309,7 +309,7 @@ export function canDispatch<TState, TCommand extends { type: string }>(
 }
 
 export function getCurrentState<TState>(engine: EngineState<TState>): string[] {
-  return [...engine.machineStack].reverse().map((m) => m.currentState);
+  return engine.machineStack.map((m) => m.currentState);
 }
 
 export function getMachineCurrentState<TState>(

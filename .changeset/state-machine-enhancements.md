@@ -1,5 +1,6 @@
 ---
 "@drock07/board-game-toolkit-core": minor
+"@drock07/board-game-toolkit-react": minor
 ---
 
 ### Action-triggered state transitions
@@ -50,3 +51,17 @@ const [cards, newDeck, newDiscard] = draw(deck, 5, discardPile);
 ```
 
 When reshuffling occurs, the returned discard pile is empty (all cards moved back into the draw deck).
+
+### Breaking: `getCurrentState` returns root-to-leaf order
+
+`getCurrentState` now returns the state path from the outermost machine to the innermost leaf, matching the natural hierarchy. Previously the array was reversed (leaf-first). This makes the `State` component's array matching read as a path: `state={["game", "round", "draw"]}`.
+
+### `CardHand` component
+
+New `CardHand` (controlled) and `UncontrolledCardHand` components for displaying a hand of overlapping cards. Features:
+
+- Key-based selection with hover/focus raise effect
+- Keyboard navigation (arrow keys, Home/End, Enter/Space) and ARIA listbox semantics
+- Optional `arc` prop for fan/arc layout
+- Animated position transitions when cards are added/removed
+- `getCardProps` callback for drag-and-drop integration (e.g. dnd-kit)
