@@ -46,9 +46,22 @@ const gameConfig: StateMachineConfig<GameState> = {
 Each state supports:
 
 - **`onEnter(state)`** - Called when entering the state. Returns the new state.
-- **`onExit(state)`** - Called when leaving the state. Returns the new state.
-- **`getNext(state)`** - Determines the next state name. Return `null` or omit to signal machine completion.
+- **`getNext(state)`** - Determines the next state name. Return `null` or omit to signal machine completion. Runs before `onExit` so routing decisions see the pre-exit state.
+- **`onExit(state)`** - Called when leaving the state (after `getNext`). Returns the new state.
 - **`autoadvance`** - When `true` (or a predicate returning `true`), automatically advances after entering.
+
+Both `getNext` and `onEnter` support **transition data** — extra context passed to the target state:
+
+```ts
+// From getNext — return a tuple [targetState, data]
+getNext: (state) => ["gameOver", { result: state.winner }]
+
+// Received in onEnter as the second argument
+onEnter: (state, data) => {
+  const { result } = data as { result: string };
+  return { ...state, gameResult: result };
+}
+```
 
 Machines also support `onEnter` and `onExit` for setup/teardown when the machine starts or completes.
 
@@ -90,6 +103,35 @@ const addScore: ActionFn<GameState, [points: number]> = (state, points) => ({
 });
 ```
 
+### Deck Utilities
+
+Generic collection utilities for any "draw from a pile" mechanic — playing cards, event decks, tile bags, etc.
+
+```ts
+import { Cards } from "@drock07/board-game-toolkit-core";
+
+// Shuffle an array (Fisher-Yates)
+const deck = Cards.shuffle(cards);
+
+// Draw a single item
+const [card, remaining] = Cards.draw(deck);
+
+// Draw multiple items
+const [hand, remaining] = Cards.draw(deck, 5);
+```
+
+When a discard pile is available, pass it as the `reshuffleFrom` argument. If the draw deck doesn't have enough cards, the discard pile is shuffled back in before drawing:
+
+```ts
+// Single draw with reshuffle
+const [card, newDeck, newDiscard] = Cards.draw(deck, discardPile);
+
+// Multi-draw with reshuffle
+const [cards, newDeck, newDiscard] = Cards.draw(deck, 5, discardPile);
+```
+
+When reshuffling occurs, the returned discard pile is empty (all cards moved back into the draw deck).
+
 ## Usage
 
 ### Functional API
@@ -124,7 +166,7 @@ const engine = new StateMachineEngine(gameConfig, { score: 0, round: 1 });
 engine.start();
 
 engine.state;          // { score: 0, round: 1 }
-engine.currentState;   // ["setup", "game"] (leaf-first)
+engine.currentState;   // ["setup"] (root-to-leaf)
 
 engine.doAction(addScore, 10);
 engine.advance();
@@ -132,13 +174,13 @@ engine.advance();
 
 ### Inspecting Current State
 
-`getCurrentState` returns the active state names ordered from most-specific (leaf) to least-specific (root):
+`getCurrentState` returns the active state names ordered from root to leaf (outermost machine to innermost state):
 
 ```ts
 import { getCurrentState } from "@drock07/board-game-toolkit-core";
 
 // If the "round" machine is active and in "draw" state:
-getCurrentState(engine); // ["draw", "round"]
+getCurrentState(engine); // ["round", "draw"]
 ```
 
 You can also look up a specific machine's current state by ID:
@@ -160,7 +202,7 @@ getMachineCurrentState(engine, "game");  // "round"
 | `start(engine, config)` | Start the root machine |
 | `advance(engine)` | Exit the current state and transition to the next |
 | `doAction(engine, action, ...args)` | Apply an action to the game state |
-| `getCurrentState(engine)` | Get active state names (leaf-first) |
+| `getCurrentState(engine)` | Get active state names (root-to-leaf) |
 | `getMachineCurrentState(engine, machineId)` | Get a specific machine's current state name |
 
 ### Types
