@@ -1,12 +1,12 @@
 import React, {
-  type HTMLAttributes,
-  type Ref,
   useEffect,
   useRef,
   useState,
   type CSSProperties,
+  type HTMLAttributes,
   type KeyboardEvent,
   type ReactNode,
+  type Ref,
 } from "react";
 import { useCardDimensionsContext } from "./CardDimensionsContext";
 
@@ -26,7 +26,7 @@ export interface CardHandProps {
   cardWidth?: number;
   cardAspectRatio?: number;
   selectedKey?: string | null;
-  onCardClick?: (key: string) => void;
+  onCardClick?: (key: string | null) => void;
   getCardProps?: (key: string) => CardWrapperProps | undefined;
   arc?: number;
   className?: string;
@@ -121,7 +121,7 @@ export function CardHand({
         e.preventDefault();
         if (onCardClick) {
           const key = getItemKey(items[focusedIndex], focusedIndex);
-          onCardClick(key);
+          onCardClick(selectedKey === key ? null : key);
         }
         break;
       }
@@ -174,7 +174,9 @@ export function CardHand({
             cursor: onCardClick ? "pointer" : undefined,
           };
 
-          const handleClick = onCardClick ? () => onCardClick(key) : undefined;
+          const handleClick = onCardClick
+            ? () => onCardClick(isSelected ? null : key)
+            : undefined;
 
           const userProps = getCardProps?.(key);
           const {
@@ -254,10 +256,9 @@ export function UncontrolledCardHand({
     }
   }, [selectedKey, currentKeysStr, onSelect]);
 
-  const handleCardClick = (key: string) => {
-    const newKey = key === selectedKey ? null : key;
-    setSelectedKey(newKey);
-    onSelect?.(newKey);
+  const handleCardClick = (key: string | null) => {
+    setSelectedKey(key);
+    onSelect?.(key);
   };
 
   return (

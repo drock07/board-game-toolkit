@@ -91,7 +91,7 @@ export type GetNextResult = string | null | [string, unknown];
  */
 interface BaseConfig<TState, TCommand extends { type: string }> {
   /** Called when entering this state/machine. Returns new state. */
-  onEnter?: (state: TState, data?: unknown) => TState;
+  onEnter?: (state: TState, data?: any) => TState;
   /** Called when exiting this state/machine. Returns new state. */
   onExit?: (state: TState) => TState;
   /** Determines the next state (null = complete/terminal) */
