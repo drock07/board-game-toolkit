@@ -1,5 +1,11 @@
 # @drock07/board-game-toolkit-core
 
+## 0.2.2
+
+### Patch Changes
+
+- [`a7ac103`](https://github.com/drock07/board-game-toolkit/commit/a7ac103c0d997ec39df260163967db0284e0ffbf) Thanks [@drock07](https://github.com/drock07)! - Fix `draw` returning a single item instead of an array when called with `count: 1`
+
 ## 0.2.1
 
 ### Patch Changes
