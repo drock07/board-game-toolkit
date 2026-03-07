@@ -1,5 +1,20 @@
 # @drock07/board-game-toolkit-react
 
+## 0.2.1
+
+### Patch Changes
+
+- [`ddad6f7`](https://github.com/drock07/board-game-toolkit/commit/ddad6f72129b02a9487af389e4db25825ffb04e4) Thanks [@drock07](https://github.com/drock07)! - ### Core: Relax `onEnter` data parameter type
+
+  Changed the `data` parameter in `onEnter` from `unknown` to `any`, allowing inline typing of the parameter without needing a cast (e.g., `onEnter: (state, data?: { round: number }) => ...`).
+
+  ### React: Support unselecting cards in CardHand
+
+  `CardHand` now toggles selection — clicking or activating an already-selected card calls `onCardClick` with `null`. The `onCardClick` type is updated from `(key: string) => void` to `(key: string | null) => void`.
+
+- Updated dependencies [[`ddad6f7`](https://github.com/drock07/board-game-toolkit/commit/ddad6f72129b02a9487af389e4db25825ffb04e4)]:
+  - @drock07/board-game-toolkit-core@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
