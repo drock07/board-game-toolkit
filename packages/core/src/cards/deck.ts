@@ -50,7 +50,7 @@ export function draw<T>(
     );
   }
 
-  if (count === 1) {
+  if (count === 1 && typeof countOrReshuffleFrom !== "number") {
     if (reshuffleDeck) return [drawDeck[0], drawDeck.slice(1), []];
     return [drawDeck[0], drawDeck.slice(1)];
   }
