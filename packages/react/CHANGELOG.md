@@ -1,5 +1,12 @@
 # @drock07/board-game-toolkit-react
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [[`506d071`](https://github.com/drock07/board-game-toolkit/commit/506d071639ae6e948e54e501b5678a1ff4012bb0)]:
+  - @drock07/board-game-toolkit-core@0.2.3
+
 ## 0.2.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @drock07/board-game-toolkit-core
 
+## 0.2.3
+
+### Patch Changes
+
+- [`506d071`](https://github.com/drock07/board-game-toolkit/commit/506d071639ae6e948e54e501b5678a1ff4012bb0) Thanks [@drock07](https://github.com/drock07)! - Fix `draw` returning an empty `reshuffleDeck` even when no reshuffle occurred
+
 ## 0.2.2
 
 ### Patch Changes
