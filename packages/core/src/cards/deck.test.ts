@@ -29,7 +29,7 @@ describe("draw", () => {
       const [item, remaining, discard] = draw([1, 2, 3], [4, 5]);
       expect(item).toBe(1);
       expect(remaining).toEqual([2, 3]);
-      expect(discard).toEqual([]);
+      expect(discard).toEqual([4, 5]);
     });
   });
 
@@ -51,7 +51,7 @@ describe("draw", () => {
       const [drawn, remaining, discard] = draw([1, 2, 3, 4], 2, [5, 6]);
       expect(drawn).toEqual([1, 2]);
       expect(remaining).toEqual([3, 4]);
-      expect(discard).toEqual([]);
+      expect(discard).toEqual([5, 6]);
     });
 
     it("draws count=1 with reshuffleFrom and returns an array", () => {
@@ -59,7 +59,7 @@ describe("draw", () => {
       expect(Array.isArray(drawn)).toBe(true);
       expect(drawn).toEqual([1]);
       expect(remaining).toEqual([2, 3]);
-      expect(discard).toEqual([]);
+      expect(discard).toEqual([4, 5]);
     });
   });
 
@@ -77,9 +77,30 @@ describe("draw", () => {
 
   describe("reshuffle behavior", () => {
     it("reshuffles discard pile when deck is too small", () => {
-      const [drawn, remaining, discard] = draw([1], 2, [2, 3, 4]);
+      const [drawn, , discard] = draw([1], 2, [2, 3, 4]);
       expect(drawn).toHaveLength(2);
       expect(drawn[0]).toBe(1);
+      expect(discard).toEqual([]);
+    });
+
+    it("returns discard pile unchanged when no reshuffle is needed", () => {
+      const [drawn, remaining, discard] = draw([1, 2, 3], 2, [4, 5]);
+      expect(drawn).toEqual([1, 2]);
+      expect(remaining).toEqual([3]);
+      expect(discard).toEqual([4, 5]);
+    });
+
+    it("returns discard pile unchanged for single draw when no reshuffle is needed", () => {
+      const [item, remaining, discard] = draw([1, 2], [3, 4]);
+      expect(item).toBe(1);
+      expect(remaining).toEqual([2]);
+      expect(discard).toEqual([3, 4]);
+    });
+
+    it("empties discard pile for single draw when reshuffle occurs", () => {
+      const [item, remaining, discard] = draw([], [1, 2, 3]);
+      expect([1, 2, 3]).toContain(item);
+      expect(remaining).toHaveLength(2);
       expect(discard).toEqual([]);
     });
   });

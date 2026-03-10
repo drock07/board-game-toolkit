@@ -36,8 +36,10 @@ export function draw<T>(
     : reshuffleFrom;
 
   let drawDeck = items;
+  let reshuffled = false;
   if (reshuffleDeck && drawDeck.length < count) {
     drawDeck = [...items, ...shuffle(reshuffleDeck)];
+    reshuffled = true;
   }
 
   if (drawDeck.length === 0) {
@@ -51,12 +53,21 @@ export function draw<T>(
   }
 
   if (count === 1 && typeof countOrReshuffleFrom !== "number") {
-    if (reshuffleDeck) return [drawDeck[0], drawDeck.slice(1), []];
+    if (reshuffleDeck)
+      return [
+        drawDeck[0],
+        drawDeck.slice(1),
+        reshuffled ? [] : reshuffleDeck,
+      ];
     return [drawDeck[0], drawDeck.slice(1)];
   }
 
   if (reshuffleDeck) {
-    return [drawDeck.slice(0, count), drawDeck.slice(count), []];
+    return [
+      drawDeck.slice(0, count),
+      drawDeck.slice(count),
+      reshuffled ? [] : reshuffleDeck,
+    ];
   }
 
   return [drawDeck.slice(0, count), drawDeck.slice(count)];
