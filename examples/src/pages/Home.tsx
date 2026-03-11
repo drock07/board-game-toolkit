@@ -4,6 +4,7 @@ import PageLayout from "../components/PageLayout";
 import BlackjackPreview from "./Blackjack/BlackjackPreview";
 import DungeonCrawlPreview from "./DungeonCrawl/DungeonCrawlPreview";
 import TicTacToePreview from "./TicTacToe/TicTacToePreview";
+import CrazyEightsPreview from "./CrazyEights/CrazyEightsPreview";
 import YahtzeePreview from "./Yahtzee/YahtzeePreview";
 
 export default function Home() {
@@ -38,6 +39,12 @@ export default function Home() {
             title="Dungeon Crawl"
             description="Board game with cards, dice, and tokens. Demonstrates deeply nested machines and complex state."
             preview={<DungeonCrawlPreview />}
+          />
+          <GameCard
+            to="crazy-eights"
+            title="Crazy Eights"
+            description="Card game with custom card types. Demonstrates generic card game pools, dealing, drawing, and AI opponents."
+            preview={<CrazyEightsPreview />}
           />
         </div>
       </div>

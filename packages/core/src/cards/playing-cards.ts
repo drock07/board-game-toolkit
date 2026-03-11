@@ -2,8 +2,10 @@
  * Standard 52-card playing card types and helpers.
  */
 
+/** One of the four standard playing card suits. */
 export type PlayingCardSuit = "hearts" | "diamonds" | "clubs" | "spades";
 
+/** Standard playing card ranks, Ace through King. */
 export type PlayingCardRank =
   | "A"
   | "2"
@@ -19,11 +21,13 @@ export type PlayingCardRank =
   | "Q"
   | "K";
 
+/** A standard playing card with a suit and rank. */
 export interface PlayingCard {
   suit: PlayingCardSuit;
   rank: PlayingCardRank;
 }
 
+/** All four suits in standard order: hearts, diamonds, clubs, spades. */
 export const PLAYING_CARD_SUITS: readonly PlayingCardSuit[] = [
   "hearts",
   "diamonds",
@@ -31,6 +35,7 @@ export const PLAYING_CARD_SUITS: readonly PlayingCardSuit[] = [
   "spades",
 ] as const;
 
+/** All thirteen ranks in standard order: A, 2–10, J, Q, K. */
 export const PLAYING_CARD_RANKS: readonly PlayingCardRank[] = [
   "A",
   "2",
@@ -47,7 +52,7 @@ export const PLAYING_CARD_RANKS: readonly PlayingCardRank[] = [
   "K",
 ] as const;
 
-/** Creates a standard 52-card deck (unshuffled). */
+/** Creates a standard 52-card deck (unshuffled). Use {@link shuffle} to randomize. */
 export function createPlayingCardDeck(): PlayingCard[] {
   const deck: PlayingCard[] = [];
   for (const suit of PLAYING_CARD_SUITS) {
@@ -58,7 +63,7 @@ export function createPlayingCardDeck(): PlayingCard[] {
   return deck;
 }
 
-/** Returns the Unicode symbol for a suit (♥♦♣♠). */
+/** Returns the Unicode symbol for a suit: ♥ ♦ ♣ ♠. */
 export function playingCardSuitSymbol(suit: PlayingCardSuit): string {
   switch (suit) {
     case "hearts":
@@ -72,12 +77,12 @@ export function playingCardSuitSymbol(suit: PlayingCardSuit): string {
   }
 }
 
-/** Returns true for hearts and diamonds. */
+/** Returns `true` if the suit is hearts or diamonds. */
 export function isPlayingCardRedSuit(suit: PlayingCardSuit): boolean {
   return suit === "hearts" || suit === "diamonds";
 }
 
-/** Returns true for clubs and spades. */
+/** Returns `true` if the suit is clubs or spades. */
 export function isPlayingCardBlackSuit(suit: PlayingCardSuit): boolean {
   return suit === "clubs" || suit === "spades";
 }

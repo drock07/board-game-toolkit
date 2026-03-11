@@ -12,7 +12,9 @@ import { useCardDimensionsContext } from "./CardDimensionsContext";
 
 function getItemKey(child: ReactNode, index: number): string {
   if (React.isValidElement(child) && child.key != null) {
-    return String(child.key);
+    const raw = String(child.key);
+    // React.Children.toArray prefixes keys with ".$" — strip it
+    return raw.startsWith(".$") ? raw.slice(2) : raw;
   }
   return String(index);
 }
@@ -58,7 +60,8 @@ export function CardHand({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [hasFocus, setHasFocus] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -98,12 +101,14 @@ export function CardHand({
     switch (e.key) {
       case "ArrowLeft": {
         e.preventDefault();
-        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
         break;
       }
       case "ArrowRight": {
         e.preventDefault();
-        setFocusedIndex((prev) => (prev < count - 1 ? prev + 1 : prev));
+        setFocusedIndex((prev) =>
+          prev < 0 ? 0 : prev < count - 1 ? prev + 1 : prev,
+        );
         break;
       }
       case "Home": {
@@ -119,7 +124,7 @@ export function CardHand({
       case "Enter":
       case " ": {
         e.preventDefault();
-        if (onCardClick) {
+        if (onCardClick && focusedIndex >= 0) {
           const key = getItemKey(items[focusedIndex], focusedIndex);
           onCardClick(selectedKey === key ? null : key);
         }
@@ -134,18 +139,20 @@ export function CardHand({
         role="listbox"
         aria-label={ariaLabel}
         aria-activedescendant={
-          count > 0
+          count > 0 && focusedIndex >= 0
             ? `card-hand-item-${getItemKey(items[focusedIndex], focusedIndex)}`
             : undefined
         }
         tabIndex={count > 0 ? 0 : undefined}
         onKeyDown={handleKeyDown}
+        onFocus={() => setHasFocus(true)}
+        onBlur={() => setHasFocus(false)}
         className="relative outline-none"
         style={{ height: count > 0 ? cardHeight : 0 }}
       >
         {items.map((child, i) => {
           const key = getItemKey(child, i);
-          const isFocused = focusedIndex === i;
+          const isFocused = hasFocus && focusedIndex === i;
           const isHovered = hoveredIndex === i;
           const isSelected = selectedKey === key;
           const isRaised = isHovered || isSelected || isFocused;
@@ -175,7 +182,10 @@ export function CardHand({
           };
 
           const handleClick = onCardClick
-            ? () => onCardClick(isSelected ? null : key)
+            ? () => {
+                setFocusedIndex(i);
+                onCardClick(isSelected ? null : key);
+              }
             : undefined;
 
           const userProps = getCardProps?.(key);

@@ -14,10 +14,22 @@ export function shuffle<T>(items: T[]): T[] {
   }
   return shuffled;
 }
-/** Draws a single item from the front of the array. Returns `[item, remaining]`. */
+/**
+ * Draws items from the front of an array.
+ *
+ * When called without a count, draws a single item and returns `[item, remaining]`.
+ * When called with a count, draws multiple items and returns `[items[], remaining]`.
+ *
+ * Optionally accepts a `reshuffleFrom` array — if the draw array doesn't have
+ * enough items, the reshuffle array is shuffled back in automatically. When a
+ * reshuffle source is provided, the return tuple includes the (potentially
+ * emptied) reshuffle array as a third element.
+ *
+ * @throws If the collection is empty.
+ * @throws If there are not enough items to draw.
+ */
 export function draw<T>(items: T[]): [T, T[]];
 export function draw<T>(items: T[], reshuffleFrom: T[]): [T, T[], T[]];
-/** Draws `count` items from the front of the array. Returns `[drawn, remaining]`. */
 export function draw<T>(items: T[], count: number): [T[], T[]];
 export function draw<T>(
   items: T[],
@@ -54,11 +66,7 @@ export function draw<T>(
 
   if (count === 1 && typeof countOrReshuffleFrom !== "number") {
     if (reshuffleDeck)
-      return [
-        drawDeck[0],
-        drawDeck.slice(1),
-        reshuffled ? [] : reshuffleDeck,
-      ];
+      return [drawDeck[0], drawDeck.slice(1), reshuffled ? [] : reshuffleDeck];
     return [drawDeck[0], drawDeck.slice(1)];
   }
 
