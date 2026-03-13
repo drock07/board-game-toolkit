@@ -1,4 +1,4 @@
-export default function YahtzeePreview() {
+export default function RollFivePreview() {
   return (
     <svg viewBox="0 0 120 120" className="size-24" aria-hidden="true">
       {/* Five dice in a scattered arrangement */}

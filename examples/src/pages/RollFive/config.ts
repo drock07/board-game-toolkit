@@ -18,18 +18,18 @@ export const SCORE_INDEX = {
   fullHouse: 8,
   smallStraight: 9,
   largeStraight: 10,
-  YAHTZEE: 11,
+  rollFive: 11,
   chance: 12,
-  yahtzeeBonuses: 13,
+  rollFiveBonuses: 13,
 } as const;
 
 // --- Types ---
 
-export type YahtzeeDice = [D6Result, D6Result, D6Result, D6Result, D6Result];
+export type RollFiveDice = [D6Result, D6Result, D6Result, D6Result, D6Result];
 export type HeldDice = [boolean, boolean, boolean, boolean, boolean];
 export type ScoreIndex = (typeof SCORE_INDEX)[keyof typeof SCORE_INDEX];
 
-export interface YahtzeeScoreSummary {
+export interface RollFiveScoreSummary {
   upperSubtotal: number;
   upperBonus: number;
   upperTotal: number;
@@ -37,21 +37,21 @@ export interface YahtzeeScoreSummary {
   grandTotal: number;
 }
 
-export interface YahtzeeState {
-  dice: YahtzeeDice | null;
+export interface RollFiveState {
+  dice: RollFiveDice | null;
   heldDice: HeldDice;
   roll: number;
   score: (number | undefined)[];
 }
 
-export type YahtzeeCommand =
+export type RollFiveCommand =
   | { type: "roll" }
   | { type: "toggleHold"; index: number }
   | { type: "score"; index: ScoreIndex };
 
 // --- Initial State ---
 
-export const initialState: YahtzeeState = {
+export const initialState: RollFiveState = {
   dice: null,
   roll: 1,
   heldDice: [false, false, false, false, false],
@@ -60,32 +60,32 @@ export const initialState: YahtzeeState = {
 
 // --- State Machine Config ---
 
-export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
-  id: "yahtzee",
+export const rollFiveConfig: StateMachineConfig<
+  RollFiveState,
+  RollFiveCommand
+> = {
+  id: "roll-five",
   initial: "setup",
   states: {
     setup: {
       onExit: (state) => ({
         ...state,
-        dice: Dice.roll(Dice.D6, 5) as YahtzeeDice,
+        dice: Dice.roll(Dice.D6, 5) as RollFiveDice,
         roll: 1,
         heldDice: [false, false, false, false, false],
       }),
       getNext: () => "roll",
     },
     roll: {
-      onExit: (state) => ({
-        ...state,
-        roll: state.roll + 1,
-      }),
       actions: {
         roll: {
           execute: (state) => {
             return {
               ...state,
+              roll: state.roll + 1,
               dice: state.heldDice.map((isHeld, i) =>
                 isHeld && state.dice ? state.dice[i] : Dice.roll(Dice.D6),
-              ) as YahtzeeDice,
+              ) as RollFiveDice,
             };
           },
         },
@@ -108,12 +108,12 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
         if (
           state.dice &&
           hasNOfAKind(state.dice, 5) &&
-          state.score[SCORE_INDEX.YAHTZEE] !== undefined &&
-          state.score[SCORE_INDEX.YAHTZEE] !== 0
+          state.score[SCORE_INDEX.rollFive] !== undefined &&
+          state.score[SCORE_INDEX.rollFive] !== 0
         ) {
           const newScore = [...state.score];
-          newScore[SCORE_INDEX.yahtzeeBonuses] =
-            (newScore[SCORE_INDEX.yahtzeeBonuses] ?? 0) + 100;
+          newScore[SCORE_INDEX.rollFiveBonuses] =
+            (newScore[SCORE_INDEX.rollFiveBonuses] ?? 0) + 100;
           return {
             ...state,
             score: newScore,
@@ -163,7 +163,7 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
               case 10: // lg straight
                 score[index] = longestRun(dice) >= 5 ? 40 : 0;
                 break;
-              case 11: // YAHTZEE
+              case 11: // Roll Five
                 score[index] = hasNOfAKind(dice, 5) ? 50 : 0;
                 break;
               case 12: // chance
@@ -192,24 +192,24 @@ export const yahtzeeConfig: StateMachineConfig<YahtzeeState, YahtzeeCommand> = {
   },
 };
 
-function sum(dice: YahtzeeDice): number {
+function sum(dice: RollFiveDice): number {
   return dice.reduce((sum, dieValue) => sum + dieValue, 0);
 }
 
-function hasNOfAKind(dice: YahtzeeDice, n: number): boolean {
+function hasNOfAKind(dice: RollFiveDice, n: number): boolean {
   const counts = new Map<number, number>();
   for (const d of dice) counts.set(d, (counts.get(d) ?? 0) + 1);
   return [...counts.values()].some((c) => c >= n);
 }
 
-function isFullHouse(dice: YahtzeeDice): boolean {
+function isFullHouse(dice: RollFiveDice): boolean {
   const counts = new Map<number, number>();
   for (const d of dice) counts.set(d, (counts.get(d) ?? 0) + 1);
   const values = [...counts.values()].sort();
   return values.length === 2 && values[0] === 2 && values[1] === 3;
 }
 
-function longestRun(dice: YahtzeeDice): number {
+function longestRun(dice: RollFiveDice): number {
   const unique = [...new Set(dice)].sort((a, b) => a - b);
   let longest = 1;
   let current = 1;
@@ -221,8 +221,8 @@ function longestRun(dice: YahtzeeDice): number {
 }
 
 export function computeScoreSummary(
-  score: YahtzeeState["score"],
-): YahtzeeScoreSummary {
+  score: RollFiveState["score"],
+): RollFiveScoreSummary {
   const upperSubtotal = score
     .slice(0, 6)
     .reduce<number>((sum, val) => sum + (val ?? 0), 0);

@@ -6,7 +6,7 @@ import DungeonCrawlPreview from "./DungeonCrawl/DungeonCrawlPreview";
 import TicTacToePreview from "./TicTacToe/TicTacToePreview";
 import CrazyEightsPreview from "./CrazyEights/CrazyEightsPreview";
 import TowerBattlerPreview from "./TowerBattler/TowerBattlerPreview";
-import YahtzeePreview from "./Yahtzee/YahtzeePreview";
+import RollFivePreview from "./RollFive/RollFivePreview";
 
 export default function Home() {
   return (
@@ -30,10 +30,10 @@ export default function Home() {
             preview={<BlackjackPreview />}
           />
           <GameCard
-            to="yahtzee"
-            title="Yahtzee"
+            to="roll-five"
+            title="Roll Five"
             description="Dice game with multi-phase turns. Demonstrates dice keeping/rerolling, scoring validation, and nested turns."
-            preview={<YahtzeePreview />}
+            preview={<RollFivePreview />}
           />
           <GameCard
             to="dungeon-crawl"
