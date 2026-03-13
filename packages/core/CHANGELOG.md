@@ -1,5 +1,17 @@
 # @drock07/board-game-toolkit-core
 
+## 0.4.0
+
+### Minor Changes
+
+- [`f10128f`](https://github.com/drock07/board-game-toolkit/commit/f10128f8bd8e4a367a60e129a55a7ffb51592cb3) Thanks [@drock07](https://github.com/drock07)! - Add card effect system for declarative card effects with reducer-style resolution
+  - Add `CardEffect` base interface and `EffectCard<TEffect>` for cards that carry effects
+  - Add `EffectContext<TCard>` for passing context (triggering card) to effect handlers
+  - Add `EffectHandler`, `EffectHandlerMap` types for mapping effect types to handler functions
+  - Add `resolveEffects()` for left-to-right fold of effects over game state
+  - Add built-in `TransferCardsEffect` (with `count: number | "all"` and `toPosition`) and `ShufflePoolEffect`
+  - Add `createBuiltinEffectHandlers()` factory for pool-based effect handlers that can be spread into custom handler maps
+
 ## 0.3.0
 
 ### Minor Changes
