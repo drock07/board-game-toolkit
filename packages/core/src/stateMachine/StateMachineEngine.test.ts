@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { StateMachineConfig } from "./StateMachineConfig";
+import { EmitHandler, StateMachineConfig } from "./StateMachineConfig";
 import {
   advance,
   canDispatch,
@@ -36,25 +36,25 @@ function makeConfig(
 }
 
 describe("start", () => {
-  it("initializes engine with the machine on the stack", () => {
+  it("initializes engine with the machine on the stack", async () => {
     const config = makeConfig();
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.machineStack).toHaveLength(1);
     expect(engine.machineStack[0].currentState).toBe("a");
     expect(engine.state).toEqual(initialState);
   });
 
-  it("calls onEnter for the machine when starting", () => {
+  it("calls onEnter for the machine when starting", async () => {
     const config = makeConfig({
       onEnter: (state) => ({ ...state, log: [...state.log, "machine:enter"] }),
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.state.log).toContain("machine:enter");
   });
 
-  it("calls onEnter for the initial state", () => {
+  it("calls onEnter for the initial state", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -64,12 +64,12 @@ describe("start", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.state.log).toContain("a:enter");
   });
 
-  it("calls machine onEnter before state onEnter", () => {
+  it("calls machine onEnter before state onEnter", async () => {
     const config = makeConfig({
       onEnter: (state) => ({ ...state, log: [...state.log, "machine:enter"] }),
       states: {
@@ -80,25 +80,25 @@ describe("start", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.state.log).toEqual(["machine:enter", "a:enter"]);
   });
 });
 
 describe("advance", () => {
-  it("transitions to the next state", () => {
+  it("transitions to the next state", async () => {
     const config = makeConfig();
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("a");
 
-    const next = advance(engine);
+    const next = await advance(engine);
 
     expect(next.machineStack[0].currentState).toBe("b");
   });
 
-  it("calls onExit for the current state and onEnter for the next", () => {
+  it("calls onExit for the current state and onEnter for the next", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -111,13 +111,13 @@ describe("advance", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    const next = advance(engine);
+    const engine = await start(createEngine(initialState), config);
+    const next = await advance(engine);
 
     expect(next.state.log).toEqual(["a:exit", "b:enter"]);
   });
 
-  it("calls getNext before onExit", () => {
+  it("calls getNext before onExit", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -134,46 +134,48 @@ describe("advance", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     // getNext sees count=0, routes to "b"; then onExit increments to 1
-    const next = advance(engine);
+    const next = await advance(engine);
 
     expect(next.machineStack[0].currentState).toBe("b");
     expect(next.state.count).toBe(1);
   });
 
-  it("pops machine from stack when final state returns null", () => {
+  it("pops machine from stack when final state returns null", async () => {
     const config = makeConfig({
       states: {
         a: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    const next = advance(engine);
+    const engine = await start(createEngine(initialState), config);
+    const next = await advance(engine);
 
     expect(next.machineStack).toHaveLength(0);
   });
 
-  it("calls machine onExit when machine completes", () => {
+  it("calls machine onExit when machine completes", async () => {
     const config = makeConfig({
       onExit: (state) => ({ ...state, log: [...state.log, "machine:exit"] }),
       states: {
         a: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    const next = advance(engine);
+    const engine = await start(createEngine(initialState), config);
+    const next = await advance(engine);
 
     expect(next.state.log).toContain("machine:exit");
   });
 
-  it("throws when no active machine", () => {
+  it("throws when no active machine", async () => {
     const engine = createEngine(initialState);
-    expect(() => advance(engine)).toThrow("Cannot advance: no active machine");
+    await expect(advance(engine)).rejects.toThrow(
+      "Cannot advance: no active machine",
+    );
   });
 
-  it("modifies state through callbacks", () => {
+  it("modifies state through callbacks", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -186,18 +188,18 @@ describe("advance", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.state.count).toBe(1);
 
-    const next = advance(engine);
+    const next = await advance(engine);
 
     expect(next.state.count).toBe(11);
   });
 });
 
 describe("autoadvance", () => {
-  it("automatically advances when autoadvance is true", () => {
+  it("automatically advances when autoadvance is true", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -212,13 +214,13 @@ describe("autoadvance", () => {
       },
     });
     // start should auto-advance past 'a' into 'b'
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("b");
     expect(engine.state.log).toEqual(["a:enter", "b:enter"]);
   });
 
-  it("automatically advances when autoadvance function returns true", () => {
+  it("automatically advances when autoadvance function returns true", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -228,12 +230,12 @@ describe("autoadvance", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("b");
   });
 
-  it("does not auto-advance when autoadvance function returns false", () => {
+  it("does not auto-advance when autoadvance function returns false", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -243,14 +245,14 @@ describe("autoadvance", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.machineStack[0].currentState).toBe("a");
   });
 });
 
 describe("nested machines", () => {
-  it("pushes nested machine onto the stack", () => {
+  it("pushes nested machine onto the stack", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -264,7 +266,7 @@ describe("nested machines", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.machineStack).toHaveLength(2);
     expect(engine.machineStack[0].config.id).toBe("test");
@@ -272,7 +274,7 @@ describe("nested machines", () => {
     expect(engine.machineStack[1].currentState).toBe("x");
   });
 
-  it("pops nested machine and advances parent when nested completes", () => {
+  it("pops nested machine and advances parent when nested completes", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -286,19 +288,19 @@ describe("nested machines", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     // nested machine is active at state x
     expect(engine.machineStack).toHaveLength(2);
 
     // advance completes nested, which pops it, then advances parent from a -> b
-    const next = advance(engine);
+    const next = await advance(engine);
 
     expect(next.machineStack).toHaveLength(1);
     expect(next.machineStack[0].currentState).toBe("b");
   });
 
-  it("calls lifecycle hooks in correct order for nested machines", () => {
+  it("calls lifecycle hooks in correct order for nested machines", async () => {
     const config: StateMachineConfig<TestState, TestCommand> = {
       id: "parent",
       initial: "a",
@@ -325,12 +327,12 @@ describe("nested machines", () => {
         },
       },
     };
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(engine.state.log).toEqual(["child:enter", "x:enter"]);
 
     // advance: x exits, child completes and exits, parent completes
-    const next = advance(engine);
+    const next = await advance(engine);
 
     expect(next.state.log).toEqual([
       "child:enter",
@@ -342,7 +344,7 @@ describe("nested machines", () => {
 });
 
 describe("immutability", () => {
-  it("does not mutate the original engine state on advance", () => {
+  it("does not mutate the original engine state on advance", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -355,16 +357,16 @@ describe("immutability", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
     const snapshot = { ...engine, state: { ...engine.state } };
 
-    advance(engine);
+    await advance(engine);
 
     expect(engine.state.count).toBe(snapshot.state.count);
     expect(engine.machineStack).toEqual(snapshot.machineStack);
   });
 
-  it("does not mutate the original state object", () => {
+  it("does not mutate the original state object", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -374,7 +376,7 @@ describe("immutability", () => {
       },
     });
     const original: TestState = { count: 0, log: [] };
-    start(createEngine(original), config);
+    await start(createEngine(original), config);
 
     expect(original.count).toBe(0);
     expect(original.log).toEqual([]);
@@ -382,7 +384,7 @@ describe("immutability", () => {
 });
 
 describe("dispatch", () => {
-  it("applies the execute handler to the state", () => {
+  it("applies the execute handler to the state", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -396,14 +398,14 @@ describe("dispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 42 });
+    const next = await dispatch(engine, { type: "set", value: 42 });
 
     expect(next.state.count).toBe(42);
   });
 
-  it("passes the narrowed command type to execute", () => {
+  it("passes the narrowed command type to execute", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -420,23 +422,23 @@ describe("dispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "increment", amount: 5 });
+    const next = await dispatch(engine, { type: "increment", amount: 5 });
 
     expect(next.state.count).toBe(5);
   });
 
-  it("throws when no handler for command type in current state", () => {
+  it("throws when no handler for command type in current state", async () => {
     const config = makeConfig();
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    expect(() => dispatch(engine, { type: "set", value: 1 })).toThrow(
+    await expect(dispatch(engine, { type: "set", value: 1 })).rejects.toThrow(
       "No handler for command 'set' in state 'a'",
     );
   });
 
-  it("throws when validate returns false", () => {
+  it("throws when validate returns false", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -451,14 +453,14 @@ describe("dispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    expect(() => dispatch(engine, { type: "set", value: -1 })).toThrow(
-      "Command 'set' failed validation",
-    );
+    await expect(
+      dispatch(engine, { type: "set", value: -1 }),
+    ).rejects.toThrow("Command 'set' failed validation");
   });
 
-  it("succeeds when validate returns true", () => {
+  it("succeeds when validate returns true", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -473,14 +475,14 @@ describe("dispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 10 });
+    const next = await dispatch(engine, { type: "set", value: 10 });
 
     expect(next.state.count).toBe(10);
   });
 
-  it("records command in history", () => {
+  it("records command in history", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -494,26 +496,26 @@ describe("dispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     const cmd1 = { type: "set" as const, value: 1 };
     const cmd2 = { type: "set" as const, value: 2 };
-    const after1 = dispatch(engine, cmd1);
-    const after2 = dispatch(after1, cmd2);
+    const after1 = await dispatch(engine, cmd1);
+    const after2 = await dispatch(after1, cmd2);
 
     expect(after1.history).toEqual([cmd1]);
     expect(after2.history).toEqual([cmd1, cmd2]);
   });
 
-  it("throws when machine not started", () => {
+  it("throws when machine not started", async () => {
     const engine = createEngine<TestState, TestCommand>(initialState);
 
-    expect(() => dispatch(engine, { type: "noop" })).toThrow(
+    await expect(dispatch(engine, { type: "noop" })).rejects.toThrow(
       "Cannot dispatch: machine not started",
     );
   });
 
-  it("does not mutate the original engine state", () => {
+  it("does not mutate the original engine state", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -527,9 +529,9 @@ describe("dispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    dispatch(engine, { type: "set", value: 99 });
+    await dispatch(engine, { type: "set", value: 99 });
 
     expect(engine.state.count).toBe(0);
     expect(engine.history).toEqual([]);
@@ -537,13 +539,13 @@ describe("dispatch", () => {
 });
 
 describe("action-triggered transitions", () => {
-  it("transitions to target state when execute returns transitionTo", () => {
+  it("transitions to target state when execute returns transitionTo", async () => {
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("b", { ...state, count: cmd.value }),
             },
           },
@@ -552,22 +554,22 @@ describe("action-triggered transitions", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 42 });
+    const next = await dispatch(engine, { type: "set", value: 42 });
 
     expect(next.state.count).toBe(42);
     expect(next.machineStack[0].currentState).toBe("b");
   });
 
-  it("calls onExit for current state and onEnter for target state", () => {
+  it("calls onExit for current state and onEnter for target state", async () => {
     const config = makeConfig({
       states: {
         a: {
           onExit: (state) => ({ ...state, log: [...state.log, "a:exit"] }),
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("b", { ...state, count: cmd.value }),
             },
           },
@@ -579,20 +581,20 @@ describe("action-triggered transitions", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 1 });
+    const next = await dispatch(engine, { type: "set", value: 1 });
 
     expect(next.state.log).toEqual(["a:exit", "b:enter"]);
   });
 
-  it("records command in history when transitioning", () => {
+  it("records command in history when transitioning", async () => {
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("b", { ...state, count: cmd.value }),
             },
           },
@@ -601,20 +603,20 @@ describe("action-triggered transitions", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 5 });
+    const next = await dispatch(engine, { type: "set", value: 5 });
 
     expect(next.history).toEqual([{ type: "set", value: 5 }]);
   });
 
-  it("throws when target state does not exist", () => {
+  it("throws when target state does not exist", async () => {
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("nonexistent", { ...state, count: cmd.value }),
             },
           },
@@ -623,20 +625,20 @@ describe("action-triggered transitions", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    expect(() => dispatch(engine, { type: "set", value: 1 })).toThrow(
-      "triggered transition to 'nonexistent'",
-    );
+    await expect(
+      dispatch(engine, { type: "set", value: 1 }),
+    ).rejects.toThrow("triggered transition to 'nonexistent'");
   });
 
-  it("handles autoadvance on the target state", () => {
+  it("handles autoadvance on the target state", async () => {
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("b", { ...state, count: cmd.value }),
             },
           },
@@ -649,20 +651,20 @@ describe("action-triggered transitions", () => {
         c: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 1 });
+    const next = await dispatch(engine, { type: "set", value: 1 });
 
     expect(next.machineStack[0].currentState).toBe("c");
   });
 
-  it("can transition to a nested machine state", () => {
+  it("can transition to a nested machine state", async () => {
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("nested", { ...state, count: cmd.value }),
             },
           },
@@ -679,16 +681,16 @@ describe("action-triggered transitions", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 10 });
+    const next = await dispatch(engine, { type: "set", value: 10 });
 
     expect(next.machineStack).toHaveLength(2);
     expect(next.machineStack[1].config.id).toBe("nested");
     expect(next.machineStack[1].currentState).toBe("x");
   });
 
-  it("works without transition — backward compatible", () => {
+  it("works without transition — backward compatible", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -702,9 +704,9 @@ describe("action-triggered transitions", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
-    const next = dispatch(engine, { type: "set", value: 42 });
+    const next = await dispatch(engine, { type: "set", value: 42 });
 
     expect(next.state.count).toBe(42);
     expect(next.machineStack[0].currentState).toBe("a");
@@ -712,7 +714,7 @@ describe("action-triggered transitions", () => {
 });
 
 describe("transition data", () => {
-  it("passes data from getNext tuple to onEnter", () => {
+  it("passes data from getNext tuple to onEnter", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -730,19 +732,19 @@ describe("transition data", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    const next = advance(engine);
+    const engine = await start(createEngine(initialState), config);
+    const next = await advance(engine);
 
     expect(next.state.log).toEqual(["result:lose"]);
   });
 
-  it("passes data from action transitionTo to onEnter", () => {
+  it("passes data from action transitionTo to onEnter", async () => {
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo(
                   "b",
                   { ...state, count: cmd.value },
@@ -761,14 +763,14 @@ describe("transition data", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    const next = dispatch(engine, { type: "set", value: 42 });
+    const engine = await start(createEngine(initialState), config);
+    const next = await dispatch(engine, { type: "set", value: 42 });
 
     expect(next.state.count).toBe(42);
     expect(next.state.log).toEqual(["returnTo:a"]);
   });
 
-  it("passes data to nested machine onEnter", () => {
+  it("passes data to nested machine onEnter", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -791,13 +793,13 @@ describe("transition data", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    const next = advance(engine);
+    const engine = await start(createEngine(initialState), config);
+    const next = await advance(engine);
 
     expect(next.state.log).toEqual(["fromA:true"]);
   });
 
-  it("data is undefined when getNext returns plain string", () => {
+  it("data is undefined when getNext returns plain string", async () => {
     let receivedData: unknown = "sentinel";
     const config = makeConfig({
       states: {
@@ -813,20 +815,20 @@ describe("transition data", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    advance(engine);
+    const engine = await start(createEngine(initialState), config);
+    await advance(engine);
 
     expect(receivedData).toBeUndefined();
   });
 
-  it("data is undefined when transitionTo called without data", () => {
+  it("data is undefined when transitionTo called without data", async () => {
     let receivedData: unknown = "sentinel";
     const config = makeConfig({
       states: {
         a: {
           actions: {
             set: {
-              execute: (state, cmd, transitionTo) =>
+              execute: (state, cmd, { transitionTo }) =>
                 transitionTo("b", { ...state, count: cmd.value }),
             },
           },
@@ -841,15 +843,15 @@ describe("transition data", () => {
         },
       },
     });
-    const engine = start(createEngine(initialState), config);
-    dispatch(engine, { type: "set", value: 1 });
+    const engine = await start(createEngine(initialState), config);
+    await dispatch(engine, { type: "set", value: 1 });
 
     expect(receivedData).toBeUndefined();
   });
 });
 
 describe("canDispatch", () => {
-  it("returns true when handler exists and no validate", () => {
+  it("returns true when handler exists and no validate", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -863,12 +865,12 @@ describe("canDispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(canDispatch(engine, { type: "set", value: 1 })).toBe(true);
   });
 
-  it("returns true when validate passes", () => {
+  it("returns true when validate passes", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -883,12 +885,12 @@ describe("canDispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(canDispatch(engine, { type: "set", value: 5 })).toBe(true);
   });
 
-  it("returns false when validate fails", () => {
+  it("returns false when validate fails", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -903,14 +905,14 @@ describe("canDispatch", () => {
         b: { getNext: () => null },
       },
     });
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(canDispatch(engine, { type: "set", value: -1 })).toBe(false);
   });
 
-  it("returns false when no handler exists", () => {
+  it("returns false when no handler exists", async () => {
     const config = makeConfig();
-    const engine = start(createEngine(initialState), config);
+    const engine = await start(createEngine(initialState), config);
 
     expect(canDispatch(engine, { type: "set", value: 1 })).toBe(false);
   });
@@ -920,28 +922,109 @@ describe("canDispatch", () => {
 
     expect(canDispatch(engine, { type: "noop" })).toBe(false);
   });
+
+  it("returns false when engine is transitioning", async () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config);
+    const transitioning = { ...engine, transitioning: true };
+
+    expect(canDispatch(transitioning, { type: "set", value: 1 })).toBe(false);
+  });
+});
+
+describe("transitioning", () => {
+  it("transitioning is false after start completes", async () => {
+    const config = makeConfig();
+    const engine = await start(createEngine(initialState), config);
+
+    expect(engine.transitioning).toBe(false);
+  });
+
+  it("transitioning is false after advance completes", async () => {
+    const config = makeConfig();
+    const engine = await start(createEngine(initialState), config);
+    const next = await advance(engine);
+
+    expect(next.transitioning).toBe(false);
+  });
+
+  it("transitioning is false after dispatch completes", async () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config);
+    const next = await dispatch(engine, { type: "set", value: 1 });
+
+    expect(next.transitioning).toBe(false);
+  });
+
+  it("rejects dispatch while transitioning", async () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: (state, cmd) => ({ ...state, count: cmd.value }),
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config);
+    const transitioning = { ...engine, transitioning: true };
+
+    await expect(
+      dispatch(transitioning, { type: "set", value: 1 }),
+    ).rejects.toThrow("Cannot dispatch: engine is transitioning");
+  });
 });
 
 describe("StateMachineEngine class", () => {
-  it("throws when start is called twice", () => {
+  it("throws when start is called twice", async () => {
     const config = makeConfig();
     const engine = new StateMachineEngine(config, initialState);
 
-    engine.start();
+    await engine.start();
 
-    expect(() => engine.start()).toThrow(
+    await expect(engine.start()).rejects.toThrow(
       "Cannot start: machine already started",
     );
   });
 
-  it("throws when advance is called before start", () => {
+  it("throws when advance is called before start", async () => {
     const config = makeConfig();
     const engine = new StateMachineEngine(config, initialState);
 
-    expect(() => engine.advance()).toThrow("Cannot advance: no active machine");
+    await expect(engine.advance()).rejects.toThrow(
+      "Cannot advance: no active machine",
+    );
   });
 
-  it("dispatch applies the command to the state", () => {
+  it("dispatch applies the command to the state", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -956,14 +1039,14 @@ describe("StateMachineEngine class", () => {
       },
     });
     const engine = new StateMachineEngine(config, initialState);
-    engine.start();
+    await engine.start();
 
-    engine.dispatch({ type: "set", value: 7 });
+    await engine.dispatch({ type: "set", value: 7 });
 
     expect(engine.state.count).toBe(7);
   });
 
-  it("dispatch records in history", () => {
+  it("dispatch records in history", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -978,14 +1061,14 @@ describe("StateMachineEngine class", () => {
       },
     });
     const engine = new StateMachineEngine(config, initialState);
-    engine.start();
+    await engine.start();
 
-    engine.dispatch({ type: "set", value: 7 });
+    await engine.dispatch({ type: "set", value: 7 });
 
     expect(engine.history).toEqual([{ type: "set", value: 7 }]);
   });
 
-  it("canDispatch returns correct values", () => {
+  it("canDispatch returns correct values", async () => {
     const config = makeConfig({
       states: {
         a: {
@@ -1001,10 +1084,196 @@ describe("StateMachineEngine class", () => {
       },
     });
     const engine = new StateMachineEngine(config, initialState);
-    engine.start();
+    await engine.start();
 
     expect(engine.canDispatch({ type: "set", value: 5 })).toBe(true);
     expect(engine.canDispatch({ type: "set", value: -1 })).toBe(false);
     expect(engine.canDispatch({ type: "noop" })).toBe(false);
+  });
+});
+
+describe("emit", () => {
+  it("calls emit handler in onEnter and pauses until resolved", async () => {
+    const events: string[] = [];
+    const emitHandler: EmitHandler = async (event) => {
+      events.push(`handled:${event.type}`);
+    };
+
+    const config = makeConfig({
+      states: {
+        a: {
+          onEnter: async (state, _data, { emit }) => {
+            await emit({ type: "entering" });
+            return { ...state, log: [...state.log, "a:enter"] };
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config, emitHandler);
+
+    expect(events).toEqual(["handled:entering"]);
+    expect(engine.state.log).toContain("a:enter");
+  });
+
+  it("calls emit handler in onExit and pauses until resolved", async () => {
+    const events: string[] = [];
+    const emitHandler: EmitHandler = async (event) => {
+      events.push(`handled:${event.type}`);
+    };
+
+    const config = makeConfig({
+      states: {
+        a: {
+          onExit: async (state, { emit }) => {
+            await emit({ type: "exiting" });
+            return { ...state, log: [...state.log, "a:exit"] };
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config, emitHandler);
+    const next = await advance(engine, emitHandler);
+
+    expect(events).toEqual(["handled:exiting"]);
+    expect(next.state.log).toContain("a:exit");
+  });
+
+  it("calls emit handler in execute and pauses until resolved", async () => {
+    const events: string[] = [];
+    const emitHandler: EmitHandler = async (event) => {
+      events.push(`handled:${event.type}`);
+    };
+
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: async (state, cmd, { emit }) => {
+                await emit({ type: "setting" });
+                return { ...state, count: cmd.value };
+              },
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config, emitHandler);
+    const next = await dispatch(engine, { type: "set", value: 42 }, emitHandler);
+
+    expect(events).toEqual(["handled:setting"]);
+    expect(next.state.count).toBe(42);
+  });
+
+  it("returns value from emit handler", async () => {
+    const emitHandler: EmitHandler = async (event) => {
+      if (event.type === "choose") return "red";
+      return undefined;
+    };
+
+    const config = makeConfig({
+      states: {
+        a: {
+          actions: {
+            set: {
+              execute: async (state, _cmd, { emit }) => {
+                const color = await emit({ type: "choose" });
+                return {
+                  ...state,
+                  log: [...state.log, `chose:${color}`],
+                };
+              },
+            },
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    const engine = await start(createEngine(initialState), config, emitHandler);
+    const next = await dispatch(
+      engine,
+      { type: "set", value: 1 },
+      emitHandler,
+    );
+
+    expect(next.state.log).toEqual(["chose:red"]);
+  });
+
+  it("resolves immediately when no handler is registered", async () => {
+    const config = makeConfig({
+      states: {
+        a: {
+          onEnter: async (state, _data, { emit }) => {
+            await emit({ type: "no-handler-for-this" });
+            return { ...state, log: [...state.log, "continued"] };
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    // No emitHandler provided
+    const engine = await start(createEngine(initialState), config);
+
+    expect(engine.state.log).toContain("continued");
+  });
+
+  it("handles multiple sequential emits in one lifecycle hook", async () => {
+    const events: string[] = [];
+    const emitHandler: EmitHandler = async (event) => {
+      events.push(event.type);
+    };
+
+    const config = makeConfig({
+      states: {
+        a: {
+          onEnter: async (state, _data, { emit }) => {
+            await emit({ type: "first" });
+            await emit({ type: "second" });
+            await emit({ type: "third" });
+            return state;
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    await start(createEngine(initialState), config, emitHandler);
+
+    expect(events).toEqual(["first", "second", "third"]);
+  });
+
+  it("passes event data to handler", async () => {
+    let receivedData: any = null;
+    const emitHandler: EmitHandler = async (event) => {
+      receivedData = event;
+    };
+
+    const config = makeConfig({
+      states: {
+        a: {
+          onEnter: async (state, _data, { emit }) => {
+            await emit({ type: "cardPlayed", cardId: "ace", from: "hand" });
+            return state;
+          },
+          getNext: () => "b",
+        },
+        b: { getNext: () => null },
+      },
+    });
+    await start(createEngine(initialState), config, emitHandler);
+
+    expect(receivedData).toEqual({
+      type: "cardPlayed",
+      cardId: "ace",
+      from: "hand",
+    });
   });
 });

@@ -235,7 +235,7 @@ export const towerBattlerConfig: StateMachineConfig<
             );
             return !!card && card.cost <= state.energy;
           },
-          execute: (state, _cmd, transitionTo) => {
+          execute: (state, _cmd, { transitionTo }) => {
             const card = state.pools.hand.find(
               (c) => c.id === state.selectedCardId,
             )!;
@@ -272,7 +272,7 @@ export const towerBattlerConfig: StateMachineConfig<
           },
         },
         endTurn: {
-          execute: (state, _cmd, transitionTo) => {
+          execute: (state, _cmd, { transitionTo }) => {
             return transitionTo("enemyTurn", state);
           },
         },

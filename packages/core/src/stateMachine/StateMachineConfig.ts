@@ -51,17 +51,71 @@ export function createTransitionSignal<TState>(
 }
 
 /**
+ * Default event map type. Games can provide their own interface
+ * to get type-safe emit/handler signatures.
+ */
+export type DefaultEventMap = Record<string, (data: any) => any>;
+
+/**
+ * Extracts the data type for a given event key from the event map.
+ */
+export type EventData<TEvents, K extends keyof TEvents> =
+  TEvents[K] extends (data: infer D) => any ? D : {};
+
+/**
+ * Extracts the response type for a given event key from the event map.
+ */
+export type EventResponse<TEvents, K extends keyof TEvents> =
+  TEvents[K] extends (data: any) => infer R ? R : void;
+
+/**
+ * The emit function available in lifecycle hooks and action handlers.
+ * Pauses the engine until the UI handler responds.
+ * K is inferred from the `type` property of the event object.
+ */
+export type EmitFn<TEvents = DefaultEventMap> = <K extends keyof TEvents>(
+  event: { type: K } & EventData<TEvents, K>,
+) => Promise<EventResponse<TEvents, K>>;
+
+/**
+ * The handler function provided by the UI layer to process emitted events.
+ * The engine calls this when game code calls emit().
+ */
+export type EmitHandler = (
+  event: { type: string; [key: string]: any },
+) => Promise<any>;
+
+/**
+ * Context passed to onEnter and onExit lifecycle hooks.
+ */
+export interface LifecycleContext<TEvents = DefaultEventMap> {
+  emit: EmitFn<TEvents>;
+}
+
+/**
+ * Context passed to action execute handlers.
+ * Includes both transitionTo and emit.
+ */
+export interface ActionContext<TState, TEvents = DefaultEventMap> {
+  transitionTo: TransitionTo<TState>;
+  emit: EmitFn<TEvents>;
+}
+
+/**
  * Handler for a single action/command type.
  */
-export interface ActionHandler<TState, TCommand> {
+export interface ActionHandler<TState, TCommand, TEvents = DefaultEventMap> {
   /** Returns whether the command is valid in the current state */
   validate?: (state: TState, command: TCommand) => boolean;
   /** Applies the command to produce a new state, optionally triggering a transition */
   execute: (
     state: TState,
     command: TCommand,
-    transitionTo: TransitionTo<TState>,
-  ) => TState | TransitionSignal<TState>;
+    ctx: ActionContext<TState, TEvents>,
+  ) =>
+    | TState
+    | TransitionSignal<TState>
+    | Promise<TState | TransitionSignal<TState>>;
 }
 
 /**
@@ -71,10 +125,12 @@ export interface ActionHandler<TState, TCommand> {
 export type ActionHandlers<
   TState,
   TCommand extends { type: string },
+  TEvents = DefaultEventMap,
 > = {
   [K in TCommand["type"]]?: ActionHandler<
     TState,
-    Extract<TCommand, { type: K }>
+    Extract<TCommand, { type: K }>,
+    TEvents
   >;
 };
 
@@ -89,17 +145,28 @@ export type GetNextResult = string | null | [string, unknown];
 /**
  * Base configuration shared by states and machines.
  */
-interface BaseConfig<TState, TCommand extends { type: string }> {
+interface BaseConfig<
+  TState,
+  TCommand extends { type: string },
+  TEvents = DefaultEventMap,
+> {
   /** Called when entering this state/machine. Returns new state. */
-  onEnter?: (state: TState, data?: any) => TState;
+  onEnter?: (
+    state: TState,
+    data: any | undefined,
+    ctx: LifecycleContext<TEvents>,
+  ) => TState | Promise<TState>;
   /** Called when exiting this state/machine. Returns new state. */
-  onExit?: (state: TState) => TState;
+  onExit?: (
+    state: TState,
+    ctx: LifecycleContext<TEvents>,
+  ) => TState | Promise<TState>;
   /** Determines the next state (null = complete/terminal) */
   getNext?: (state: TState) => GetNextResult;
   /** Whether to automatically advance after entering this state */
   autoadvance?: boolean | ((state: TState) => boolean);
   /** Command handlers for this state */
-  actions?: ActionHandlers<TState, TCommand>;
+  actions?: ActionHandlers<TState, TCommand, TEvents>;
 }
 
 /**
@@ -109,7 +176,8 @@ interface BaseConfig<TState, TCommand extends { type: string }> {
 export interface StateConfig<
   TState = any,
   TCommand extends { type: string } = any,
-> extends BaseConfig<TState, TCommand> {
+  TEvents = DefaultEventMap,
+> extends BaseConfig<TState, TCommand, TEvents> {
   /** Discriminator - states don't have these machine-only properties */
   id?: never;
   initial?: never;
@@ -123,7 +191,8 @@ export interface StateConfig<
 export interface StateMachineConfig<
   TState = any,
   TCommand extends { type: string } = any,
-> extends BaseConfig<TState, TCommand> {
+  TEvents = DefaultEventMap,
+> extends BaseConfig<TState, TCommand, TEvents> {
   /** Unique identifier for this machine */
   id: string;
   /** Initial state when this machine starts */
@@ -131,17 +200,22 @@ export interface StateMachineConfig<
   /** States in this machine (can be StateConfig or nested StateMachineConfig) */
   states: Record<
     string,
-    StateConfig<TState, TCommand> | StateMachineConfig<TState, TCommand>
+    | StateConfig<TState, TCommand, TEvents>
+    | StateMachineConfig<TState, TCommand, TEvents>
   >;
 }
 
 /**
  * Check if a config is a machine (has nested states) vs a simple state.
  */
-export function isMachine<TState, TCommand extends { type: string }>(
+export function isMachine<
+  TState,
+  TCommand extends { type: string },
+  TEvents = DefaultEventMap,
+>(
   config:
-    | StateConfig<TState, TCommand>
-    | StateMachineConfig<TState, TCommand>,
-): config is StateMachineConfig<TState, TCommand> {
+    | StateConfig<TState, TCommand, TEvents>
+    | StateMachineConfig<TState, TCommand, TEvents>,
+): config is StateMachineConfig<TState, TCommand, TEvents> {
   return "states" in config && "initial" in config && "id" in config;
 }

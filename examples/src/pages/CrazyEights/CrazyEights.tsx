@@ -3,12 +3,15 @@ import {
   CardDimensionsContext,
   CardShape,
   UncontrolledCardHand,
+  useGameEvent,
   useStateMachineActions,
   useStateMachineCurrentState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
+import { motion } from "motion/react";
+import { useRef } from "react";
 import PageLayout, {
   GlassButton,
   GlassContainer,
@@ -17,8 +20,10 @@ import {
   type CardColor,
   type CrazyEightsCard,
   type CrazyEightsCommand,
+  type CrazyEightsPlayer,
   type CrazyEightsState,
   COLORS,
+  type CrazyEightsEvent,
   canPlayCard,
   crazyEightsConfig,
   initialState,
@@ -97,28 +102,34 @@ export function CrazyEights() {
     CrazyEightsCommand
   >();
 
+  const { isEventActive: pendingWildChoice, respond: chooseWildColor } =
+    useGameEvent<CrazyEightsEvent>("chooseWildColor");
+
+  const {
+    isEventActive: showAiPlay,
+    eventData: aiPlayData,
+    eventId: aiPlayEventId,
+    respond: onAiPlayAnimationDone,
+  } = useGameEvent<CrazyEightsEvent>("aiCardPlayed");
+
+  const {
+    isEventActive: showAiDraw,
+    eventData: aiDrawData,
+    eventId: aiDrawEventId,
+    respond: onAiDrawAnimationDone,
+  } = useGameEvent<CrazyEightsEvent>("aiCardDrawn");
+
+  // Refs for flying card animation positions
+  const opponent1Ref = useRef<HTMLDivElement>(null);
+  const opponent2Ref = useRef<HTMLDivElement>(null);
+  const discardRef = useRef<HTMLDivElement>(null);
+  const drawPileRef = useRef<HTMLDivElement>(null);
+
   const isPlayerTurn = currentStates.includes("playerTurn");
   const isSettled = currentStates.includes("settle");
 
   const topCard =
     state.pools.discardPile[state.pools.discardPile.length - 1] ?? null;
-
-  // Check if player just played an 8 and needs to choose color
-  const needsWildChoice =
-    isPlayerTurn &&
-    topCard?.value === 8 &&
-    state.selectedCardId === null &&
-    state.wildColorChoice === null &&
-    // Detect that the player was the one who played it
-    state.pools.player.length <
-      state.pools.opponent1.length + state.pools.opponent2.length;
-
-  // Actually, let's use a simpler heuristic: if we're in playerTurn and
-  // the top card is an 8 that was just played (wildColorChoice is null)
-  // and the player has no card selected, the 8 must have been played by
-  // the player in this turn
-  const waitingForWildChoice =
-    isPlayerTurn && topCard?.value === 8 && state.wildColorChoice === null;
 
   const playableCards = isPlayerTurn
     ? state.pools.player.filter(
@@ -129,7 +140,7 @@ export function CrazyEights() {
     isPlayerTurn &&
     playableCards.length === 0 &&
     state.pools.drawPile.length > 0 &&
-    !waitingForWildChoice;
+    !pendingWildChoice;
 
   return (
     <CardDimensionsContext width={100}>
@@ -146,7 +157,7 @@ export function CrazyEights() {
         }
         bottomCenter={
           <>
-            {isPlayerTurn && !waitingForWildChoice && (
+            {isPlayerTurn && !pendingWildChoice && (
               <>
                 <GlassButton
                   disabled={
@@ -171,7 +182,7 @@ export function CrazyEights() {
                 </GlassButton>
               </>
             )}
-            {isPlayerTurn && waitingForWildChoice && (
+            {pendingWildChoice && (
               <div className="flex flex-col items-center gap-2">
                 <span className="text-sm font-medium text-white">
                   Choose a color:
@@ -182,10 +193,7 @@ export function CrazyEights() {
                       key={color}
                       className="size-10 cursor-pointer rounded-full ring-2 ring-white/40 transition hover:scale-110"
                       style={{ backgroundColor: COLOR_HEX[color] }}
-                      onClick={() => {
-                        dispatch({ type: "chooseWildColor", color });
-                        advance();
-                      }}
+                      onClick={() => chooseWildColor(color)}
                       aria-label={`Choose ${color}`}
                     />
                   ))}
@@ -204,21 +212,25 @@ export function CrazyEights() {
             <div className="flex flex-1 flex-col items-center justify-center gap-4">
               {/* Opponents */}
               <div className="flex w-full justify-around px-8">
-                <OpponentHand
-                  label="Opponent 1"
-                  count={state.pools.opponent1.length}
-                  isActive={state.currentPlayer === "opponent1"}
-                />
-                <OpponentHand
-                  label="Opponent 2"
-                  count={state.pools.opponent2.length}
-                  isActive={state.currentPlayer === "opponent2"}
-                />
+                <div ref={opponent1Ref}>
+                  <OpponentHand
+                    label="Opponent 1"
+                    count={state.pools.opponent1.length}
+                    isActive={state.currentPlayer === "opponent1"}
+                  />
+                </div>
+                <div ref={opponent2Ref}>
+                  <OpponentHand
+                    label="Opponent 2"
+                    count={state.pools.opponent2.length}
+                    isActive={state.currentPlayer === "opponent2"}
+                  />
+                </div>
               </div>
 
               {/* Center: draw pile + discard pile */}
               <div className="flex items-center gap-8">
-                <div className="flex flex-col items-center gap-1">
+                <div ref={drawPileRef} className="flex flex-col items-center gap-1">
                   {state.pools.drawPile.length > 0 ? (
                     <CardBack pattern="green" />
                   ) : (
@@ -228,7 +240,7 @@ export function CrazyEights() {
                     {state.pools.drawPile.length}
                   </span>
                 </div>
-                <div className="flex flex-col items-center gap-1">
+                <div ref={discardRef} className="flex flex-col items-center gap-1">
                   {topCard ? (
                     <CrazyEightsCardFace card={topCard} />
                   ) : (
@@ -237,6 +249,33 @@ export function CrazyEights() {
                   <span className="text-xs text-white/60">Discard</span>
                 </div>
               </div>
+
+              {/* Flying card animations */}
+              {showAiPlay && aiPlayData && (
+                <FlyingCard
+                  key={aiPlayEventId}
+                  card={aiPlayData.card}
+                  fromRef={
+                    aiPlayData.player === "opponent1"
+                      ? opponent1Ref
+                      : opponent2Ref
+                  }
+                  toRef={discardRef}
+                  onComplete={onAiPlayAnimationDone}
+                />
+              )}
+              {showAiDraw && aiDrawData && (
+                <FlyingCard
+                  key={aiDrawEventId}
+                  fromRef={drawPileRef}
+                  toRef={
+                    aiDrawData.player === "opponent1"
+                      ? opponent1Ref
+                      : opponent2Ref
+                  }
+                  onComplete={onAiDrawAnimationDone}
+                />
+              )}
 
               {/* Result banner */}
               <div className="flex h-16 items-center justify-center">
@@ -293,6 +332,50 @@ export function CrazyEights() {
         </div>
       </PageLayout>
     </CardDimensionsContext>
+  );
+}
+
+// --- Animation components ---
+
+function FlyingCard({
+  card,
+  fromRef,
+  toRef,
+  onComplete,
+}: {
+  card?: CrazyEightsCard;
+  fromRef: React.RefObject<HTMLDivElement | null>;
+  toRef: React.RefObject<HTMLDivElement | null>;
+  onComplete: () => void;
+}) {
+  const from = fromRef.current?.getBoundingClientRect();
+  const to = toRef.current?.getBoundingClientRect();
+
+  if (!from || !to) {
+    onComplete();
+    return null;
+  }
+
+  return (
+    <motion.div
+      className="pointer-events-none fixed z-50"
+      initial={{
+        left: from.left + from.width / 2 - 50,
+        top: from.top + from.height / 2 - 70,
+        scale: 0.6,
+        opacity: 0,
+      }}
+      animate={{
+        left: to.left,
+        top: to.top,
+        scale: 1,
+        opacity: 1,
+      }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
+      onAnimationComplete={onComplete}
+    >
+      {card ? <CrazyEightsCardFace card={card} /> : <CardBack pattern="green" />}
+    </motion.div>
   );
 }
 

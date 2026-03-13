@@ -1,9 +1,13 @@
 import {
   ActionHandler,
   createTransitionSignal,
+  DefaultEventMap,
+  EmitFn,
+  EmitHandler,
   GetNextResult,
   isMachine,
   isTransitionSignal,
+  LifecycleContext,
   StateConfig,
   StateMachineConfig,
 } from "./StateMachineConfig";
@@ -15,18 +19,24 @@ import {
 export interface MachineRuntimeState<
   TState = unknown,
   TCommand extends { type: string } = any,
+  TEvents = DefaultEventMap,
 > {
-  config: StateMachineConfig<TState, TCommand>;
+  config: StateMachineConfig<TState, TCommand, TEvents>;
   currentState: string;
 }
 
 /**
  * The full engine state: the machine stack plus the game state.
  */
-export interface EngineState<TState, TCommand extends { type: string } = any> {
-  machineStack: MachineRuntimeState<TState, TCommand>[];
+export interface EngineState<
+  TState,
+  TCommand extends { type: string } = any,
+  TEvents = DefaultEventMap,
+> {
+  machineStack: MachineRuntimeState<TState, TCommand, TEvents>[];
   state: TState;
   started: boolean;
+  transitioning: boolean;
   history: TCommand[];
 }
 
@@ -51,17 +61,38 @@ function parseGetNextResult(
 }
 
 /**
+ * Creates an EmitFn that delegates to the provided handler, or resolves
+ * immediately as a no-op if no handler is provided.
+ */
+function createEmitFn(handler?: EmitHandler): EmitFn {
+  if (!handler) {
+    return () => Promise.resolve(undefined as any);
+  }
+  return (event) => handler(event as any);
+}
+
+/**
+ * Creates a LifecycleContext with the given emit function.
+ */
+function createLifecycleContext(emit: EmitFn): LifecycleContext {
+  return { emit };
+}
+
+/**
  * Enters a state or machine. Handles onEnter, pushing machines onto the
  * stack, resolving initial states, and triggering autoadvance.
  */
-function enterState<TState>(
+async function enterState<TState>(
   engine: EngineState<TState>,
   stateConfig: StateConfig<TState> | StateMachineConfig<TState>,
+  emit: EmitFn,
   data?: unknown,
-): EngineState<TState> {
+): Promise<EngineState<TState>> {
+  const ctx = createLifecycleContext(emit);
+
   if (isMachine(stateConfig)) {
     const state = stateConfig.onEnter
-      ? stateConfig.onEnter(engine.state, data)
+      ? await stateConfig.onEnter(engine.state, data, ctx)
       : engine.state;
     const initial =
       typeof stateConfig.initial === "function"
@@ -82,12 +113,12 @@ function enterState<TState>(
       state,
     };
     // Enter the initial state (no transition data for initial sub-states)
-    return enterState(newEngine, stateConfig.states[initial]);
+    return enterState(newEngine, stateConfig.states[initial], emit);
   }
 
   // Simple state
   const state = stateConfig.onEnter
-    ? stateConfig.onEnter(engine.state, data)
+    ? await stateConfig.onEnter(engine.state, data, ctx)
     : engine.state;
   const newEngine = { ...engine, state };
 
@@ -97,7 +128,7 @@ function enterState<TState>(
       : stateConfig.autoadvance;
 
   if (shouldAutoAdvance) {
-    return resolveNext(newEngine);
+    return resolveNext(newEngine, emit);
   }
 
   return newEngine;
@@ -108,10 +139,14 @@ function enterState<TState>(
  * either enters the target state or pops the machine and recurses on
  * the parent.
  */
-function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
+async function resolveNext<TState>(
+  engine: EngineState<TState>,
+  emit: EmitFn,
+): Promise<EngineState<TState>> {
   const { machineStack } = engine;
   const machine = peek(machineStack)!;
   const currentStateConfig = machine.config.states[machine.currentState];
+  const ctx = createLifecycleContext(emit);
 
   // 1. Route: determine where to go
   const rawNext = currentStateConfig.getNext?.(engine.state) ?? null;
@@ -119,7 +154,7 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
 
   // 2. Exit: run onExit after routing decision
   const exitState = currentStateConfig.onExit
-    ? currentStateConfig.onExit(engine.state)
+    ? await currentStateConfig.onExit(engine.state, ctx)
     : engine.state;
 
   if (parsed === null) {
@@ -132,7 +167,7 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
     // config), so we only call it here for the top-level machine.
     const machineExitState =
       newStack.length === 0 && machine.config.onExit
-        ? machine.config.onExit(exitState)
+        ? await machine.config.onExit(exitState, ctx)
         : exitState;
 
     const newEngine: EngineState<TState> = {
@@ -142,7 +177,7 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
     };
 
     if (newStack.length > 0) {
-      return resolveNext(newEngine);
+      return resolveNext(newEngine, emit);
     }
     // Top-level machine completed
     return newEngine;
@@ -167,7 +202,12 @@ function resolveNext<TState>(engine: EngineState<TState>): EngineState<TState> {
     state: exitState,
   };
 
-  return enterState(newEngine, machine.config.states[nextStateName], data);
+  return enterState(
+    newEngine,
+    machine.config.states[nextStateName],
+    emit,
+    data,
+  );
 }
 
 /**
@@ -190,46 +230,63 @@ function findActionHandler<TState>(
  *
  */
 
-export function createEngine<TState, TCommand extends { type: string } = any>(
-  initialState: TState,
-): EngineState<TState, TCommand> {
+export function createEngine<
+  TState,
+  TCommand extends { type: string } = any,
+  TEvents = DefaultEventMap,
+>(initialState: TState): EngineState<TState, TCommand, TEvents> {
   return {
     machineStack: [],
     state: initialState,
     started: false,
+    transitioning: false,
     history: [],
   };
 }
 
-export function start<TState>(
+export async function start<TState>(
   engine: EngineState<TState>,
   config: StateMachineConfig<TState>,
-): EngineState<TState> {
+  emitHandler?: EmitHandler,
+): Promise<EngineState<TState>> {
   if (engine.started) throw new Error("Cannot start: machine already started");
-  return enterState(
+  const emit = createEmitFn(emitHandler);
+  const result = await enterState(
     {
       ...engine,
       started: true,
+      transitioning: true,
     },
     config,
+    emit,
   );
+  return { ...result, transitioning: false };
 }
 
-export function advance<TState>(
+export async function advance<TState>(
   engine: EngineState<TState>,
-): EngineState<TState> {
+  emitHandler?: EmitHandler,
+): Promise<EngineState<TState>> {
   const { machineStack } = engine;
   if (machineStack.length === 0)
     throw new Error("Cannot advance: no active machine");
 
-  return resolveNext(engine);
+  const emit = createEmitFn(emitHandler);
+  const result = await resolveNext(
+    { ...engine, transitioning: true },
+    emit,
+  );
+  return { ...result, transitioning: false };
 }
 
-export function dispatch<TState, TCommand extends { type: string }>(
+export async function dispatch<TState, TCommand extends { type: string }>(
   engine: EngineState<TState, TCommand>,
   command: TCommand,
-): EngineState<TState, TCommand> {
+  emitHandler?: EmitHandler,
+): Promise<EngineState<TState, TCommand>> {
   if (!engine.started) throw new Error("Cannot dispatch: machine not started");
+  if (engine.transitioning)
+    throw new Error("Cannot dispatch: engine is transitioning");
 
   const handler = findActionHandler(engine, command.type);
   if (!handler) {
@@ -246,11 +303,11 @@ export function dispatch<TState, TCommand extends { type: string }>(
     );
   }
 
-  const result = handler.execute(
-    engine.state,
-    command,
-    createTransitionSignal,
-  );
+  const emit = createEmitFn(emitHandler);
+  const result = await handler.execute(engine.state, command, {
+    transitionTo: createTransitionSignal,
+    emit,
+  });
 
   const newHistory = [...engine.history, command];
 
@@ -267,8 +324,9 @@ export function dispatch<TState, TCommand extends { type: string }>(
 
     // Exit current state
     const currentStateConfig = machine.config.states[machine.currentState];
+    const ctx = createLifecycleContext(emit);
     const exitState = currentStateConfig.onExit
-      ? currentStateConfig.onExit(result.state)
+      ? await currentStateConfig.onExit(result.state, ctx)
       : result.state;
 
     // Update machine to point at the target state
@@ -280,11 +338,18 @@ export function dispatch<TState, TCommand extends { type: string }>(
       ...engine,
       machineStack: [...machineStack.slice(0, -1), updatedMachine],
       state: exitState,
+      transitioning: true,
       history: newHistory,
     };
 
     // Enter the target state (handles onEnter, autoadvance, nested machines)
-    return enterState(newEngine, machine.config.states[targetName], result.data);
+    const entered = await enterState(
+      newEngine,
+      machine.config.states[targetName],
+      emit,
+      result.data,
+    );
+    return { ...entered, transitioning: false };
   }
 
   return {
@@ -299,6 +364,7 @@ export function canDispatch<TState, TCommand extends { type: string }>(
   command: TCommand,
 ): boolean {
   if (!engine.started) return false;
+  if (engine.transitioning) return false;
 
   const handler = findActionHandler(engine, command.type);
   if (!handler) return false;
@@ -325,48 +391,79 @@ export function getMachineCurrentState<TState>(
 export class StateMachineEngine<
   TState,
   TCommand extends { type: string } = any,
+  TEvents = DefaultEventMap,
 > {
-  private config: StateMachineConfig<TState, TCommand>;
-  private engineState: EngineState<TState, TCommand>;
+  private config: StateMachineConfig<TState, TCommand, TEvents>;
+  private engineState: EngineState<TState, TCommand, TEvents>;
+  private emitHandler?: EmitHandler;
 
-  public get machineStack(): readonly MachineRuntimeState<TState, TCommand>[] {
+  public get machineStack(): readonly MachineRuntimeState<
+    TState,
+    TCommand,
+    TEvents
+  >[] {
     return this.engineState.machineStack;
   }
   public get state(): TState {
     return this.engineState.state;
   }
   public get currentState(): string[] {
-    return getCurrentState(this.engineState);
+    return getCurrentState(this.engineState as EngineState<TState>);
   }
   public get history(): readonly TCommand[] {
     return this.engineState.history;
   }
+  public get transitioning(): boolean {
+    return this.engineState.transitioning;
+  }
 
   constructor(
-    config: StateMachineConfig<TState, TCommand>,
+    config: StateMachineConfig<TState, TCommand, TEvents>,
     initialState: TState,
+    emitHandler?: EmitHandler,
   ) {
     this.config = config;
     this.engineState = createEngine(initialState);
+    this.emitHandler = emitHandler;
   }
 
-  public start() {
-    this.engineState = start(this.engineState, this.config);
+  public async start() {
+    type E = EngineState<TState, TCommand, TEvents>;
+    this.engineState = (await start(
+      this.engineState as EngineState<TState>,
+      this.config as StateMachineConfig<TState>,
+      this.emitHandler,
+    )) as E;
   }
 
-  public advance() {
-    this.engineState = advance(this.engineState);
+  public async advance() {
+    type E = EngineState<TState, TCommand, TEvents>;
+    this.engineState = (await advance(
+      this.engineState as EngineState<TState>,
+      this.emitHandler,
+    )) as E;
   }
 
-  public dispatch(command: TCommand) {
-    this.engineState = dispatch(this.engineState, command);
+  public async dispatch(command: TCommand) {
+    type E = EngineState<TState, TCommand, TEvents>;
+    this.engineState = (await dispatch(
+      this.engineState as EngineState<TState, TCommand>,
+      command,
+      this.emitHandler,
+    )) as E;
   }
 
   public canDispatch(command: TCommand): boolean {
-    return canDispatch(this.engineState, command);
+    return canDispatch(
+      this.engineState as EngineState<TState, TCommand>,
+      command,
+    );
   }
 
   public getCurrentStateForMachine(machineId: string) {
-    return getMachineCurrentState(this.engineState, machineId);
+    return getMachineCurrentState(
+      this.engineState as EngineState<TState>,
+      machineId,
+    );
   }
 }

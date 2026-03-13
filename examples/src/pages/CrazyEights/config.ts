@@ -1,9 +1,9 @@
-import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
-import { Cards } from "@drock07/board-game-toolkit-core";
 import type {
-  GenericCardInstance,
   GenericCardGameState,
+  GenericCardInstance,
+  StateMachineConfig,
 } from "@drock07/board-game-toolkit-core";
+import { Cards } from "@drock07/board-game-toolkit-core";
 
 // --- Card Type ---
 
@@ -42,12 +42,13 @@ export type CrazyEightsPoolId =
 
 // --- Game State ---
 
-export interface CrazyEightsState
-  extends GenericCardGameState<CrazyEightsPoolId, CrazyEightsCard> {
-  currentPlayer: "player" | "opponent1" | "opponent2";
+export interface CrazyEightsState extends GenericCardGameState<
+  CrazyEightsPoolId,
+  CrazyEightsCard
+> {
+  currentPlayer: CrazyEightsPlayer;
   activeColor: CardColor;
   selectedCardId: string | null;
-  wildColorChoice: CardColor | null;
   result: "win" | "lose" | null;
   message: string | null;
 }
@@ -55,8 +56,18 @@ export interface CrazyEightsState
 export type CrazyEightsCommand =
   | { type: "selectCard"; cardId: string }
   | { type: "playCard" }
-  | { type: "drawCard" }
-  | { type: "chooseWildColor"; color: CardColor };
+  | { type: "drawCard" };
+
+export type CrazyEightsPlayer = "player" | "opponent1" | "opponent2";
+
+export type CrazyEightsEvent = {
+  chooseWildColor: () => CardColor;
+  aiCardPlayed: (data: {
+    card: CrazyEightsCard;
+    player: CrazyEightsPlayer;
+  }) => void;
+  aiCardDrawn: (data: { player: CrazyEightsPlayer }) => void;
+};
 
 // --- Helpers ---
 
@@ -156,7 +167,6 @@ export const initialState: CrazyEightsState = {
   currentPlayer: "player",
   activeColor: "red",
   selectedCardId: null,
-  wildColorChoice: null,
   result: null,
   message: null,
 };
@@ -165,14 +175,15 @@ export const initialState: CrazyEightsState = {
 
 export const crazyEightsConfig: StateMachineConfig<
   CrazyEightsState,
-  CrazyEightsCommand
+  CrazyEightsCommand,
+  CrazyEightsEvent
 > = {
   id: "crazy-eights",
   initial: "setup",
   states: {
     setup: {
       autoadvance: true,
-      onEnter: () => {
+      onEnter: async (_, __, { emit }) => {
         nextCardId = 0;
         const deck = Cards.shuffle(createDeck());
         let state: CrazyEightsState = {
@@ -183,7 +194,12 @@ export const crazyEightsConfig: StateMachineConfig<
           },
         };
         // Deal 7 cards to each player
-        state = Cards.dealFromPool(state, "drawPile", ["player", "opponent1", "opponent2"], 7);
+        state = Cards.dealFromPool(
+          state,
+          "drawPile",
+          ["player", "opponent1", "opponent2"],
+          7,
+        );
         // Flip top card to discard pile
         state = Cards.drawToPool(state, "drawPile", "discardPile");
         const top = topDiscard(state);
@@ -193,19 +209,12 @@ export const crazyEightsConfig: StateMachineConfig<
     },
 
     playerTurn: {
-      onEnter: (state) => {
-        // If the top card is an 8 played by an opponent, the color was
-        // already chosen by the AI — mark it so the UI doesn't prompt.
-        const top = topDiscard(state);
-        const wildAlreadyChosen = top?.value === 8 ? state.activeColor : null;
-        return {
-          ...state,
-          currentPlayer: "player" as const,
-          selectedCardId: null,
-          wildColorChoice: wildAlreadyChosen,
-          message: null,
-        };
-      },
+      onEnter: (state) => ({
+        ...state,
+        currentPlayer: "player" as const,
+        selectedCardId: null,
+        message: null,
+      }),
       actions: {
         selectCard: {
           validate: (state, cmd) =>
@@ -225,7 +234,7 @@ export const crazyEightsConfig: StateMachineConfig<
             if (!card) return false;
             return canPlayCard(card, state.activeColor, topDiscard(state));
           },
-          execute: (state) => {
+          execute: async (state, _, { emit }) => {
             const card = state.pools.player.find(
               (c) => c.id === state.selectedCardId,
             )!;
@@ -235,7 +244,8 @@ export const crazyEightsConfig: StateMachineConfig<
               state.selectedCardId!,
             );
             if (card.value === 8) {
-              return { ...newState, wildColorChoice: null };
+              const chosenColor = await emit({ type: "chooseWildColor" });
+              return { ...newState, activeColor: chosenColor };
             }
             return newState;
           },
@@ -254,25 +264,8 @@ export const crazyEightsConfig: StateMachineConfig<
             return Cards.drawToPool(state, "drawPile", "player");
           },
         },
-        chooseWildColor: {
-          validate: (state) => {
-            const top = topDiscard(state);
-            return top.value === 8 && state.wildColorChoice === null;
-          },
-          execute: (state, cmd) => ({
-            ...state,
-            activeColor: cmd.color,
-            wildColorChoice: cmd.color,
-          }),
-        },
       },
       getNext: (state) => {
-        // If an 8 was just played and no color chosen yet, stay
-        const top = topDiscard(state);
-        if (top.value === 8 && state.wildColorChoice === null) {
-          return "playerTurn";
-        }
-
         if (state.pools.player.length === 0) return "settle";
         return "opponent1Turn";
       },
@@ -280,8 +273,20 @@ export const crazyEightsConfig: StateMachineConfig<
 
     opponent1Turn: {
       autoadvance: true,
-      onEnter: (state) =>
-        aiTurn({ ...state, currentPlayer: "opponent1" }, "opponent1"),
+      onEnter: async (state, _, { emit }) => {
+        const newState = aiTurn(
+          { ...state, currentPlayer: "opponent1" },
+          "opponent1",
+        );
+        if (newState.pools.discardPile.length > state.pools.discardPile.length) {
+          const card =
+            newState.pools.discardPile[newState.pools.discardPile.length - 1];
+          await emit({ type: "aiCardPlayed", card, player: "opponent1" });
+        } else {
+          await emit({ type: "aiCardDrawn", player: "opponent1" });
+        }
+        return newState;
+      },
       getNext: (state) => {
         if (state.pools.opponent1.length === 0) return "settle";
         return "opponent2Turn";
@@ -290,8 +295,20 @@ export const crazyEightsConfig: StateMachineConfig<
 
     opponent2Turn: {
       autoadvance: true,
-      onEnter: (state) =>
-        aiTurn({ ...state, currentPlayer: "opponent2" }, "opponent2"),
+      onEnter: async (state, _, { emit }) => {
+        const newState = aiTurn(
+          { ...state, currentPlayer: "opponent2" },
+          "opponent2",
+        );
+        if (newState.pools.discardPile.length > state.pools.discardPile.length) {
+          const card =
+            newState.pools.discardPile[newState.pools.discardPile.length - 1];
+          await emit({ type: "aiCardPlayed", card, player: "opponent2" });
+        } else {
+          await emit({ type: "aiCardDrawn", player: "opponent2" });
+        }
+        return newState;
+      },
       getNext: (state) => {
         if (state.pools.opponent2.length === 0) return "settle";
         return "playerTurn";
