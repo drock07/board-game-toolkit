@@ -5,6 +5,7 @@ import BlackjackPreview from "./Blackjack/BlackjackPreview";
 import DungeonCrawlPreview from "./DungeonCrawl/DungeonCrawlPreview";
 import TicTacToePreview from "./TicTacToe/TicTacToePreview";
 import CrazyEightsPreview from "./CrazyEights/CrazyEightsPreview";
+import TowerBattlerPreview from "./TowerBattler/TowerBattlerPreview";
 import YahtzeePreview from "./Yahtzee/YahtzeePreview";
 
 export default function Home() {
@@ -45,6 +46,12 @@ export default function Home() {
             title="Crazy Eights"
             description="Card game with custom card types. Demonstrates generic card game pools, dealing, drawing, and AI opponents."
             preview={<CrazyEightsPreview />}
+          />
+          <GameCard
+            to="tower-battler"
+            title="TowerBattler"
+            description="Deck-building combat. Demonstrates the card effect system with resolveEffects, built-in and custom effect handlers."
+            preview={<TowerBattlerPreview />}
           />
         </div>
       </div>

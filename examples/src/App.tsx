@@ -5,6 +5,7 @@ import Blackjack from "./pages/Blackjack/Blackjack";
 import Yahtzee from "./pages/Yahtzee/Yahtzee";
 import CrazyEights from "./pages/CrazyEights/CrazyEights";
 import DungeonCrawl from "./pages/DungeonCrawl/DungeonCrawl";
+import TowerBattler from "./pages/TowerBattler/TowerBattler";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="yahtzee" element={<Yahtzee />} />
       <Route path="dungeon-crawl" element={<DungeonCrawl />} />
       <Route path="crazy-eights" element={<CrazyEights />} />
+      <Route path="tower-battler" element={<TowerBattler />} />
     </Routes>
   );
 }
