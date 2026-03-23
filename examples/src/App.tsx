@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router";
 import Home from "./pages/Home";
+import GenericCardGame from "./pages/Concepts/GenericCardGame/GenericCardGame";
 import TicTacToe from "./pages/TicTacToe/TicTacToe";
 import Blackjack from "./pages/Blackjack/Blackjack";
 import RollFive from "./pages/RollFive/RollFive";
@@ -11,6 +12,7 @@ export default function App() {
   return (
     <Routes>
       <Route index element={<Home />} />
+      <Route path="card-pools" element={<GenericCardGame />} />
       <Route path="tictactoe" element={<TicTacToe />} />
       <Route path="blackjack" element={<Blackjack />} />
       <Route path="roll-five" element={<RollFive />} />

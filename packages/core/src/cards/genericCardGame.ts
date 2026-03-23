@@ -36,8 +36,8 @@ export interface GenericCardGameState<
 }
 
 /** Extracts the pool ID union type from a state type. */
-export type PoolIdOf<TState extends GenericCardGameState> =
-  string & keyof TState["pools"];
+export type PoolIdOf<TState extends GenericCardGameState> = string &
+  keyof TState["pools"];
 
 /** Extracts the card type from a state type. */
 export type CardOf<TState extends GenericCardGameState> =
@@ -159,9 +159,7 @@ export function drawFromPool<TState extends GenericCardGameState>(
   poolId: PoolIdOf<TState>,
   count?: number | PoolIdOf<TState>,
   reshufflePoolId?: PoolIdOf<TState>,
-):
-  | [CardOf<TState>, TState]
-  | [CardOf<TState>[], TState] {
+): [CardOf<TState>, TState] | [CardOf<TState>[], TState] {
   assertPoolExists(state, poolId);
 
   const numCount = typeof count === "number" ? count : 1;
@@ -265,12 +263,7 @@ export function drawToPool<TState extends GenericCardGameState>(
 ): TState {
   const numCount = count ?? 1;
   const [drawn, newState] = drawFromPool(state, fromPoolId, numCount);
-  return addToPool(
-    newState,
-    toPoolId,
-    drawn as CardOf<TState>[],
-    position,
-  );
+  return addToPool(newState, toPoolId, drawn as CardOf<TState>[], position);
 }
 
 /**
