@@ -32,6 +32,9 @@ jobs:
 
       - run: pnpm format:check
 
+      # Errors fail the build; warnings (the `any` rules, until #28) don't
+      - run: pnpm lint
+
       # Also type-checks and builds the examples app
       - run: pnpm build
 
