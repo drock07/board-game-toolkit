@@ -11,6 +11,7 @@
     "dev:examples": "pnpm --filter board-game-toolkit-examples dev",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
     "changeset": "changeset"
   },
   "pnpm": {
