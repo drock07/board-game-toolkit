@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EmitHandler, StateMachineConfig } from "./StateMachineConfig";
+import { EmitHandler, StateMachineConfig } from "./StateMachineConfig.js";
 import {
   advance,
   canDispatch,
@@ -7,7 +7,7 @@ import {
   dispatch,
   start,
   StateMachineEngine,
-} from "./StateMachineEngine";
+} from "./StateMachineEngine.js";
 
 interface TestState {
   count: number;

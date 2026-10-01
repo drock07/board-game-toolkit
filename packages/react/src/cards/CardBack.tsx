@@ -1,5 +1,5 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
-import { CardShape, type CardShapeProps } from "./CardShape";
+import { CardShape, type CardShapeProps } from "./CardShape.js";
 
 export const PATTERNS = [
   "blue",

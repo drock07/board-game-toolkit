@@ -1,1 +1,1 @@
-export * from "./StandardD6";
+export * from "./StandardD6.js";

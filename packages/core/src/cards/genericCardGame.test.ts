@@ -15,7 +15,7 @@ import {
   sortPool,
   splitPool,
   swapCards,
-} from "./genericCardGame";
+} from "./genericCardGame.js";
 
 // --- helpers ---
 

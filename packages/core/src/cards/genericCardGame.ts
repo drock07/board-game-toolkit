@@ -1,4 +1,4 @@
-import { draw, shuffle } from "./deck";
+import { draw, shuffle } from "./deck.js";
 
 /**
  * Base interface for a card instance. Extend this to add game-specific

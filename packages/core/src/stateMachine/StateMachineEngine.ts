@@ -10,7 +10,7 @@ import {
   LifecycleContext,
   StateConfig,
   StateMachineConfig,
-} from "./StateMachineConfig";
+} from "./StateMachineConfig.js";
 
 /**
  * Runtime state of a single machine in the stack.

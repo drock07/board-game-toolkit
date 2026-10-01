@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draw, shuffle } from "./deck";
+import { draw, shuffle } from "./deck.js";
 
 describe("shuffle", () => {
   it("returns a new array with the same elements", () => {

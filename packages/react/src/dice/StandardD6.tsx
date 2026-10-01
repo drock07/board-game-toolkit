@@ -1,6 +1,6 @@
 import { Dice, type D6Result } from "@drock07/board-game-toolkit-core";
 import { ComponentPropsWithoutRef } from "react";
-import { useRollingAnimation } from "./useRollingAnimation";
+import { useRollingAnimation } from "./useRollingAnimation.js";
 
 type Pip = [0 | 1 | 2, 0 | 1 | 2];
 

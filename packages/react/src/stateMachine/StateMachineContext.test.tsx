@@ -10,7 +10,7 @@ import {
   useStateMachineEngineState,
   useStateMachineState,
   type StateMachineErrorHandler,
-} from "./StateMachineContext";
+} from "./StateMachineContext.js";
 
 interface TestState {
   log: string[];

@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { useStateMachineCurrentState } from "./StateMachineContext";
+import { useStateMachineCurrentState } from "./StateMachineContext.js";
 
 interface BaseStateProps {
   children?: ReactNode;

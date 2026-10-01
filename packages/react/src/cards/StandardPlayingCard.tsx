@@ -3,8 +3,8 @@ import {
   PlayingCard,
   PlayingCardRank,
 } from "@drock07/board-game-toolkit-core";
-import { useCardDimensionsContext } from "./CardDimensionsContext";
-import { CardShape, CardShapeProps } from "./CardShape";
+import { useCardDimensionsContext } from "./CardDimensionsContext.js";
+import { CardShape, CardShapeProps } from "./CardShape.js";
 
 export interface StandardPlayingCardProps {
   card: PlayingCard;

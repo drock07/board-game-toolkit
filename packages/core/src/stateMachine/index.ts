@@ -1,2 +1,2 @@
-export * from "./StateMachineConfig";
-export * from "./StateMachineEngine";
+export * from "./StateMachineConfig.js";
+export * from "./StateMachineEngine.js";

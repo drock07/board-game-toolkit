@@ -2,8 +2,8 @@ import type {
   GenericCardGameState,
   GenericCardInstance,
   PoolIdOf,
-} from "./genericCardGame";
-import { drawToPool, shufflePool } from "./genericCardGame";
+} from "./genericCardGame.js";
+import { drawToPool, shufflePool } from "./genericCardGame.js";
 
 // ---------------------------------------------------------------------------
 // Core effect types

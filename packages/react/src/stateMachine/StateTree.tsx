@@ -1,10 +1,10 @@
-import { useStateMachineCurrentState } from "./StateMachineContext";
+import { useStateMachineCurrentState } from "./StateMachineContext.js";
 import {
   isStateMachineModule,
   StateLeafModule,
   StateMachineModule,
   StateModule,
-} from "./StateModule";
+} from "./StateModule.js";
 
 export interface StateTreeProps<TState> {
   module: StateModule<TState>;
