@@ -8,6 +8,13 @@ Framework-agnostic state machine engine for modeling board game flow. Supports n
 pnpm add @drock07/board-game-toolkit-core
 ```
 
+Everything is exported by name from the package root. Each domain also has its own entry point, with the same names: `/cards`, `/dice` and `/state-machine`.
+
+```ts
+import { shuffle, roll, D6 } from "@drock07/board-game-toolkit-core";
+import { shuffle } from "@drock07/board-game-toolkit-core/cards";
+```
+
 ## Concepts
 
 ### State Machine Config
@@ -108,26 +115,26 @@ const addScore: ActionFn<GameState, [points: number]> = (state, points) => ({
 Generic collection utilities for any "draw from a pile" mechanic — playing cards, event decks, tile bags, etc.
 
 ```ts
-import { Cards } from "@drock07/board-game-toolkit-core";
+import { draw, shuffle } from "@drock07/board-game-toolkit-core";
 
 // Shuffle an array (Fisher-Yates)
-const deck = Cards.shuffle(cards);
+const deck = shuffle(cards);
 
 // Draw a single item
-const [card, remaining] = Cards.draw(deck);
+const [card, remaining] = draw(deck);
 
 // Draw multiple items
-const [hand, remaining] = Cards.draw(deck, 5);
+const [hand, remaining] = draw(deck, 5);
 ```
 
 When a discard pile is available, pass it as the `reshuffleFrom` argument. If the draw deck doesn't have enough cards, the discard pile is shuffled back in before drawing:
 
 ```ts
 // Single draw with reshuffle
-const [card, newDeck, newDiscard] = Cards.draw(deck, discardPile);
+const [card, newDeck, newDiscard] = draw(deck, discardPile);
 
 // Multi-draw with reshuffle
-const [cards, newDeck, newDiscard] = Cards.draw(deck, 5, discardPile);
+const [cards, newDeck, newDiscard] = draw(deck, 5, discardPile);
 ```
 
 When reshuffling occurs, the returned discard pile is empty (all cards moved back into the draw deck).
