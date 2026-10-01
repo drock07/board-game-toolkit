@@ -1,7 +1,7 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
 import { CardShape, type CardShapeProps } from "./CardShape.js";
 
-export const PATTERNS = [
+export const CARD_BACK_PATTERNS = [
   "blue",
   "red",
   "green",
@@ -9,7 +9,7 @@ export const PATTERNS = [
   "flowers",
   "pixelHearts",
 ] as const;
-export type CardBackPattern = (typeof PATTERNS)[number];
+export type CardBackPattern = (typeof CARD_BACK_PATTERNS)[number];
 
 export interface CardBackProps {
   /** Card width in pixels. Passed through to CardShape. */

@@ -16,6 +16,26 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./backgrounds": {
+      "types": "./dist/backgrounds/index.d.ts",
+      "import": "./dist/backgrounds/index.js"
+    },
+    "./boards": {
+      "types": "./dist/gameBoards/index.d.ts",
+      "import": "./dist/gameBoards/index.js"
+    },
+    "./cards": {
+      "types": "./dist/cards/index.d.ts",
+      "import": "./dist/cards/index.js"
+    },
+    "./dice": {
+      "types": "./dist/dice/index.d.ts",
+      "import": "./dist/dice/index.js"
+    },
+    "./state-machine": {
+      "types": "./dist/stateMachine/index.d.ts",
+      "import": "./dist/stateMachine/index.js"
     }
   },
   "files": [
