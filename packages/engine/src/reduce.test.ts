@@ -5,13 +5,14 @@ import { reduceEvents } from "./reduce.js";
 import { seededRandom, type Random } from "./rng.js";
 import { createGameState } from "./state.js";
 import { transact, type Tx } from "./tx.js";
-import type { GameState, Position } from "./types.js";
+import type { AnyTypes, GameState, Position } from "./types.js";
 
 type Vars = {
   counters: Record<string, number>;
   list: Json[];
   flag: boolean | null;
 };
+type Types = Omit<AnyTypes, "vars"> & { vars: Vars };
 
 const ZONES = ["deck", "discard", "hand:p1", "hand:p2", "board"];
 
@@ -21,7 +22,7 @@ function randomPosition(r: Random, length: number): Position {
 }
 
 /** One random op, chosen among those that are valid in the current state. */
-function randomOp(tx: Tx<Vars>, r: Random) {
+function randomOp(tx: Tx<Types>, r: Random) {
   const s = tx.state;
   const ids = Object.keys(s.entities);
   const zone = r.pick(ZONES);
@@ -85,7 +86,7 @@ describe("replay property", () => {
   test("reduceEvents(before, events) equals after on random op sequences", () => {
     for (let seed = 0; seed < 300; seed++) {
       const r = seededRandom(`ops-${seed}`);
-      let state: GameState<Vars> = createGameState<Vars>({
+      let state: GameState<Types> = createGameState<Types>({
         game: "prop",
         specVersion: 1,
         players: ["p1", "p2"],
@@ -121,7 +122,7 @@ describe("replay property", () => {
 
   test("a whole game's events replay from the initial state in one pass", () => {
     const r = seededRandom("long");
-    const initial = createGameState<Vars>({
+    const initial = createGameState<Types>({
       game: "prop",
       specVersion: 1,
       players: ["p1"],
@@ -163,7 +164,7 @@ describe("checkInvariants", () => {
         tx.create("x", null, "a");
       },
     ).state;
-    const broken = structuredClone(s) as GameState;
+    const broken: GameState = structuredClone(s);
     broken.zones.b!.items.push("x#0");
     expect(checkInvariants(broken)).toEqual(
       expect.arrayContaining([

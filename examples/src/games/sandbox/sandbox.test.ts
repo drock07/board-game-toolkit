@@ -13,9 +13,9 @@ import {
 } from "@drock07/board-game-toolkit-engine/testing";
 import { expect, test } from "vitest";
 import { sandbox } from ".";
-import type { Vars } from "./impl";
+import type { Types } from "./impl";
 
-type Result = ApplyResult<Vars>;
+type Result = ApplyResult<Types>;
 
 const input = (r: Result, action: string, args?: unknown): Input =>
   ({
@@ -25,22 +25,22 @@ const input = (r: Result, action: string, args?: unknown): Input =>
     ...(args === undefined ? {} : { args }),
   }) as Input;
 
-function ok(res: ReturnType<typeof apply<Vars>>): Result {
+function ok(res: ReturnType<typeof apply<Types>>): Result {
   if (!res.ok) throw new Error(`${res.error.code}: ${res.error.message}`);
   return res;
 }
 
 test("draw, discard and shuffle back; the decision never ends", () => {
   let r = init(sandbox, { players: ["p1"], seed: "s" });
-  expect(r.state.zones.deck!.items).toHaveLength(52);
+  expect(r.state.zones.deck.items).toHaveLength(52);
   expect(apply(sandbox, r.state, input(r, "shuffleBack"))).toMatchObject({
     ok: false,
     error: { message: "The discard pile is empty" },
   });
 
-  const top = r.state.zones.deck!.items[0]!;
+  const top = r.state.zones.deck.items[0]!;
   r = ok(apply(sandbox, r.state, input(r, "draw")));
-  expect(r.state.zones.hand!.items).toEqual([top]);
+  expect(r.state.zones.hand.items).toEqual([top]);
   expect(
     apply(sandbox, r.state, input(r, "discard", { card: "card#999" })),
   ).toMatchObject({
@@ -48,9 +48,9 @@ test("draw, discard and shuffle back; the decision never ends", () => {
     error: { message: "That card isn't in your hand" },
   });
   r = ok(apply(sandbox, r.state, input(r, "discard", { card: top })));
-  expect(r.state.zones.discard!.items).toEqual([top]);
+  expect(r.state.zones.discard.items).toEqual([top]);
   r = ok(apply(sandbox, r.state, input(r, "shuffleBack")));
-  expect(r.state.zones.deck!.items).toHaveLength(52);
+  expect(r.state.zones.deck.items).toHaveLength(52);
   expect(r.prompts).toMatchObject([{ node: "table", kind: "decision" }]);
 });
 
@@ -72,11 +72,10 @@ test("golden replay", async () => {
     (r) => {
       const z = r.state.zones;
       const options: Input[] = [];
-      if (z.deck!.items.length)
-        options.push(input(r, "draw"), input(r, "draw"));
-      for (const card of z.hand!.items)
+      if (z.deck.items.length) options.push(input(r, "draw"), input(r, "draw"));
+      for (const card of z.hand.items)
         options.push(input(r, "discard", { card }));
-      if (z.discard!.items.length) options.push(input(r, "shuffleBack"));
+      if (z.discard.items.length) options.push(input(r, "shuffleBack"));
       return rand.pick(options);
     },
   );

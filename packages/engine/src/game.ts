@@ -1,5 +1,5 @@
 import { compile, zonesFor, type CompiledGame } from "./compile.js";
-import type { CheckImpl, GameImpl, VarsOf } from "./impl.js";
+import type { CheckImpl, CheckTypes, GameImpl, TypesOf } from "./impl.js";
 import {
   inputError,
   Runtime,
@@ -10,17 +10,26 @@ import {
 import type { Json } from "./json.js";
 import { builtinKinds } from "./kinds.js";
 import type { GameSpec } from "./spec.js";
-import { createGameState } from "./state.js";
-import type { GameEvent, GameState, Input, PlayerId, Prompt } from "./types.js";
+import { createGameState, untyped } from "./state.js";
+import type {
+  AnyTypes,
+  GameEvent,
+  GameState,
+  GameTypes,
+  Input,
+  PlayerId,
+  Prompt,
+} from "./types.js";
 
 /** A compiled, validated game definition. */
-export interface Game<V extends Json = Json> extends CompiledGame {
+export interface Game<T extends GameTypes = AnyTypes> extends CompiledGame {
   readonly kinds: KindTable;
-  /** Phantom: the game's vars type. */
-  readonly __vars?: V;
+  /** Phantom: the game's type bundle. */
+  readonly __types?: T;
 }
 
-export type VarsOfGame<G> = G extends Game<infer V> ? V : Json;
+/** The type bundle of a defined game. */
+export type TypesOfGame<G> = G extends Game<infer T> ? T : AnyTypes;
 
 export interface DefineGameOptions {
   /** Custom node kinds, by kind name. */
@@ -32,31 +41,29 @@ export interface DefineGameOptions {
  * the matching impl map, and every impl entry must be used: both are type
  * errors, and are checked again at runtime. Throws `GameDefinitionError`.
  *
- * Type the impl with `satisfies GameImpl<Vars>` so handlers get typed
- * transactions while its keys stay literal for the ref check.
+ * Type the impl with `satisfies GameImpl<TypesFor<typeof spec, {...}>>` so
+ * handlers are typed while its keys stay literal for the ref check. The
+ * game's types are read from the impl's `setup`.
  */
 export function defineGame<
   const S extends GameSpec,
-  const I extends GameImpl<never>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- any bundle; checked by CheckTypes
+  const I extends GameImpl<any>,
 >(
-  def: { spec: S; impl: I & NoInfer<CheckImpl<S, I>> },
+  def: { spec: S; impl: I & NoInfer<CheckImpl<S, I> & CheckTypes<I>> },
   opts: DefineGameOptions = {},
-): Game<VarsOf<I>> {
+): Game<TypesOf<I>> {
   const kinds = new Map<string, NodeKind<never>>(builtinKinds);
   for (const [name, kind] of Object.entries(opts.kinds ?? {}))
     kinds.set(name, kind);
-  const compiled = compile(
-    def.spec,
-    def.impl as unknown as GameImpl,
-    new Set(kinds.keys()),
-  );
+  const compiled = compile(def.spec, def.impl, new Set(kinds.keys()));
   return { ...compiled, kinds };
 }
 
-export interface ApplyResult<V extends Json = Json> {
+export interface ApplyResult<T extends GameTypes = AnyTypes> {
   ok: true;
-  state: GameState<V>;
-  events: GameEvent[];
+  state: GameState<T>;
+  events: GameEvent<T>[];
   prompts: Prompt[];
 }
 
@@ -72,10 +79,10 @@ export interface InitOptions {
 }
 
 /** Starts a game: runs setup, then settles the flow until it waits for input. */
-export function init<V extends Json>(
-  game: Game<V>,
+export function init<T extends GameTypes>(
+  game: Game<T>,
   opts: InitOptions,
-): ApplyResult<V> {
+): ApplyResult<T> {
   const { spec } = game;
   const { players } = opts;
   if (players.length < spec.players.min || players.length > spec.players.max) {
@@ -86,7 +93,7 @@ export function init<V extends Json>(
   if (new Set(players).size !== players.length) {
     throw new RangeError(`Player ids must be unique: ${players.join(", ")}`);
   }
-  const state = createGameState<Json>({
+  const state = createGameState({
     game: spec.id,
     specVersion: spec.version,
     players,
@@ -105,17 +112,21 @@ export function init<V extends Json>(
   return result(rt);
 }
 
-function result<V extends Json>(rt: Runtime): ApplyResult<V> {
-  const state = rt.state as GameState<V>;
-  return { ok: true, state, events: rt.events, prompts: openPrompts(state) };
+function result<T extends GameTypes>(rt: Runtime): ApplyResult<T> {
+  return {
+    ok: true,
+    state: rt.state as unknown as GameState<T>,
+    events: rt.events as unknown as GameEvent<T>[],
+    prompts: openPrompts(rt.state),
+  };
 }
 
 /** Applies one player input. Invalid inputs return an error; the state is untouched. */
-export function apply<V extends Json>(
-  game: Game<V>,
-  state: GameState<V>,
+export function apply<T extends GameTypes>(
+  game: Game<T>,
+  state: GameState<T>,
   input: Input,
-): ApplyResult<V> | ApplyError {
+): ApplyResult<T> | ApplyError {
   const fail = (error: InputError): ApplyError => ({ ok: false, error });
   if (state.status === "finished") {
     return fail(inputError("game_finished", "The game has finished"));
@@ -128,7 +139,7 @@ export function apply<V extends Json>(
       `State is from "${state.meta.game}" v${state.meta.specVersion}, not "${game.spec.id}" v${game.spec.version}`,
     );
   }
-  const rt = new Runtime(game, game.kinds, state);
+  const rt = new Runtime(game, game.kinds, untyped(state));
   const found = rt.findPrompt(input.prompt);
   if (!found) {
     return fail(
@@ -154,11 +165,11 @@ function openPrompts(state: GameState): Prompt[] {
 }
 
 /** The prompts currently open. */
-export function prompts<V extends Json>(
-  _game: Game<V>,
-  state: GameState<V>,
+export function prompts<T extends GameTypes>(
+  _game: Game<T>,
+  state: GameState<T>,
 ): Prompt[] {
-  return openPrompts(state);
+  return openPrompts(untyped(state));
 }
 
 export interface ReplayOptions extends InitOptions {
@@ -166,10 +177,10 @@ export interface ReplayOptions extends InitOptions {
 }
 
 /** Rebuilds a game from its seed and inputs. Throws if an input is rejected. */
-export function replay<V extends Json>(
-  game: Game<V>,
+export function replay<T extends GameTypes>(
+  game: Game<T>,
   opts: ReplayOptions,
-): GameState<V> {
+): GameState<T> {
   let state = init(game, opts).state;
   opts.inputs.forEach((input, i) => {
     const res = apply(game, state, input);

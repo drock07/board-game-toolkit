@@ -1,8 +1,7 @@
 import type {
-  Json,
-  StateReader,
+  GameTypes,
   Tx,
-  ZoneId,
+  ZoneIdOf,
 } from "@drock07/board-game-toolkit-engine";
 
 export const SUITS = ["clubs", "diamonds", "hearts", "spades"] as const;
@@ -24,29 +23,23 @@ export const RANKS = [
 
 export type Suit = (typeof SUITS)[number];
 export type Rank = (typeof RANKS)[number];
-export type PlayingCard = { suit: Suit; rank: Rank };
+export interface PlayingCard {
+  suit: Suit;
+  rank: Rank;
+}
+
+/** Any game whose entities include standard playing cards. */
+export type WithPlayingCards = GameTypes & { entities: { card: PlayingCard } };
 
 /** Creates a standard 52-card deck in `zone`, in suit then rank order. */
-export function createDeck<V extends Json>(tx: Tx<V>, zone: ZoneId): void {
+export function createDeck<T extends WithPlayingCards>(
+  tx: Tx<T>,
+  zone: ZoneIdOf<T>,
+): void {
   for (const suit of SUITS) {
-    for (const rank of RANKS) tx.create("card", { suit, rank }, zone);
+    for (const rank of RANKS) {
+      // The props are a PlayingCard; TypeScript can't see that through the generic
+      tx.create("card", { suit, rank }, zone);
+    }
   }
-}
-
-/** The playing cards in a zone, top first. */
-export function cardsIn<V extends Json>(
-  s: StateReader<V>,
-  zone: ZoneId,
-): PlayingCard[] {
-  return s.entities(zone).map((e) => e.props as PlayingCard);
-}
-
-/** The playing cards in a zone as a transaction sees them, top first. */
-export function txCardsIn<V extends Json>(
-  tx: Tx<V>,
-  zone: ZoneId,
-): PlayingCard[] {
-  return (tx.state.zones[zone]?.items ?? []).map(
-    (id) => tx.state.entities[id]!.props as PlayingCard,
-  );
 }

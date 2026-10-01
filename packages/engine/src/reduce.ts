@@ -1,6 +1,6 @@
 import { applyPatches, produce } from "immer";
 import type { Json } from "./json.js";
-import type { GameEvent, GameState } from "./types.js";
+import type { GameEvent, GameState, GameTypes } from "./types.js";
 
 /**
  * Replays events onto a state. Rebuilds `entities`, `zones`, `vars`, `status`
@@ -10,16 +10,18 @@ import type { GameEvent, GameState } from "./types.js";
  * Replay property: `reduceEvents(before, apply(before).events)` equals the
  * applied state on entities, zones, vars and status.
  */
-export function reduceEvents<V extends Json>(
-  state: GameState<V>,
-  events: readonly GameEvent[],
-): GameState<V> {
+export function reduceEvents<T extends GameTypes>(
+  state: GameState<T>,
+  events: readonly GameEvent<T>[],
+): GameState<T> {
   // Typed as a plain `GameState`: immer's `Draft` of recursive JSON is too
   // deep for the checker
-  return produce(state as GameState, (d) => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc hits the depth limit without it
-    for (const event of events) reduceOne(d as unknown as GameState, event);
-  }) as GameState<V>;
+  return produce(state as unknown as GameState, (d) => {
+    for (const event of events) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc hits the depth limit without it
+      reduceOne(d as unknown as GameState, event as GameEvent);
+    }
+  }) as unknown as GameState<T>;
 }
 
 function reduceOne(d: GameState, event: GameEvent) {

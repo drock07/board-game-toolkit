@@ -114,14 +114,14 @@ const decision: NodeKind<DecisionNode> = {
       );
     }
     const args = input.args ?? {};
-    const valid = def.validate?.(ctx.reader(), args as never, {
+    const valid = def.validate?.(ctx.reader(), args, {
       ...ctx.scope,
       actor: input.player,
     });
     if (valid !== undefined && valid !== true) {
       return inputError("validation_failed", valid);
     }
-    ctx.tx((tx) => def.execute(tx, args as never), input.player);
+    ctx.tx((tx) => def.execute(tx, args), input.player);
     if (action.then) {
       frame.data = input.action;
       return { push: action.then.id };

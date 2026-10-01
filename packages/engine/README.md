@@ -20,32 +20,55 @@ import {
   init,
   loop,
   type GameImpl,
+  type TypesFor,
 } from "@drock07/board-game-toolkit-engine";
 
 const spec = {
   id: "counter",
   version: 1,
   players: { min: 1, max: 1 },
-  zones: {},
+  zones: { tokens: { visibility: "public" } },
   flow: loop("session", decision("turn", { actor: "p1" }, { add: {} }), {
     until: "atTen",
   }),
 } as const;
 
-type Vars = { n: number };
+interface Vars {
+  n: number;
+}
+interface Token {
+  color: "red" | "blue";
+}
+// Zone names come from the spec; vars and entity props are declared here
+type Types = TypesFor<typeof spec, { vars: Vars; entities: { token: Token } }>;
 
 const impl = {
   setup: (tx) => void (tx.vars = { n: 0 }),
   conditions: { atTen: (s) => s.vars.n >= 10 },
-  actions: { add: { execute: (tx) => void tx.vars.n++ } },
-} satisfies GameImpl<Vars>;
+  actions: {
+    add: {
+      execute(tx) {
+        tx.vars.n++;
+        tx.create("token", { color: "red" }, "tokens");
+      },
+    },
+  },
+} satisfies GameImpl<Types>;
 
 const game = defineGame({ spec, impl });
 ```
 
 Every ref in the spec must exist in the impl and every impl entry must be
-used; both are type errors. Type the impl with `satisfies GameImpl<Vars>` so
-handlers are typed while its keys stay literal for that check.
+used; both are type errors. Typing the impl with `satisfies GameImpl<Types>`
+types every handler while keeping its keys literal for that check, and
+`defineGame` reads the game's types from the impl's `setup`.
+
+With the type bundle, a misspelled zone (`"tokns"`), wrong entity props or an
+unknown vars field is a compile error, entities narrow on `type`, and
+`tx.local("nodeId")` returns that node's declared locals (add
+`locals: { nodeId: Shape }` to the declaration). Vars, props and locals can be
+interfaces or type aliases, but must be JSON-compatible: Date, Map, Set,
+functions and required `undefined` values are rejected.
 
 The game only moves forward on player input:
 

@@ -10,17 +10,21 @@ import { OpError } from "./errors.js";
 import type { DeepReadonly, Json } from "./json.js";
 import { createRandom, type Random } from "./rng.js";
 import type {
+  AnyTypes,
   Entity,
   EntityId,
+  EntityTypeOf,
   GameEvent,
   GameEventBody,
   GameState,
+  GameTypes,
   NodeId,
   PlayerId,
   Position,
   Scope,
   Zone,
   ZoneId,
+  ZoneIdOf,
 } from "./types.js";
 
 enablePatches();
@@ -37,35 +41,46 @@ export interface MoveOptions {
  * `vars` and `locals` changes become one event each when the transaction
  * commits.
  */
-export interface Tx<V extends Json = Json> {
+export interface Tx<T extends GameTypes = AnyTypes> {
   /** Reflects changes made so far in this transaction. */
-  readonly state: DeepReadonly<GameState<V>>;
+  readonly state: DeepReadonly<GameState<T>>;
   readonly scope: Scope;
 
   /**
    * An immer draft of `state.vars`. Assigning replaces vars wholesale.
-   * Typed as `V` rather than immer's `Draft<V>`: they're the same for JSON
-   * shapes, and `Draft` of recursive JSON is too deep for the checker.
+   * Typed as the vars type rather than immer's `Draft`: they're the same for
+   * JSON shapes, and `Draft` of recursive JSON is too deep for the checker.
    */
-  vars: V;
+  vars: T["vars"];
   /**
-   * The nearest frame's locals, or those of a named enclosing frame, as an
-   * immer draft. Locals must be an object or array to be drafted.
+   * A named enclosing frame's locals, as an immer draft, typed by the
+   * bundle's `locals`. Locals must be an object or array to be drafted.
    */
-  local<L = Json>(nodeId?: NodeId): L;
+  local<N extends keyof T["locals"] & string>(nodeId: N): T["locals"][N];
+  /** The nearest frame's locals, untyped. */
+  local<L = Json>(): L;
 
   /** Creates an entity. Defaults to the bottom, so creation order reads top-down. */
-  create(type: string, props: Json, zone: ZoneId, opts?: MoveOptions): EntityId;
+  create<K extends EntityTypeOf<T>>(
+    type: K,
+    props: T["entities"][K & keyof T["entities"]],
+    zone: ZoneIdOf<T>,
+    opts?: MoveOptions,
+  ): EntityId;
   /** Moves entities as a block, keeping their relative order. Moving nothing is a no-op. */
-  move(ids: EntityId | EntityId[], to: ZoneId, opts?: MoveOptions): void;
+  move(
+    ids: EntityId | readonly EntityId[],
+    to: ZoneIdOf<T>,
+    opts?: MoveOptions,
+  ): void;
   /** Moves the top `count` (default 1) entities. Throws if there are fewer. */
   moveTop(
-    from: ZoneId,
-    to: ZoneId,
+    from: ZoneIdOf<T>,
+    to: ZoneIdOf<T>,
     count?: number,
     opts?: MoveOptions,
   ): EntityId[];
-  shuffle(zone: ZoneId): void;
+  shuffle(zone: ZoneIdOf<T>): void;
   flip(id: EntityId, faceUp: boolean): void;
   destroy(id: EntityId): void;
 
@@ -79,6 +94,8 @@ export interface Tx<V extends Json = Json> {
   exit(outcome: string): void;
   /** Finishes the game. */
   end(result?: Json): void;
+  /** Phantom: lets `defineGame` infer the bundle from a handler's `tx`. */
+  readonly __types?: T;
 }
 
 export interface TxOptions {
@@ -87,9 +104,9 @@ export interface TxOptions {
   locals?: (nodeId?: NodeId) => { node: NodeId; path: (string | number)[] };
 }
 
-export interface TxResult<V extends Json = Json> {
-  state: GameState<V>;
-  events: GameEvent[];
+export interface TxResult<T extends GameTypes = AnyTypes> {
+  state: GameState<T>;
+  events: GameEvent<T>[];
   /** Set by `tx.exit`. */
   exit?: string;
 }
@@ -120,7 +137,8 @@ export function resolvePosition(at: Position, length: number): number {
   return at;
 }
 
-class Transaction<V extends Json> implements Tx<V> {
+// Untyped inside; `openTx` applies the game's types at the boundary
+class Transaction implements Tx {
   // Typed as a plain `GameState`: immer's `Draft` of recursive JSON is too
   // deep for the checker
   private readonly draft: GameState;
@@ -135,7 +153,7 @@ class Transaction<V extends Json> implements Tx<V> {
   readonly scope: Scope;
 
   constructor(
-    state: GameState<V>,
+    state: GameState,
     private readonly opts: TxOptions,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc hits the depth limit without it
@@ -147,17 +165,17 @@ class Transaction<V extends Json> implements Tx<V> {
     });
   }
 
-  get state(): DeepReadonly<GameState<V>> {
+  get state(): DeepReadonly<GameState> {
     this.check();
-    return this.draft as unknown as DeepReadonly<GameState<V>>;
+    return this.draft;
   }
 
-  get vars(): V {
+  get vars(): Json {
     this.check();
-    return this.draft.vars as V;
+    return this.draft.vars;
   }
 
-  set vars(value: V) {
+  set vars(value: Json) {
     this.check();
     this.draft.vars = snapshot<Json>(value);
   }
@@ -196,7 +214,11 @@ class Transaction<V extends Json> implements Tx<V> {
     return id;
   }
 
-  move(ids: EntityId | EntityId[], to: ZoneId, opts: MoveOptions = {}): void {
+  move(
+    ids: EntityId | readonly EntityId[],
+    to: ZoneId,
+    opts: MoveOptions = {},
+  ): void {
     this.check();
     const list = typeof ids === "string" ? [ids] : [...ids];
     if (list.length === 0) return;
@@ -288,13 +310,13 @@ class Transaction<V extends Json> implements Tx<V> {
     this.push({ type: "ended", result: value });
   }
 
-  commit(): TxResult<V> {
+  commit(): TxResult {
     this.check();
     this.done = true;
     let patches: Patch[] = [];
     const state = finishDraft(this.draft as object, (p) => {
       patches = p;
-    }) as unknown as GameState<V>;
+    }) as unknown as GameState;
 
     const varPatches: Patch[] = [];
     const localPatches = new Map<NodeId, Patch[]>();
@@ -332,7 +354,7 @@ class Transaction<V extends Json> implements Tx<V> {
         })
       : state;
 
-    const result: TxResult<V> = {
+    const result: TxResult = {
       state: finalState,
       events: [...this.events, ...tail],
     };
@@ -363,26 +385,29 @@ class Transaction<V extends Json> implements Tx<V> {
   }
 }
 
-export interface OpenTx<V extends Json> {
-  tx: Tx<V>;
-  commit: () => TxResult<V>;
+export interface OpenTx<T extends GameTypes> {
+  tx: Tx<T>;
+  commit: () => TxResult<T>;
 }
 
 /** Opens a transaction over `state`, which is never mutated. */
-export function openTx<V extends Json>(
-  state: GameState<V>,
+export function openTx<T extends GameTypes = AnyTypes>(
+  state: GameState<T>,
   opts: TxOptions = {},
-): OpenTx<V> {
-  const t = new Transaction(state, opts);
-  return { tx: t, commit: () => t.commit() };
+): OpenTx<T> {
+  const t = new Transaction(state as unknown as GameState, opts);
+  return {
+    tx: t as unknown as Tx<T>,
+    commit: () => t.commit() as unknown as TxResult<T>,
+  };
 }
 
 /** Runs `fn` in a transaction and commits it. */
-export function transact<V extends Json>(
-  state: GameState<V>,
-  fn: (tx: Tx<V>) => void,
+export function transact<T extends GameTypes = AnyTypes>(
+  state: GameState<T>,
+  fn: (tx: Tx<T>) => void,
   opts?: TxOptions,
-): TxResult<V> {
+): TxResult<T> {
   const { tx, commit } = openTx(state, opts);
   fn(tx);
   return commit();

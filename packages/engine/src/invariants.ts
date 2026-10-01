@@ -1,11 +1,15 @@
-import type { GameState } from "./types.js";
+import { untyped } from "./state.js";
+import type { GameState, GameTypes } from "./types.js";
 
 /**
  * Checks the state model's invariants and returns a message per violation:
  * every entity is in exactly one zone, `entity.zone` matches that zone, and
  * no id is past the entity counter (so ids are never reused).
  */
-export function checkInvariants(state: GameState): string[] {
+export function checkInvariants<T extends GameTypes>(
+  typed: GameState<T>,
+): string[] {
+  const state: GameState = untyped(typed);
   const errors: string[] = [];
   const seen = new Map<string, string>();
   for (const [zoneId, zone] of Object.entries(state.zones)) {

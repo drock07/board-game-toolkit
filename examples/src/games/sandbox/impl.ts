@@ -1,8 +1,13 @@
-import type { EntityId, GameImpl } from "@drock07/board-game-toolkit-engine";
-import { createDeck } from "../shared/cards";
+import type {
+  EntityId,
+  GameImpl,
+  TypesFor,
+} from "@drock07/board-game-toolkit-engine";
+import { createDeck, type PlayingCard } from "../shared/cards";
+import type { spec } from "./spec";
 
 /** The sandbox keeps everything in zones, so it has no vars. */
-export type Vars = Record<string, never>;
+export type Types = TypesFor<typeof spec, { entities: { card: PlayingCard } }>;
 
 export type DiscardArgs = { card: EntityId };
 
@@ -27,9 +32,9 @@ export const impl = {
       validate: (s) =>
         s.count("discard") > 0 ? true : "The discard pile is empty",
       execute(tx) {
-        tx.move([...tx.state.zones.discard!.items], "deck");
+        tx.move(tx.state.zones.discard.items, "deck");
         tx.shuffle("deck");
       },
     },
   },
-} satisfies GameImpl<Vars>;
+} satisfies GameImpl<Types>;

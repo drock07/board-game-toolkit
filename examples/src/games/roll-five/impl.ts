@@ -1,4 +1,9 @@
-import { D6, type GameImpl } from "@drock07/board-game-toolkit-engine";
+import {
+  D6,
+  type GameImpl,
+  type TypesFor,
+} from "@drock07/board-game-toolkit-engine";
+import type { spec } from "./spec";
 
 export const CATEGORIES = [
   "aces",
@@ -21,20 +26,25 @@ export type Category = (typeof CATEGORIES)[number];
 export const MAX_ROLLS = 3;
 export const ROLL_FIVE_BONUS = 100;
 
-export type Vars = {
+export interface Vars {
   /** Points per category; null until scored. */
   scores: Record<Category, number | null>;
   /** Bonus points for extra Roll Fives. */
   bonus: number;
-};
+}
 
 /** One round's dice. Reset every round by the `turn` node's locals. */
-export type TurnLocals = {
+export interface TurnLocals {
   /** Empty until the first roll. */
   dice: number[];
   held: boolean[];
   rolls: number;
-};
+}
+
+export type Types = TypesFor<
+  typeof spec,
+  { vars: Vars; locals: { turn: TurnLocals } }
+>;
 
 export type HoldArgs = { index: number };
 export type ScoreArgs = { category: Category };
@@ -144,9 +154,9 @@ export const impl = {
   actions: {
     roll: {
       validate: (s) =>
-        s.local<TurnLocals>().rolls < MAX_ROLLS ? true : "No rolls left",
+        s.local("turn").rolls < MAX_ROLLS ? true : "No rolls left",
       execute(tx) {
-        const turn = tx.local<TurnLocals>();
+        const turn = tx.local("turn");
         turn.dice = turn.held.map((held, i) =>
           held ? turn.dice[i]! : (tx.random.roll(D6) as number),
         );
@@ -155,7 +165,7 @@ export const impl = {
     },
     toggleHold: {
       validate(s, args: HoldArgs) {
-        const turn = s.local<TurnLocals>();
+        const turn = s.local("turn");
         if (turn.rolls === 0) return "Roll first";
         if (turn.rolls >= MAX_ROLLS) return "No rolls left";
         if (!Number.isInteger(args.index) || args.index < 0 || args.index > 4)
@@ -163,19 +173,19 @@ export const impl = {
         return true;
       },
       execute(tx, args: HoldArgs) {
-        const turn = tx.local<TurnLocals>();
+        const turn = tx.local("turn");
         turn.held[args.index] = !turn.held[args.index];
       },
     },
     score: {
       validate(s, args: ScoreArgs) {
-        if (s.local<TurnLocals>().rolls === 0) return "Roll first";
+        if (s.local("turn").rolls === 0) return "Roll first";
         if (!CATEGORIES.includes(args.category)) return "No such category";
         if (s.vars.scores[args.category] !== null) return "Already scored";
         return true;
       },
       execute(tx, args: ScoreArgs) {
-        const dice = tx.local<TurnLocals>().dice;
+        const dice = tx.local("turn").dice;
         // An extra Roll Five earns a bonus once the Roll Five box holds 50
         if (hasNOfAKind(dice, 5) && tx.vars.scores.rollFive === 50) {
           tx.vars.bonus += ROLL_FIVE_BONUS;
@@ -184,4 +194,4 @@ export const impl = {
       },
     },
   },
-} satisfies GameImpl<Vars>;
+} satisfies GameImpl<Types>;

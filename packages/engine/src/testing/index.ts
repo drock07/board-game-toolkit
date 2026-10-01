@@ -7,7 +7,7 @@ import {
 } from "../game.js";
 import type { Json } from "../json.js";
 import { cyrb128 } from "../rng.js";
-import type { GameState, Input, Prompt } from "../types.js";
+import type { GameState, GameTypes, Input, Prompt } from "../types.js";
 
 export { checkInvariants } from "../invariants.js";
 export { createGameState } from "../state.js";
@@ -28,7 +28,7 @@ export function stableStringify(value: unknown): string {
 }
 
 /** A short, stable hash of a state, for golden replay fixtures. */
-export function hashState<V extends Json>(state: GameState<V>): string {
+export function hashState<T extends GameTypes>(state: GameState<T>): string {
   return cyrb128(stableStringify(state))
     .map((n) => n.toString(16).padStart(8, "0"))
     .join("");
@@ -39,10 +39,10 @@ export interface SimulateOptions extends InitOptions {
 }
 
 /** Applies inputs in order and returns every result, starting with `init`'s. Throws on a rejected input. */
-export function simulate<V extends Json>(
-  game: Game<V>,
+export function simulate<T extends GameTypes>(
+  game: Game<T>,
   opts: SimulateOptions,
-): ApplyResult<V>[] {
+): ApplyResult<T>[] {
   const results = [init(game, opts)];
   opts.inputs.forEach((input, i) => {
     const res = apply(game, results.at(-1)!.state, input);
@@ -69,11 +69,11 @@ export interface GoldenReplay {
  * Plays a game by asking `choose` for each input until it returns undefined
  * or `maxInputs` is reached, and records it as a golden replay.
  */
-export function record<V extends Json>(
-  game: Game<V>,
+export function record<T extends GameTypes>(
+  game: Game<T>,
   opts: InitOptions & { maxInputs: number },
-  choose: (result: ApplyResult<V>, step: number) => Input | undefined,
-): { golden: GoldenReplay; results: ApplyResult<V>[] } {
+  choose: (result: ApplyResult<T>, step: number) => Input | undefined,
+): { golden: GoldenReplay; results: ApplyResult<T>[] } {
   const results = [init(game, opts)];
   const inputs: Input[] = [];
   for (let i = 0; i < opts.maxInputs; i++) {

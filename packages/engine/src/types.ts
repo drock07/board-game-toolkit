@@ -11,7 +11,52 @@ export type NodeId = string;
 export type FiberId = string;
 export type PromptId = string;
 
-export interface GameState<V extends Json = Json> {
+/**
+ * A game's types in one bundle. Build it with `TypesFor<typeof spec, {...}>`,
+ * which reads the zone names from the spec and checks the rest is JSON.
+ */
+export interface GameTypes {
+  vars: unknown;
+  /** Entity type → props. */
+  entities: object;
+  /** Zone definition names, split by whether they're per-player. */
+  zones: { shared: string; perPlayer: string };
+  /** Node id → that node's locals. Optional; untyped nodes stay `Json`. */
+  locals: object;
+}
+
+/** The untyped bundle: what the engine sees internally. */
+export interface AnyTypes extends GameTypes {
+  vars: Json;
+  entities: Record<string, Json>;
+  zones: { shared: string; perPlayer: string };
+  locals: Record<string, Json>;
+}
+
+/** A zone id: a shared zone's name, or `<name>:<playerId>` for per-player zones. */
+export type ZoneIdOf<T extends GameTypes> =
+  | T["zones"]["shared"]
+  | `${T["zones"]["perPlayer"]}:${PlayerId}`;
+
+export type EntityTypeOf<T extends GameTypes> = keyof T["entities"] & string;
+
+/** An entity of the game, as a union over its entity types, so narrowing on `type` narrows `props`. */
+export type EntityOf<T extends GameTypes> = {
+  [K in EntityTypeOf<T>]: Entity<
+    K,
+    T["entities"][K & keyof T["entities"]],
+    ZoneIdOf<T>
+  >;
+}[EntityTypeOf<T>];
+
+/** Zones by id: shared zones are always present; per-player ones by pattern. */
+export type ZonesOf<T extends GameTypes> = string extends T["zones"]["shared"]
+  ? Record<ZoneId, Zone>
+  : { [K in T["zones"]["shared"]]: Zone } & {
+      [K in `${T["zones"]["perPlayer"]}:${PlayerId}`]: Zone;
+    };
+
+export interface GameState<T extends GameTypes = AnyTypes> {
   meta: {
     /** Spec id. */
     game: string;
@@ -26,9 +71,9 @@ export interface GameState<V extends Json = Json> {
   };
   /** Seating order. */
   players: PlayerId[];
-  vars: V;
-  entities: Record<EntityId, Entity>;
-  zones: Record<ZoneId, Zone>;
+  vars: T["vars"];
+  entities: Record<EntityId, EntityOf<T>>;
+  zones: ZonesOf<T>;
   rng: RngState;
   flow: FlowState;
   status: "running" | "finished";
@@ -36,13 +81,17 @@ export interface GameState<V extends Json = Json> {
   result?: Json;
 }
 
-export interface Entity {
+export interface Entity<
+  Type extends string = string,
+  Props = Json,
+  Z extends string = ZoneId,
+> {
   /** `${type}#${n}`, with n from `meta.nextEntity`. */
   id: EntityId;
-  type: string;
-  props: Json;
+  type: Type;
+  props: Props;
   /** Back-reference to the entity's zone, kept consistent by ops. */
-  zone: ZoneId;
+  zone: Z;
   /** Overrides zone visibility for this entity when set. */
   faceUp?: boolean;
 }
@@ -60,10 +109,13 @@ export interface Zone {
 /** Where to insert into a zone. A number is an index from the top. */
 export type Position = "top" | "bottom" | number;
 
-export type GameEvent = { seq: number; input: number } & GameEventBody;
+export type GameEvent<T extends GameTypes = AnyTypes> = {
+  seq: number;
+  input: number;
+} & GameEventBody<T>;
 
-export type GameEventBody =
-  | { type: "created"; id: EntityId; entity: Entity; at: number }
+export type GameEventBody<T extends GameTypes = AnyTypes> =
+  | { type: "created"; id: EntityId; entity: EntityOf<T>; at: number }
   | {
       type: "moved";
       ids: EntityId[];

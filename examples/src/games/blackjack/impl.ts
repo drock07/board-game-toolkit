@@ -1,26 +1,29 @@
 import type {
   GameImpl,
-  Json,
   StateReader,
   Tx,
+  TypesFor,
 } from "@drock07/board-game-toolkit-engine";
-import {
-  cardsIn,
-  createDeck,
-  txCardsIn,
-  type PlayingCard,
-} from "../shared/cards";
+import { createDeck, type PlayingCard } from "../shared/cards";
+import type { spec } from "./spec";
 
 export const STARTING_BANKROLL = 100;
 export const RESET_BANKROLL = 1000;
 
 export type HandResult = "win" | "lose" | "push" | "blackjack";
 
-export type Vars = {
+export interface Vars {
   bankroll: number;
   bet: number;
   result: HandResult | null;
-};
+}
+
+export type Types = TypesFor<
+  typeof spec,
+  { vars: Vars; entities: { card: PlayingCard } }
+>;
+
+type Hand = "player" | "dealer";
 
 export type BetArgs = { amount: number };
 
@@ -44,9 +47,14 @@ export function handTotal(hand: readonly PlayingCard[]): number {
 const isNatural = (hand: readonly PlayingCard[]) =>
   hand.length === 2 && handTotal(hand) === 21;
 
-function totalIn<V extends Json>(s: StateReader<V>, zone: string) {
-  return handTotal(cardsIn(s, zone));
+/** The cards in a hand, from a reader or a transaction's state. */
+function cardsIn(s: StateReader<Types> | Tx<Types>, hand: Hand): PlayingCard[] {
+  const { zones, entities } = s.state;
+  return zones[hand].items.map((id) => entities[id]!.props);
 }
+
+const totalIn = (s: StateReader<Types>, hand: Hand) =>
+  handTotal(cardsIn(s, hand));
 
 export const impl = {
   setup(tx) {
@@ -62,7 +70,7 @@ export const impl = {
   steps: {
     newShoe(tx) {
       const s = tx.state.zones;
-      tx.move([...s.player!.items, ...s.dealer!.items], "shoe");
+      tx.move([...s.player.items, ...s.dealer.items], "shoe");
       tx.shuffle("shoe");
       tx.vars.bet = 0;
       tx.vars.result = null;
@@ -75,14 +83,14 @@ export const impl = {
     },
     dealerDraws(tx) {
       revealHoleCard(tx);
-      while (handTotal(txCardsIn(tx, "dealer")) < 17) {
+      while (handTotal(cardsIn(tx, "dealer")) < 17) {
         tx.moveTop("shoe", "dealer", 1, { at: "bottom" });
       }
     },
     settle(tx) {
       revealHoleCard(tx);
-      const player = txCardsIn(tx, "player");
-      const dealer = txCardsIn(tx, "dealer");
+      const player = cardsIn(tx, "player");
+      const dealer = cardsIn(tx, "dealer");
       const p = handTotal(player);
       const d = handTotal(dealer);
       const bet = tx.vars.bet;
@@ -135,11 +143,11 @@ export const impl = {
     },
     stand: { execute: () => {} },
   },
-} satisfies GameImpl<Vars>;
+} satisfies GameImpl<Types>;
 
 /** Turns the dealer's face-down card up, if it still is. */
-function revealHoleCard(tx: Tx<Vars>) {
-  for (const id of tx.state.zones.dealer!.items) {
+function revealHoleCard(tx: Tx<Types>) {
+  for (const id of tx.state.zones.dealer.items) {
     if (tx.state.entities[id]!.faceUp === false) tx.flip(id, true);
   }
 }

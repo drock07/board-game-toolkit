@@ -2,8 +2,8 @@
  * JSON values. Game state, vars, locals, entity props and event payloads are
  * all plain JSON, so state can be saved, diffed and sent over the wire.
  *
- * Use `type` aliases (not interfaces) for game-specific shapes, since only
- * type aliases are assignable to an index signature.
+ * Game-specific shapes are checked with `JsonCompatible` instead, which also
+ * accepts interfaces (an interface never matches an index signature).
  */
 export type Json =
   | null
@@ -14,6 +14,41 @@ export type Json =
   | { [key: string]: Json };
 
 export type JsonObject = { [key: string]: Json };
+
+/**
+ * `T` with every part that isn't JSON replaced by `never`, so
+ * `T extends JsonCompatible<T>` holds exactly when `T` is JSON-compatible.
+ * Works for interfaces and type aliases alike.
+ *
+ * Rejects functions and anything with methods (Date, Map, Set, class
+ * instances with methods), bigint, symbols, and required keys whose type
+ * includes `undefined`. Optional keys are fine: absent isn't `undefined` in
+ * JSON. A class with only data fields is structurally a plain object, so it
+ * can't be told apart and passes.
+ */
+export type JsonCompatible<T> = [T] extends [Json]
+  ? // Already JSON (including the recursive Json type itself, which would
+    // otherwise recurse forever); only interfaces need the structural check
+    T
+  : T extends (...args: never[]) => unknown
+    ? never
+    : T extends readonly unknown[]
+      ? { [K in keyof T]: JsonCompatible<T[K]> }
+      : T extends object
+        ? {
+            [K in keyof T]: K extends string
+              ? // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{} extends Pick` tests whether K is optional
+                {} extends Pick<T, K>
+                ? JsonCompatible<Exclude<T[K], undefined>>
+                : JsonCompatible<T[K]>
+              : never;
+          }
+        : never;
+
+/** `true` when `T` is JSON-compatible. */
+export type IsJsonCompatible<T> = [T] extends [JsonCompatible<T>]
+  ? true
+  : false;
 
 export type DeepReadonly<T> = T extends (infer U)[]
   ? readonly DeepReadonly<U>[]

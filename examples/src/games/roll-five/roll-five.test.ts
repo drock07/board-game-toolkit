@@ -15,12 +15,13 @@ import {
   scoreSummary,
   type Category,
   type TurnLocals,
+  type Types,
   type Vars,
 } from "./impl";
 
-type Result = ApplyResult<Vars>;
+type Result = ApplyResult<Types>;
 
-function ok(res: ReturnType<typeof apply<Vars>>): Result {
+function ok(res: ReturnType<typeof apply<Types>>): Result {
   if (!res.ok) throw new Error(`${res.error.code}: ${res.error.message}`);
   return res;
 }
@@ -34,7 +35,8 @@ const act = (r: Result, action: string, args?: Json) =>
     input(r, args === undefined ? { action } : { action, args }),
   );
 const turn = (r: Result) =>
-  r.state.flow.fibers.f0!.stack.at(-1)!.locals as TurnLocals;
+  // Frames hold locals untyped; the `turn` node's are TurnLocals
+  r.state.flow.fibers.f0!.stack.at(-1)!.locals as unknown as TurnLocals;
 
 describe("scoring", () => {
   test.each<[Category, number[], number]>([

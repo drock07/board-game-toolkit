@@ -15,12 +15,13 @@ import {
 } from "./game.js";
 import type { GameImpl } from "./impl.js";
 import type { GameSpec } from "./spec.js";
-import type { Input, Prompt } from "./types.js";
+import type { AnyTypes, Input, Prompt } from "./types.js";
 
 type Vars = { n: number; log: string[]; hp: number };
+type Types = Omit<AnyTypes, "vars"> & { vars: Vars };
 
 /** Types an inline impl for these tests' vars, keeping its keys literal. */
-const mk = <const I extends GameImpl<Vars>>(impl: I): I => impl;
+const mk = <const I extends GameImpl<Types>>(impl: I): NoInfer<I> => impl;
 
 const base = {
   id: "t",
@@ -35,7 +36,7 @@ function ok<T>(res: T): Extract<T, { ok: true }> {
   return res as Extract<T, { ok: true }>;
 }
 
-function only(res: ApplyResult): Prompt {
+function only(res: { prompts: Prompt[] }): Prompt {
   expect(res.prompts).toHaveLength(1);
   return res.prompts[0]!;
 }

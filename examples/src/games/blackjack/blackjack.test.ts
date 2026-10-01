@@ -9,12 +9,11 @@ import {
 import { hashState, record } from "@drock07/board-game-toolkit-engine/testing";
 import { describe, expect, test } from "vitest";
 import { blackjack } from ".";
-import type { PlayingCard } from "../shared/cards";
-import { handTotal, type Vars } from "./impl";
+import { handTotal, type Types } from "./impl";
 
-type Result = ApplyResult<Vars>;
+type Result = ApplyResult<Types>;
 
-function ok(res: ReturnType<typeof apply<Vars>>): Result {
+function ok(res: ReturnType<typeof apply<Types>>): Result {
   if (!res.ok) throw new Error(`${res.error.code}: ${res.error.message}`);
   return res;
 }
@@ -22,10 +21,8 @@ function ok(res: ReturnType<typeof apply<Vars>>): Result {
 const prompt = (r: Result): Prompt => r.prompts[0]!;
 const input = (r: Result, rest: Partial<Input>): Input =>
   ({ prompt: prompt(r).id, player: "p1", ...rest }) as Input;
-const cards = (r: Result, zone: string) =>
-  r.state.zones[zone]!.items.map(
-    (id) => r.state.entities[id]!.props as PlayingCard,
-  );
+const cards = (r: Result, zone: "player" | "dealer") =>
+  r.state.zones[zone].items.map((id) => r.state.entities[id]!.props);
 
 function start(seed: string) {
   return init(blackjack, { players: ["p1"], seed });
@@ -57,7 +54,7 @@ describe("blackjack", () => {
     expect(r.prompts).toMatchObject([
       { node: "bet", actors: ["p1"], actions: [{ name: "placeBet" }] },
     ]);
-    expect(r.state.zones.shoe!.items).toHaveLength(52);
+    expect(r.state.zones.shoe.items).toHaveLength(52);
   });
 
   test("rejects bets outside the bankroll", () => {
@@ -83,7 +80,7 @@ describe("blackjack", () => {
     const r = bet(start("a"), 10);
     expect(r.state.vars.bankroll).toBe(90);
     expect(cards(r, "player")).toHaveLength(2);
-    const dealer = r.state.zones.dealer!.items.map(
+    const dealer = r.state.zones.dealer.items.map(
       (id) => r.state.entities[id]!,
     );
     expect(dealer.map((e) => e.faceUp)).toEqual([undefined, false]);
@@ -104,7 +101,7 @@ describe("blackjack", () => {
     ).toBe(false);
     // The hole card is revealed at settle
     expect(
-      r.state.zones.dealer!.items.every(
+      r.state.zones.dealer.items.every(
         (id) => r.state.entities[id]!.faceUp !== false,
       ),
     ).toBe(true);
@@ -168,7 +165,7 @@ describe("blackjack", () => {
     expect(r.state.vars.bankroll).toBe(1000);
     r = ok(apply(blackjack, r.state, input(r, { continue: true })));
     expect(prompt(r).node).toBe("bet");
-    expect(r.state.zones.shoe!.items).toHaveLength(52);
+    expect(r.state.zones.shoe.items).toHaveLength(52);
   });
 });
 

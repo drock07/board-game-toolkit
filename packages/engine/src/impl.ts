@@ -1,40 +1,51 @@
-import type { DeepReadonly, Json } from "./json.js";
+import type {
+  DeepReadonly,
+  IsJsonCompatible,
+  Json,
+  JsonCompatible,
+} from "./json.js";
 import type { Tx } from "./tx.js";
 import type {
+  AnyTypes,
   Entity,
   EntityId,
+  EntityOf,
   GameState,
-  NodeId,
+  GameTypes,
   PlayerId,
   Scope,
   Zone,
-  ZoneId,
+  ZoneIdOf,
 } from "./types.js";
 
 /** A read-only facade over state, for conditions, validators and lists. */
-export interface StateReader<V extends Json = Json> {
-  readonly state: DeepReadonly<GameState<V>>;
-  readonly vars: DeepReadonly<V>;
+export interface StateReader<T extends GameTypes = AnyTypes> {
+  readonly state: DeepReadonly<GameState<T>>;
+  readonly vars: DeepReadonly<T["vars"]>;
   readonly players: readonly PlayerId[];
-  zone(id: ZoneId): DeepReadonly<Zone>;
-  entity(id: EntityId): DeepReadonly<Entity>;
+  zone(id: ZoneIdOf<T>): DeepReadonly<Zone>;
+  entity(id: EntityId): DeepReadonly<EntityOf<T>>;
   /** The zone's entities, top first. */
-  entities(zoneId: ZoneId): DeepReadonly<Entity>[];
-  top(zoneId: ZoneId): DeepReadonly<Entity> | undefined;
-  count(zoneId: ZoneId): number;
-  /** The nearest frame's locals, or a named enclosing frame's. */
-  local<L = Json>(nodeId?: NodeId): DeepReadonly<L>;
+  entities(zoneId: ZoneIdOf<T>): DeepReadonly<EntityOf<T>>[];
+  top(zoneId: ZoneIdOf<T>): DeepReadonly<EntityOf<T>> | undefined;
+  count(zoneId: ZoneIdOf<T>): number;
+  /** A named enclosing frame's locals, typed by the bundle's `locals`. */
+  local<N extends keyof T["locals"] & string>(
+    nodeId: N,
+  ): DeepReadonly<T["locals"][N]>;
+  /** The nearest frame's locals, untyped. */
+  local<L = Json>(): DeepReadonly<L>;
 }
 
 // Handlers are declared with method syntax so their parameters are checked
 // bivariantly: an action can annotate `args` with its own shape.
 
-export interface ActionDef<V extends Json = Json, A = Json> {
+export interface ActionDef<T extends GameTypes = AnyTypes, A = Json> {
   /** `true`, or a reason the action isn't allowed, shown to the player. */
-  validate?(s: StateReader<V>, args: A, scope: Scope): true | string;
-  execute(tx: Tx<V>, args: A): void;
+  validate?(s: StateReader<T>, args: A, scope: Scope): true | string;
+  execute(tx: Tx<T>, args: A): void;
   /** All legal args. Enables `legalInputs`, bots and fuzzing. */
-  enumerate?(s: StateReader<V>, scope: Scope): A[];
+  enumerate?(s: StateReader<T>, scope: Scope): A[];
 }
 
 export interface SetupContext {
@@ -42,25 +53,101 @@ export interface SetupContext {
   options: Json;
 }
 
-export interface GameImpl<V extends Json = Json> {
+/** What a locals initializer may return: a declared locals shape, or JSON. */
+type LocalsValue<T extends GameTypes> = [keyof T["locals"]] extends [never]
+  ? Json
+  : T["locals"][keyof T["locals"]] | Json;
+
+export interface GameImpl<T extends GameTypes = AnyTypes> {
   /** Creates entities and sets vars. */
-  setup(tx: Tx<V>, ctx: SetupContext): void;
-  conditions?: { [name: string]: (s: StateReader<V>, scope: Scope) => boolean };
-  steps?: { [name: string]: (tx: Tx<V>) => void };
-  locals?: { [name: string]: (s: StateReader<V>, scope: Scope) => Json };
+  setup(tx: Tx<T>, ctx: SetupContext): void;
+  conditions?: { [name: string]: (s: StateReader<T>, scope: Scope) => boolean };
+  steps?: { [name: string]: (tx: Tx<T>) => void };
+  locals?: {
+    [name: string]: (s: StateReader<T>, scope: Scope) => LocalsValue<T>;
+  };
   /** `each` over refs, `choose` options and `{ ref }` actors. */
-  lists?: { [name: string]: (s: StateReader<V>, scope: Scope) => Json[] };
-  choices?: { [name: string]: (tx: Tx<V>, selection: Json[]) => void };
-  actions?: { [name: string]: ActionDef<V, never> };
+  lists?: { [name: string]: (s: StateReader<T>, scope: Scope) => Json[] };
+  choices?: { [name: string]: (tx: Tx<T>, selection: Json[]) => void };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each action picks its own args type
+  actions?: { [name: string]: ActionDef<T, any> };
   /** Custom zone visibility refs. */
   visibility?: {
     [name: string]: (
-      s: StateReader<V>,
+      s: StateReader<T>,
       entity: Entity,
       viewer: PlayerId,
     ) => boolean;
   };
 }
+
+// ---------------------------------------------------------------------------
+// Building a game's type bundle
+
+type ZoneDefsOf<S> = S extends { zones: infer Z } ? Z : never;
+
+/** The zone names a spec declares, split by `perPlayer`. */
+export type SpecZones<S> = {
+  shared: {
+    [K in keyof ZoneDefsOf<S>]: ZoneDefsOf<S>[K] extends { perPlayer: true }
+      ? never
+      : K;
+  }[keyof ZoneDefsOf<S>] &
+    string;
+  perPlayer: {
+    [K in keyof ZoneDefsOf<S>]: ZoneDefsOf<S>[K] extends { perPlayer: true }
+      ? K
+      : never;
+  }[keyof ZoneDefsOf<S>] &
+    string;
+};
+
+/** What a game declares about its types. Every part must be JSON-compatible. */
+export interface TypeDecl {
+  vars?: unknown;
+  /** Entity type → props. */
+  entities?: object;
+  /** Node id → locals. */
+  locals?: object;
+}
+
+/** Each declared part, with anything that isn't JSON mapped to `never`. */
+export type CheckedDecl<D> = {
+  [K in keyof D]: K extends "vars"
+    ? JsonCompatible<D[K]>
+    : K extends "entities" | "locals"
+      ? { [E in keyof D[K]]: JsonCompatible<D[K][E]> }
+      : never;
+};
+
+/**
+ * A game's type bundle: zone names from the spec, plus declared vars, entity
+ * props and locals. Declaring something that isn't JSON is a type error here.
+ *
+ * ```ts
+ * type Types = TypesFor<typeof spec, { vars: Vars; entities: { card: Card } }>;
+ * export const impl = { ... } satisfies GameImpl<Types>;
+ * ```
+ */
+export type TypesFor<S, D extends TypeDecl & CheckedDecl<D> = object> = {
+  vars: D extends { vars: infer V } ? V : Record<string, never>;
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- no entity types declared
+  entities: D extends { entities: infer E } ? E : {};
+  zones: SpecZones<S>;
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- no locals declared
+  locals: D extends { locals: infer L } ? L : {};
+};
+
+/** The bundle an impl was written for, read from its `setup`'s `tx`. */
+export type TypesOf<I> = I extends {
+  setup(tx: infer X, ...rest: never[]): void;
+}
+  ? X extends { readonly __types?: infer T }
+    ? NonNullable<T> extends GameTypes
+      ? NonNullable<T>
+      : AnyTypes
+    : AnyTypes
+  : AnyTypes;
 
 export const IMPL_CATEGORIES = [
   "conditions",
@@ -203,9 +290,22 @@ type NoUnusedEntries<S, I> = {
  */
 export type CheckImpl<S, I> = RequiredEntries<S, I> & NoUnusedEntries<S, I>;
 
-/** The vars type an impl was written for. */
-export type VarsOf<I> = I extends {
-  setup(tx: Tx<infer V>, ...rest: never[]): void;
-}
-  ? V
-  : Json;
+/**
+ * The impl's bundle must be JSON-compatible. `TypesFor` already checks this;
+ * this catches bundles written by hand.
+ */
+export type CheckTypes<I> =
+  AllJson<TypesOf<I>> extends true
+    ? unknown
+    : {
+        "Game types must be JSON-compatible (vars, entity props and locals)": never;
+      };
+
+// Checked part by part: wrapping the parts in one object type made the check
+// resolve as compatible inside generic aliases
+type AllJson<T extends GameTypes> =
+  IsJsonCompatible<T["vars"]> extends true
+    ? IsJsonCompatible<T["entities"]> extends true
+      ? IsJsonCompatible<T["locals"]>
+      : false
+    : false;

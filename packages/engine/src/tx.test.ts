@@ -5,16 +5,17 @@ import type { Json } from "./json.js";
 import { reduceEvents } from "./reduce.js";
 import { createGameState } from "./state.js";
 import { openTx, transact } from "./tx.js";
-import type { GameState } from "./types.js";
+import type { AnyTypes, GameEvent, GameState } from "./types.js";
 
 type Vars = {
   score: number;
   log: string[];
   nested: { hp: Record<string, number> };
 };
+type Types = Omit<AnyTypes, "vars"> & { vars: Vars };
 
-function fresh(): GameState<Vars> {
-  return createGameState<Vars>({
+function fresh(): GameState<Types> {
+  return createGameState<Types>({
     game: "test",
     specVersion: 1,
     players: ["p1", "p2"],
@@ -37,9 +38,9 @@ function withDeck() {
 }
 
 function expectReplays(
-  before: GameState,
-  after: GameState,
-  events: Parameters<typeof reduceEvents>[1],
+  before: GameState<Types>,
+  after: GameState<Types>,
+  events: GameEvent<Types>[],
 ) {
   const replayed = reduceEvents(before, events);
   expect(replayed.entities).toEqual(after.entities);
@@ -302,7 +303,10 @@ describe("transactions", () => {
 
   test("events carry the input index", () => {
     const s = withDeck();
-    const later: GameState<Vars> = { ...s, meta: { ...s.meta, inputCount: 4 } };
+    const later: GameState<Types> = {
+      ...s,
+      meta: { ...s.meta, inputCount: 4 },
+    };
     const { events } = transact(later, (tx) => tx.flip("a#0", true));
     expect(events[0]!.input).toBe(4);
   });
@@ -311,7 +315,7 @@ describe("transactions", () => {
 describe("locals", () => {
   test("tx.local drafts a frame's locals and emits a locals event", () => {
     const s = fresh();
-    const withFrame: GameState<Vars> = {
+    const withFrame: GameState<Types> = {
       ...s,
       flow: {
         ...s.flow,
