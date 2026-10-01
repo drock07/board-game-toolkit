@@ -54,7 +54,7 @@ export interface CrazyEightsState extends GenericCardGameState<
 }
 
 export type CrazyEightsCommand =
-  | { type: "selectCard"; cardId: string }
+  | { type: "selectCard"; cardId: string | null }
   | { type: "playCard" }
   | { type: "drawCard" }
   | { type: "pass" };
@@ -247,12 +247,9 @@ export const crazyEightsConfig: StateMachineConfig<
       actions: {
         selectCard: {
           validate: (state, cmd) =>
+            cmd.cardId === null ||
             state.pools.player.some((c) => c.id === cmd.cardId),
-          execute: (state, cmd) => ({
-            ...state,
-            selectedCardId:
-              state.selectedCardId === cmd.cardId ? null : cmd.cardId,
-          }),
+          execute: (state, cmd) => ({ ...state, selectedCardId: cmd.cardId }),
         },
         playCard: {
           validate: (state) => {

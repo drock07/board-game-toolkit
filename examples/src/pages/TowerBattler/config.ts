@@ -98,7 +98,7 @@ export interface TowerBattlerState
 }
 
 export type TowerBattlerCommand =
-  | { type: "selectCard"; cardId: string }
+  | { type: "selectCard"; cardId: string | null }
   | { type: "playCard" }
   | { type: "endTurn" };
 
@@ -220,12 +220,9 @@ export const towerBattlerConfig: StateMachineConfig<
       actions: {
         selectCard: {
           validate: (state, cmd) =>
+            cmd.cardId === null ||
             state.pools.hand.some((c) => c.id === cmd.cardId),
-          execute: (state, cmd) => ({
-            ...state,
-            selectedCardId:
-              state.selectedCardId === cmd.cardId ? null : cmd.cardId,
-          }),
+          execute: (state, cmd) => ({ ...state, selectedCardId: cmd.cardId }),
         },
         playCard: {
           validate: (state) => {

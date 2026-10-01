@@ -1,8 +1,8 @@
 import {
   CardBack,
+  CardHand,
   CardDimensionsContext,
   CardShape,
-  UncontrolledCardHand,
   useGameEvent,
   useStateMachineActions,
   useStateMachineCurrentState,
@@ -309,11 +309,10 @@ export function CrazyEights() {
 
               {/* Player hand */}
               <div className="w-full max-w-2xl px-4">
-                <UncontrolledCardHand
-                  onSelect={(key) => {
-                    if (key) {
-                      dispatch({ type: "selectCard", cardId: key });
-                    }
+                <CardHand
+                  selectedKey={state.selectedCardId}
+                  onCardClick={(key) => {
+                    dispatch({ type: "selectCard", cardId: key });
                   }}
                   aria-label="Your hand"
                 >
@@ -330,7 +329,7 @@ export function CrazyEights() {
                       />
                     );
                   })}
-                </UncontrolledCardHand>
+                </CardHand>
                 <div className="mt-2 text-center text-sm text-white/60">
                   Your Hand ({state.pools.player.length})
                 </div>
