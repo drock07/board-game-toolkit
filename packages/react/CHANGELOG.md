@@ -1,5 +1,44 @@
 # @drock07/board-game-toolkit-react
 
+## 1.0.0
+
+### Minor Changes
+
+- [#37](https://github.com/drock07/board-game-toolkit/pull/37) [`dc8301f`](https://github.com/drock07/board-game-toolkit/commit/dc8301f8965a4ecb6cad55a7816a5ae9d7ef1764) Thanks [@drock07](https://github.com/drock07)! - **Breaking:** `GridGameBoard` now calls its `children` render function with `(x, y)`, where `x` is the column and `y` is the row, as its type always declared and matching `CardGrid`. It previously passed `(row, column)`. If your callback relied on the old order, swap its parameters.
+
+  `GridGameBoard` also merges the caller's `style` into its grid styles instead of overwriting it.
+
+- [#41](https://github.com/drock07/board-game-toolkit/pull/41) [`e7e25e6`](https://github.com/drock07/board-game-toolkit/commit/e7e25e6e96ee04daaab394c916e508da6be49f93) Thanks [@drock07](https://github.com/drock07)! - **Breaking:** packaging and export changes.
+  - **`@drock07/board-game-toolkit-core` is now a peer dependency.** Install it alongside this package. Core and react are now versioned together.
+  - **`PATTERNS` is renamed to `CARD_BACK_PATTERNS`.**
+
+  Also:
+  - **New domain subpaths** alongside the root: `/backgrounds`, `/boards`, `/cards`, `/dice` and `/state-machine`.
+  - **`useRollingAnimation` is now exported.**
+  - **The published ESM now loads in Node** (its relative imports now include `.js` extensions).
+  - **Package metadata:** the package declares `"sideEffects": false` and `"engines": { "node": ">=22" }`, and no longer sets `"main"`.
+
+- [#42](https://github.com/drock07/board-game-toolkit/pull/42) [`02f86c3`](https://github.com/drock07/board-game-toolkit/commit/02f86c3741901a20030a2443ec1b90a50af86343) Thanks [@drock07](https://github.com/drock07)! - - **New `seed` prop** on `StateMachineContext` (and `withStateMachineContext`'s options) to reproduce a game. The component returned by `withStateMachineContext` also accepts a `seed` prop, which overrides the option (e.g. a seed read from the URL). `useStateMachineEngineState` now returns the engine's `seed`.
+  - **`CardStack`'s scatter** uses core's seeded generator. The pattern shifts slightly, once.
+
+- [#40](https://github.com/drock07/board-game-toolkit/pull/40) [`aa8bfde`](https://github.com/drock07/board-game-toolkit/commit/aa8bfde7febdf9232887fb408cac674ee2742dd9) Thanks [@drock07](https://github.com/drock07)! - `StateMachineContext` no longer swallows errors.
+  - **New `onError` prop** (also on `withStateMachineContext`'s options). It's called with the error and the operation (`"start"`, `"advance"` or `"dispatch"`), and defaults to `console.error`.
+  - **A failed operation cancels operations queued behind it**, so `dispatch(move); advance();` no longer advances after a rejected move.
+  - **Breaking:** `start`, `advance` and `dispatch` now return an `OperationResult`, a promise that resolves to `true` once applied or `false` if the operation failed or was cancelled. It never rejects, so existing fire-and-forget calls keep working. If you use typescript-eslint's `no-floating-promises`, add `OperationResult` from this package to `allowForKnownSafePromises`.
+  - **Multiple `useGameEvent` handlers for the same event type** now all run. The engine waits for all of them and receives the first non-`undefined` response. Previously the last one registered replaced the others, and unmounting any of them removed the shared handler.
+  - **`transitioning` now works.** It's `true` while an operation, including any `emit` it's waiting on, is in flight, so `canDispatch` returns `false` meanwhile. It's also returned by `useStateMachineEngineState`.
+  - **`autostart` starts the machine once** under `<StrictMode>`.
+  - **Breaking:** the internal `_registerEventHandler` is no longer part of the context value.
+
+### Patch Changes
+
+- [#39](https://github.com/drock07/board-game-toolkit/pull/39) [`7d3a0f3`](https://github.com/drock07/board-game-toolkit/commit/7d3a0f3573d550ce140566ae89fe793fc43f62ea) Thanks [@drock07](https://github.com/drock07)! - `CardHand` now keeps keyboard focus in bounds by deriving it during render instead of correcting it in an effect, so it never renders an out-of-range focus first. `UncontrolledCardHand` clears a selection whose card has left the hand during render, and still calls `onSelect(null)` once.
+
+- [#37](https://github.com/drock07/board-game-toolkit/pull/37) [`ed23546`](https://github.com/drock07/board-game-toolkit/commit/ed2354649ae9fae3caf05e314c1b34f400944ee8) Thanks [@drock07](https://github.com/drock07)! - `CardHand` and `FeltBackground` no longer depend on Tailwind classes for their layout. Their default positioning and sizing are now inline styles, and `className` is passed through unchanged. They now lay out correctly in apps that don't use Tailwind, or whose Tailwind doesn't scan `node_modules`.
+
+- Updated dependencies [[`e7e25e6`](https://github.com/drock07/board-game-toolkit/commit/e7e25e6e96ee04daaab394c916e508da6be49f93), [`41bcdc7`](https://github.com/drock07/board-game-toolkit/commit/41bcdc712d4a8fa5a52dccdc26d4deff7a43700e), [`02f86c3`](https://github.com/drock07/board-game-toolkit/commit/02f86c3741901a20030a2443ec1b90a50af86343)]:
+  - @drock07/board-game-toolkit-core@1.0.0
+
 ## 0.4.0
 
 ### Minor Changes

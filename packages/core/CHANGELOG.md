@@ -1,5 +1,47 @@
 # @drock07/board-game-toolkit-core
 
+## 1.0.0
+
+### Minor Changes
+
+- [#41](https://github.com/drock07/board-game-toolkit/pull/41) [`e7e25e6`](https://github.com/drock07/board-game-toolkit/commit/e7e25e6e96ee04daaab394c916e508da6be49f93) Thanks [@drock07](https://github.com/drock07)! - **Breaking:** core now exports everything by name, from the root and from domain subpaths.
+  - **The `Cards`, `Dice` and `StateMachine` namespace exports are removed.** Import functions directly:
+    - from the root: `import { shuffle, roll, createEngine } from "@drock07/board-game-toolkit-core"`
+    - or from a subpath: `/cards`, `/dice` or `/state-machine`
+
+    To keep a namespace, use `import * as Cards from "@drock07/board-game-toolkit-core/cards"`.
+
+  - **The `./stateMachine` subpath is renamed to `./state-machine`.**
+  - **`StateMachineEngine#getCurrentStateForMachine` is renamed to `getMachineCurrentState`**, matching the standalone function.
+
+  Also:
+  - **The published ESM now loads in Node.** Relative imports in `dist` were missing their `.js` extensions, so the package only worked through a bundler.
+  - **Transition signals use a registered symbol** (`Symbol.for("board-game-toolkit.transition")`), so they keep working if two copies of core end up in one bundle.
+  - **Package metadata:** the package declares `"sideEffects": false` and `"engines": { "node": ">=22" }`, and no longer sets `"main"`.
+
+- [#42](https://github.com/drock07/board-game-toolkit/pull/42) [`02f86c3`](https://github.com/drock07/board-game-toolkit/commit/02f86c3741901a20030a2443ec1b90a50af86343) Thanks [@drock07](https://github.com/drock07)! - **Breaking:** randomness is now explicit and seeded, and games can be replayed.
+  - **Every helper that uses randomness takes a required trailing `rng`:**
+    - `shuffle(items, rng)` and `shufflePool(state, pool, rng)`
+    - `roll(die, rng)` and `roll(die, amount, rng)`, plus `sum`, `withAdvantage`, `withDisadvantage`, `keepHighest` and `keepLowest`
+    - `draw` and `drawFromPool` when they reshuffle
+    - `addToPool`, `moveCard`, `drawToPool`, `dealFromPool` and `splitPool` with position `"random"`
+
+    Calls that don't involve randomness are unchanged.
+
+  - **New `random` module**, also available as the `/random` subpath:
+    - `createRng(seed)`, a seeded mulberry32 generator with serializable state
+    - `unseededRng`, for places where reproducibility doesn't matter
+    - `randomSeed()`
+  - **The engine owns a seeded `rng`:**
+    - `createEngine(initialState, { seed })` records the seed (a random one if omitted) and passes `rng` to `onEnter`, `onExit`, `execute` and `getNext`.
+    - `getNext` now receives a context argument.
+    - `EffectContext` requires an `rng` for the built-in effects.
+  - **`EngineState.history` is replaced by `log`**, which records every operation with the `emit` responses it received. The new `replay(config, initialState, { seed, log })` rebuilds a game exactly. `StateMachineEngine#history` is replaced by `log` and `seed`.
+
+### Patch Changes
+
+- [#34](https://github.com/drock07/board-game-toolkit/pull/34) [`41bcdc7`](https://github.com/drock07/board-game-toolkit/commit/41bcdc712d4a8fa5a52dccdc26d4deff7a43700e) Thanks [@drock07](https://github.com/drock07)! - Stop publishing compiled test files in `dist`. Test files now go through a separate build tsconfig, so the published package no longer includes `*.test.js` files that import `vitest`.
+
 ## 0.5.0
 
 ### Minor Changes
