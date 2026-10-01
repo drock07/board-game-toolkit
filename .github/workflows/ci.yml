@@ -39,6 +39,9 @@ jobs:
       # this runs after the build. Errors fail; the `any` warnings don't until #28.
       - run: pnpm lint
 
+      # Lints the packed packages and checks their types resolve for ESM consumers
+      - run: pnpm check:packages
+
       # Type-checks test files, which the package builds exclude
       - run: pnpm typecheck
 

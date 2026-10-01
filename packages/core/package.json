@@ -5,7 +5,7 @@
   "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/drock07/board-game-toolkit.git",
+    "url": "git+https://github.com/drock07/board-game-toolkit.git",
     "directory": "packages/core"
   },
   "publishConfig": {
