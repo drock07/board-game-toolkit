@@ -30,6 +30,27 @@ export default tseslint.config(
           ignoreRestSiblings: true,
         },
       ],
+      // The state machine's start/advance/dispatch results never reject (errors
+      // go to onError), so they're safe to fire and forget
+      "@typescript-eslint/no-floating-promises": [
+        "error",
+        {
+          allowForKnownSafePromises: [
+            {
+              from: "package",
+              name: "OperationResult",
+              package: "@drock07/board-game-toolkit-react",
+            },
+            // Inside this workspace the package resolves through its symlink to
+            // its own build output; the path is relative to the examples project
+            {
+              from: "file",
+              name: "OperationResult",
+              path: "../packages/react/dist/stateMachine/StateMachineContext.d.ts",
+            },
+          ],
+        },
+      ],
       // Warnings until the `any` cleanup in #28, which promotes them to errors
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unsafe-argument": "warn",
@@ -50,6 +71,18 @@ export default tseslint.config(
   {
     files: ["packages/react/**/*.{ts,tsx}", "examples/**/*.{ts,tsx}"],
     extends: [reactHooks.configs.flat.recommended],
+  },
+
+  // The examples app passes promise-returning callbacks (e.g. `advance`) to
+  // event handler props, which is idiomatic in React
+  {
+    files: ["examples/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        { checksVoidReturn: { attributes: false } },
+      ],
+    },
   },
 
   // Library components must not depend on the consumer's CSS (see #20)

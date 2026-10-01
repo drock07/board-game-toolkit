@@ -66,7 +66,11 @@ Wraps your app and manages the engine state internally. Pass your machine config
 | -------------- | -------------------------------------- | ------------------------------- |
 | `config`       | `StateMachineConfig<TState, TCommand>` | The state machine configuration |
 | `initialState` | `TState`                               | The initial game state          |
+| `autostart`    | `boolean`                              | Start the machine on mount      |
+| `onError`      | `(error, operation) => void`           | Called when an operation fails  |
 | `children`     | `ReactNode`                            | Child components                |
+
+Engine operations run one at a time, in the order they're called. If one fails (for example a command fails validation, or a lifecycle hook throws), `onError` is called with the error and the operation name (`"start"`, `"advance"` or `"dispatch"`). By default the error is logged with `console.error`. Operations that were already queued behind the failed one are cancelled, so `dispatch(move); advance();` doesn't advance after an illegal move.
 
 ## Hooks
 
@@ -97,6 +101,12 @@ advance();
 
 // Dispatch a command
 dispatch({ type: "addScore", points: 10 });
+
+// Each action returns a promise that resolves to true once applied, or false
+// if it failed or was cancelled. It never rejects, so awaiting it is optional.
+if (await dispatch({ type: "addScore", points: 10 })) {
+  playSound("score");
+}
 
 // Check if a command can be dispatched
 if (canDispatch({ type: "addScore", points: 10 })) {

@@ -13,9 +13,34 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+
+/** The engine operations the provider runs. */
+export type StateMachineOperation = "start" | "advance" | "dispatch";
+
+/**
+ * Called when an engine operation fails, e.g. a command fails validation or
+ * a lifecycle hook throws. Defaults to logging with `console.error`.
+ */
+export type StateMachineErrorHandler = (
+  error: unknown,
+  operation: StateMachineOperation,
+) => void;
+
+/**
+ * The result of `start`, `advance` or `dispatch`. Resolves `true` once the
+ * operation has been applied, or `false` if it failed or was cancelled
+ * because an operation queued before it failed. Never rejects: errors are
+ * reported through `onError`, so it's safe not to await it.
+ */
+export interface OperationResult extends Promise<boolean> {
+  /** Brand so lint configs can recognize this as a never-rejecting promise. */
+  readonly __operationResult?: never;
+}
 
 export interface StateMachineContextValue<
   TState,
@@ -23,21 +48,30 @@ export interface StateMachineContextValue<
   TEvents = DefaultEventMap,
 > {
   engine: EngineState<TState, TCommand, TEvents>;
-  start: () => void;
-  advance: () => void;
-  dispatch: (command: TCommand) => void;
+  start: () => OperationResult;
+  advance: () => OperationResult;
+  dispatch: (command: TCommand) => OperationResult;
   canDispatch: (command: TCommand) => boolean;
+  /** True while an operation (including any `emit` it awaits) is in flight. */
   transitioning: boolean;
-  /** @internal Used by useGameEvent to register handlers */
-  _registerEventHandler: (
-    type: string,
-    handler: (data: any) => any,
-  ) => () => void;
+}
+
+type EventHandler = (data: unknown) => unknown;
+
+interface EventRegistry {
+  register: (type: string, handler: EventHandler) => () => void;
 }
 
 const Context = createContext<StateMachineContextValue<any, any, any> | null>(
   null,
 );
+
+// Internal: lets useGameEvent register handlers without exposing the API
+const EventRegistryContext = createContext<EventRegistry | null>(null);
+
+const defaultOnError: StateMachineErrorHandler = (error, operation) => {
+  console.error(`[board-game-toolkit] ${operation} failed:`, error);
+};
 
 export interface StateMachineContextProps<
   TState,
@@ -47,6 +81,8 @@ export interface StateMachineContextProps<
   config: StateMachineConfig<TState, TCommand, TEvents>;
   initialState: TState;
   autostart?: boolean;
+  /** Called when an operation fails. Defaults to `console.error`. */
+  onError?: StateMachineErrorHandler;
   children?: ReactNode;
 }
 export function StateMachineContext<
@@ -57,6 +93,7 @@ export function StateMachineContext<
   config,
   initialState,
   autostart = false,
+  onError = defaultOnError,
   children,
 }: StateMachineContextProps<TState, TCommand, TEvents>) {
   type Engine = EngineState<TState, TCommand, TEvents>;
@@ -65,87 +102,132 @@ export function StateMachineContext<
     StateMachine.createEngine<TState, TCommand, TEvents>(initialState),
   );
 
-  // Ref-based engine state — always holds the latest state, used by the
-  // operation queue so each operation reads post-previous-operation state.
+  // Ref-based engine state — always holds the latest settled state, used by
+  // the operation queue so each operation reads post-previous-operation state.
   const engineRef = useRef<Engine>(engine);
 
   // Serialized operation queue — each operation awaits the previous one,
   // preventing race conditions when dispatch+advance are called in sequence.
-  const queueRef = useRef<Promise<void>>(Promise.resolve());
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
 
-  // Event handler registry — ref-based so handlers are always current
-  const eventHandlersRef = useRef<Map<string, (data: any) => any>>(new Map());
+  // Incremented on every failure. An operation queued before a failure sees a
+  // different value when it runs and is cancelled, so `dispatch(); advance();`
+  // doesn't advance after a rejected dispatch.
+  const failureCountRef = useRef(0);
+
+  const onErrorRef = useRef(onError);
+  useLayoutEffect(() => {
+    onErrorRef.current = onError;
+  });
+
+  // Event handler registry — any number of handlers per event type
+  const eventHandlersRef = useRef(new Map<string, Set<EventHandler>>());
 
   const emitHandler = useCallback<EmitHandler>(async (event) => {
-    const handler = eventHandlersRef.current.get(event.type);
-    if (!handler) return undefined;
+    const handlers = eventHandlersRef.current.get(event.type);
+    if (!handlers || handlers.size === 0) return undefined;
     const { type: _, ...data } = event;
-    return await handler(data);
+    // Wait for every handler (e.g. an animation and a sound), and respond with
+    // the first value any of them returns.
+    const results = await Promise.all([...handlers].map((h) => h(data)));
+    return results.find((result) => result !== undefined);
   }, []);
 
-  const registerEventHandler = useCallback(
-    (type: string, handler: (data: any) => any) => {
-      eventHandlersRef.current.set(type, handler);
-      return () => {
-        eventHandlersRef.current.delete(type);
-      };
-    },
+  const eventRegistry = useMemo<EventRegistry>(
+    () => ({
+      register: (type, handler) => {
+        const handlers = eventHandlersRef.current;
+        let set = handlers.get(type);
+        if (!set) {
+          set = new Set();
+          handlers.set(type, set);
+        }
+        set.add(handler);
+        return () => {
+          set.delete(handler);
+          if (set.size === 0) handlers.delete(type);
+        };
+      },
+    }),
     [],
   );
 
   /**
    * Enqueues an async engine operation. Operations are serialized — each one
    * reads the latest engine state (after all previous operations have completed)
-   * and writes the result back. This prevents race conditions between sequential
-   * dispatch() and advance() calls.
+   * and writes the result back. While it runs, the published engine state has
+   * `transitioning: true`.
    */
   const enqueue = useCallback(
     (
-      operation: (engine: EngineState<TState>) => Promise<EngineState<TState>>,
-    ) => {
-      queueRef.current = queueRef.current.then(async () => {
+      operation: StateMachineOperation,
+      run: (engine: Engine) => Promise<Engine>,
+    ): OperationResult => {
+      const failuresWhenQueued = failureCountRef.current;
+      const result = queueRef.current.then(async () => {
+        if (failureCountRef.current !== failuresWhenQueued) return false;
         const current = engineRef.current;
+        setEngine({ ...current, transitioning: true });
         try {
-          const result = (await operation(
-            current as EngineState<TState>,
-          )) as Engine;
-          engineRef.current = result;
-          setEngine(result);
-        } catch {
-          // On error (validation failure, etc), ensure transitioning is cleared
-          // so the UI doesn't get stuck.
-          const cleared = {
-            ...engineRef.current,
-            transitioning: false,
-          };
-          engineRef.current = cleared;
-          setEngine(cleared);
+          const next = await run(current);
+          engineRef.current = next;
+          setEngine(next);
+          return true;
+        } catch (error) {
+          failureCountRef.current++;
+          setEngine(current);
+          try {
+            onErrorRef.current(error, operation);
+          } catch (handlerError) {
+            console.error(handlerError);
+          }
+          return false;
         }
       });
+      queueRef.current = result;
+      return result;
     },
     [],
   );
 
-  const start = useCallback(() => {
-    enqueue((e) =>
-      StateMachine.start(e, config as StateMachineConfig<TState>, emitHandler),
-    );
-  }, [config, emitHandler, enqueue]);
+  const start = useCallback(
+    () =>
+      enqueue(
+        "start",
+        (e) =>
+          StateMachine.start(
+            e as EngineState<TState>,
+            config as StateMachineConfig<TState>,
+            emitHandler,
+          ) as Promise<Engine>,
+      ),
+    [config, emitHandler, enqueue],
+  );
 
-  const advanceFn = useCallback(() => {
-    enqueue((e) => StateMachine.advance(e, emitHandler));
-  }, [emitHandler, enqueue]);
+  const advanceFn = useCallback(
+    () =>
+      enqueue(
+        "advance",
+        (e) =>
+          StateMachine.advance(
+            e as EngineState<TState>,
+            emitHandler,
+          ) as Promise<Engine>,
+      ),
+    [emitHandler, enqueue],
+  );
 
   const dispatchCommand = useCallback(
-    (command: TCommand) => {
-      enqueue((e) =>
-        StateMachine.dispatch(
-          e as EngineState<TState, TCommand>,
-          command,
-          emitHandler,
-        ),
-      );
-    },
+    (command: TCommand) =>
+      enqueue(
+        "dispatch",
+        (e) =>
+          StateMachine.dispatch(
+            e as EngineState<TState, TCommand>,
+            command,
+            emitHandler,
+          ) as Promise<Engine>,
+      ),
     [emitHandler, enqueue],
   );
 
@@ -159,28 +241,29 @@ export function StateMachineContext<
     [engine],
   );
 
+  // Guarded so StrictMode's double-invoked effects don't start twice
+  const autostartedRef = useRef(false);
   useEffect(() => {
-    if (autostart) {
-      start();
-    }
-    // Runs once with no guard, so it double-starts under StrictMode; fixed in #12
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!autostart || autostartedRef.current) return;
+    autostartedRef.current = true;
+    void start();
+  }, [autostart, start]);
 
   return (
-    <Context
-      value={{
-        engine,
-        start,
-        advance: advanceFn,
-        dispatch: dispatchCommand,
-        canDispatch: canDispatchCommand,
-        transitioning: engine.transitioning,
-        _registerEventHandler: registerEventHandler,
-      }}
-    >
-      {children}
-    </Context>
+    <EventRegistryContext value={eventRegistry}>
+      <Context
+        value={{
+          engine,
+          start,
+          advance: advanceFn,
+          dispatch: dispatchCommand,
+          canDispatch: canDispatchCommand,
+          transitioning: engine.transitioning,
+        }}
+      >
+        {children}
+      </Context>
+    </EventRegistryContext>
   );
 }
 
@@ -198,6 +281,7 @@ export function useStateMachineEngineState<TState>() {
   const engine = useStateMachine<TState>().engine;
   return {
     started: engine.started,
+    transitioning: engine.transitioning,
     currentState: StateMachine.getCurrentState(engine),
   };
 }
@@ -285,7 +369,10 @@ export function useGameEvent<
   eventId: number;
   respond: (value: EventResponse<TEvents, K>) => void;
 } {
-  const { _registerEventHandler } = useStateMachine();
+  const registry = useContext(EventRegistryContext);
+  if (!registry) {
+    throw new Error("useGameEvent must be used within a StateMachineContext");
+  }
 
   // Declarative form state
   const [eventData, setEventData] = useState<EventData<TEvents, K> | null>(
@@ -308,16 +395,17 @@ export function useGameEvent<
 
   const activeHandler = handler ?? declarativeHandler;
   const handlerRef = useRef(activeHandler);
-  // Assigning a ref during render; moved into an effect in #12
-  // eslint-disable-next-line react-hooks/refs
-  handlerRef.current = activeHandler;
+  useLayoutEffect(() => {
+    handlerRef.current = activeHandler;
+  });
 
-  useEffect(() => {
-    const unregister = _registerEventHandler(type as string, (data: any) =>
-      handlerRef.current(data),
-    );
-    return unregister;
-  }, [type, _registerEventHandler]);
+  useEffect(
+    () =>
+      registry.register(type as string, (data) =>
+        handlerRef.current(data as EventData<TEvents, K>),
+      ),
+    [type, registry],
+  );
 
   const respond = useCallback((value: EventResponse<TEvents, K>) => {
     resolverRef.current?.(value);
@@ -345,6 +433,7 @@ export function withStateMachineContext<
   initialState: TState,
   options?: {
     autostart?: boolean;
+    onError?: StateMachineErrorHandler;
   },
 ) {
   const Component = component;
@@ -353,6 +442,7 @@ export function withStateMachineContext<
       config={config}
       initialState={initialState}
       autostart={options?.autostart ?? false}
+      onError={options?.onError}
     >
       <Component />
     </StateMachineContext>
