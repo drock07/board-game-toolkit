@@ -4,6 +4,7 @@ import type {
   StateMachineConfig,
 } from "@drock07/board-game-toolkit-core";
 import {
+  type Rng,
   dealFromPool,
   drawToPool,
   moveCard,
@@ -102,14 +103,14 @@ function getPlayableCards(
  * When the draw pile is empty, shuffles the discard pile (minus its top card)
  * back into it. Returns the state unchanged if the draw pile still has cards.
  */
-function refillDrawPile(state: CrazyEightsState): CrazyEightsState {
+function refillDrawPile(state: CrazyEightsState, rng: Rng): CrazyEightsState {
   if (state.pools.drawPile.length > 0) return state;
   const discardTop = topDiscard(state);
   return {
     ...state,
     pools: {
       ...state.pools,
-      drawPile: shuffle(state.pools.discardPile.slice(0, -1)),
+      drawPile: shuffle(state.pools.discardPile.slice(0, -1), rng),
       discardPile: [discardTop],
     },
   };
@@ -157,6 +158,7 @@ function playCardToDiscard(
 function aiTurn(
   state: CrazyEightsState,
   poolId: "opponent1" | "opponent2",
+  rng: Rng,
 ): CrazyEightsState {
   const hand = state.pools[poolId];
   const top = topDiscard(state);
@@ -185,7 +187,7 @@ function aiTurn(
 
   // Must draw (reshuffling the discard pile if needed), or pass if no cards remain
   if (!hasCardsToDraw(state)) return state;
-  return drawToPool(refillDrawPile(state), "drawPile", poolId);
+  return drawToPool(refillDrawPile(state, rng), "drawPile", poolId);
 }
 
 // --- Initial State ---
@@ -217,9 +219,9 @@ export const crazyEightsConfig: StateMachineConfig<
   states: {
     setup: {
       autoadvance: true,
-      onEnter: () => {
+      onEnter: (_state, _data, { rng }) => {
         nextCardId = 0;
-        const deck = shuffle(createDeck());
+        const deck = shuffle(createDeck(), rng);
         let state: CrazyEightsState = {
           ...initialState,
           pools: {
@@ -283,8 +285,8 @@ export const crazyEightsConfig: StateMachineConfig<
         },
         drawCard: {
           validate: canDrawCard,
-          execute: (state) =>
-            drawToPool(refillDrawPile(state), "drawPile", "player"),
+          execute: (state, _cmd, { rng }) =>
+            drawToPool(refillDrawPile(state, rng), "drawPile", "player"),
         },
         pass: {
           validate: mustPass,
@@ -299,10 +301,11 @@ export const crazyEightsConfig: StateMachineConfig<
 
     opponent1Turn: {
       autoadvance: true,
-      onEnter: async (state, _, { emit }) => {
+      onEnter: async (state, _, { emit, rng }) => {
         const newState = aiTurn(
           { ...state, currentPlayer: "opponent1" },
           "opponent1",
+          rng,
         );
         if (
           newState.pools.discardPile.length > state.pools.discardPile.length
@@ -323,10 +326,11 @@ export const crazyEightsConfig: StateMachineConfig<
 
     opponent2Turn: {
       autoadvance: true,
-      onEnter: async (state, _, { emit }) => {
+      onEnter: async (state, _, { emit, rng }) => {
         const newState = aiTurn(
           { ...state, currentPlayer: "opponent2" },
           "opponent2",
+          rng,
         );
         if (
           newState.pools.discardPile.length > state.pools.discardPile.length

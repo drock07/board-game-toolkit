@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createRng } from "../random/index.js";
 import {
   type BuiltinEffect,
   createBuiltinEffectHandlers,
@@ -10,6 +11,8 @@ import {
   type TransferCardsEffect,
 } from "./cardEffects.js";
 import type { GenericCardGameState } from "./genericCardGame.js";
+
+const rng = createRng(1);
 
 // --- helpers ---
 
@@ -59,7 +62,7 @@ describe("resolveEffects", () => {
       { type: "addPoints", points: 5 },
     ]);
     const state: TestState = { score: 0, flags: [] };
-    const ctx: TestContext = { card, playerId: "p1" };
+    const ctx: TestContext = { card, playerId: "p1", rng };
 
     const result = resolveEffects(state, card.effects, testHandlers, ctx);
 
@@ -70,7 +73,7 @@ describe("resolveEffects", () => {
   it("returns state unchanged when effects array is empty", () => {
     const card = makeCard("c1", 1);
     const state: TestState = { score: 42, flags: ["existing"] };
-    const ctx: TestContext = { card, playerId: "p1" };
+    const ctx: TestContext = { card, playerId: "p1", rng };
 
     const result = resolveEffects(state, [], testHandlers, ctx);
 
@@ -84,7 +87,7 @@ describe("resolveEffects", () => {
     }
 
     const card = makeCard("c1", 1, []);
-    const ctx: TestContext = { card, playerId: "p1" };
+    const ctx: TestContext = { card, playerId: "p1", rng };
 
     const handlers: EffectHandlerMap<CtxState, CtxEffect, TestContext> = {
       greet: (state, _effect, context) => ({
@@ -106,7 +109,7 @@ describe("resolveEffects", () => {
   it("throws when no handler is registered for an effect type", () => {
     const card = makeCard("c1", 1);
     const state: TestState = { score: 0, flags: [] };
-    const ctx: TestContext = { card, playerId: "p1" };
+    const ctx: TestContext = { card, playerId: "p1", rng };
 
     const incompleteHandlers = {
       addPoints: testHandlers.addPoints,
@@ -129,7 +132,7 @@ describe("resolveEffects", () => {
       { type: "addPoints", points: 3 },
     ]);
     const state: TestState = { score: 100, flags: [] };
-    const ctx: TestContext = { card, playerId: "p1" };
+    const ctx: TestContext = { card, playerId: "p1", rng };
 
     const result = resolveEffects(state, card.effects, testHandlers, ctx);
 
@@ -176,7 +179,7 @@ describe("createBuiltinEffectHandlers", () => {
         hand: [],
       });
       const card = poolCard("trigger", "T");
-      const ctx: EffectContext<PoolCard> = { card };
+      const ctx: EffectContext<PoolCard> = { card, rng };
 
       const effect: TransferCardsEffect = {
         type: "transferCards",
@@ -197,7 +200,7 @@ describe("createBuiltinEffectHandlers", () => {
         discard: [poolCard("x", "X")],
       });
       const card = poolCard("trigger", "T");
-      const ctx: EffectContext<PoolCard> = { card };
+      const ctx: EffectContext<PoolCard> = { card, rng };
 
       const effect: TransferCardsEffect = {
         type: "transferCards",
@@ -218,7 +221,7 @@ describe("createBuiltinEffectHandlers", () => {
         hand: [poolCard("x", "X")],
       });
       const card = poolCard("trigger", "T");
-      const ctx: EffectContext<PoolCard> = { card };
+      const ctx: EffectContext<PoolCard> = { card, rng };
 
       const effect: TransferCardsEffect = {
         type: "transferCards",
@@ -238,7 +241,7 @@ describe("createBuiltinEffectHandlers", () => {
         hand: [poolCard("x", "X")],
       });
       const card = poolCard("trigger", "T");
-      const ctx: EffectContext<PoolCard> = { card };
+      const ctx: EffectContext<PoolCard> = { card, rng };
 
       const effect: TransferCardsEffect = {
         type: "transferCards",
@@ -263,7 +266,7 @@ describe("createBuiltinEffectHandlers", () => {
       );
       const state = makePoolState({ deck: cards });
       const card = poolCard("trigger", "T");
-      const ctx: EffectContext<PoolCard> = { card };
+      const ctx: EffectContext<PoolCard> = { card, rng };
 
       const effect: ShufflePoolEffect = {
         type: "shufflePool",
@@ -311,7 +314,7 @@ describe("createBuiltinEffectHandlers", () => {
       { type: "gainLife", amount: 5 },
     ];
 
-    const result = resolveEffects(state, effects, handlers, { card });
+    const result = resolveEffects(state, effects, handlers, { card, rng });
 
     expect(result.pools.hand).toHaveLength(1);
     expect(result.pools.deck).toHaveLength(1);

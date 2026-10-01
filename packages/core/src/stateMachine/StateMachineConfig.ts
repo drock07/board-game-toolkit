@@ -1,3 +1,5 @@
+import type { Rng } from "../random/index.js";
+
 /**
  * Branded symbol used to distinguish a transition signal from a plain state.
  * Registered with `Symbol.for`, so signals are still recognized if two copies
@@ -97,15 +99,30 @@ export type EmitHandler = (event: {
  */
 export interface LifecycleContext<TEvents = DefaultEventMap> {
   emit: EmitFn<TEvents>;
+  /**
+   * The engine's seeded random source. Use it for all randomness, so the
+   * game can be reproduced from its seed and log.
+   */
+  rng: Rng;
 }
 
 /**
  * Context passed to action execute handlers.
- * Includes both transitionTo and emit.
+ * Includes transitionTo, emit and rng.
  */
 export interface ActionContext<TState, TEvents = DefaultEventMap> {
   transitionTo: TransitionTo<TState>;
   emit: EmitFn<TEvents>;
+  /** The engine's seeded random source. See {@link LifecycleContext.rng}. */
+  rng: Rng;
+}
+
+/**
+ * Context passed to getNext.
+ */
+export interface RoutingContext {
+  /** The engine's seeded random source. See {@link LifecycleContext.rng}. */
+  rng: Rng;
 }
 
 /**
@@ -169,7 +186,7 @@ interface BaseConfig<
     ctx: LifecycleContext<TEvents>,
   ) => TState | Promise<TState>;
   /** Determines the next state (null = complete/terminal) */
-  getNext?: (state: TState) => GetNextResult;
+  getNext?: (state: TState, ctx: RoutingContext) => GetNextResult;
   /** Whether to automatically advance after entering this state */
   autoadvance?: boolean | ((state: TState) => boolean);
   /** Command handlers for this state */

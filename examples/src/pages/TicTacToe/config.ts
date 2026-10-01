@@ -46,11 +46,11 @@ export const ticTacToeConfig: StateMachineConfig<
     game: {
       id: "game",
       initial: (state) => state.playerTurn!,
-      onEnter: (state) => {
+      onEnter: (state, _data, { rng }) => {
         return {
           ...state,
           marks: Array(9).fill(undefined),
-          playerTurn: Math.random() > 0.5 ? "player" : "computer",
+          playerTurn: rng.pick(["player", "computer"] as const),
           winner: null,
         };
       },

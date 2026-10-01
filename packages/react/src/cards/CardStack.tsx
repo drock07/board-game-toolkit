@@ -1,11 +1,6 @@
+import { createRng } from "@drock07/board-game-toolkit-core/random";
 import React, { type CSSProperties, type ReactNode } from "react";
 import { useCardDimensionsContext } from "./CardDimensionsContext.js";
-
-/** Deterministic pseudo-random in [0, 1) based on an integer seed. */
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-}
 
 export interface CardStackProps {
   children: ReactNode;
@@ -61,9 +56,11 @@ export function CardStack({
         let boxShadow: string | undefined;
 
         if (stagger > 0 && !isTop) {
-          const rotation = (seededRandom(i * 3) - 0.5) * stagger * 1.5;
-          const tx = (seededRandom(i * 3 + 1) - 0.5) * stagger * 0.8;
-          const ty = (seededRandom(i * 3 + 2) - 0.5) * stagger * 0.5;
+          // Seeded by position, so each card's scatter is stable across renders
+          const rng = createRng(i);
+          const rotation = (rng.next() - 0.5) * stagger * 1.5;
+          const tx = (rng.next() - 0.5) * stagger * 0.8;
+          const ty = (rng.next() - 0.5) * stagger * 0.5;
           transform = `translate(${tx}px, ${ty}px) rotate(${rotation}deg)`;
         }
 

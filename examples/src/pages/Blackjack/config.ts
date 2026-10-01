@@ -63,9 +63,9 @@ export const blackjackConfig: StateMachineConfig<
   initial: "betting",
   states: {
     betting: {
-      onEnter: (state) => ({
+      onEnter: (state, _data, { rng }) => ({
         ...state,
-        deck: shuffle(createPlayingCardDeck()),
+        deck: shuffle(createPlayingCardDeck(), rng),
         playerHand: [],
         dealerHand: [],
         bet: 0,

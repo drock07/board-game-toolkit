@@ -2,6 +2,7 @@ import {
   StandardD6,
   useStateMachineActions,
   useStateMachineCurrentState,
+  useStateMachineEngineState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
@@ -23,6 +24,7 @@ import {
 
 export function RollFive() {
   const { dice, heldDice, roll, score } = useStateMachineState<RollFiveState>();
+  const { seed } = useStateMachineEngineState<RollFiveState>();
   const { canDispatch, dispatch, advance } = useStateMachineActions<
     RollFiveState,
     RollFiveCommand
@@ -33,6 +35,7 @@ export function RollFive() {
 
   return (
     <PageLayout
+      seed={seed}
       title="Roll Five"
       topRight={
         <GlassContainer className="text-lg font-semibold">

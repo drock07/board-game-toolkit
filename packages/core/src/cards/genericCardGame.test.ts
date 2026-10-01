@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createRng } from "../random/index.js";
 import {
   addToPool,
   countInPool,
@@ -16,6 +17,8 @@ import {
   splitPool,
   swapCards,
 } from "./genericCardGame.js";
+
+const rng = createRng(1);
 
 // --- helpers ---
 
@@ -101,7 +104,7 @@ describe("addToPool", () => {
 
   it("adds at random position without losing cards", () => {
     const state = makeState({ hand: [card("a"), card("b"), card("c")] });
-    const result = addToPool(state, "hand", card("z"), "random");
+    const result = addToPool(state, "hand", card("z"), "random", rng);
     expect(result.pools.hand).toHaveLength(4);
     expect(result.pools.hand).toContainEqual(card("z"));
   });
@@ -140,7 +143,7 @@ describe("drawFromPool", () => {
       deck: [card("a")],
       discard: [card("b"), card("c")],
     });
-    const [drawn, newState] = drawFromPool(state, "deck", 2, "discard");
+    const [drawn, newState] = drawFromPool(state, "deck", 2, "discard", rng);
     expect(drawn).toHaveLength(2);
     expect(drawn[0]).toEqual(card("a"));
     expect(newState.pools.discard).toEqual([]);
@@ -151,7 +154,7 @@ describe("drawFromPool", () => {
       deck: [card("a"), card("b")],
       discard: [card("c")],
     });
-    const [drawn, newState] = drawFromPool(state, "deck", "discard");
+    const [drawn, newState] = drawFromPool(state, "deck", "discard", rng);
     expect(drawn).toEqual(card("a"));
     expect(newState.pools.deck).toEqual([card("b")]);
     expect(newState.pools.discard).toEqual([card("c")]);
@@ -180,7 +183,7 @@ describe("shufflePool", () => {
   it("returns pool with same cards in potentially different order", () => {
     const cards = [card("a"), card("b"), card("c"), card("d"), card("e")];
     const state = makeState({ deck: cards });
-    const result = shufflePool(state, "deck");
+    const result = shufflePool(state, "deck", rng);
     expect(result.pools.deck).toHaveLength(5);
     expect(result.pools.deck.sort((a, b) => a.id.localeCompare(b.id))).toEqual(
       cards.sort((a, b) => a.id.localeCompare(b.id)),
@@ -189,13 +192,13 @@ describe("shufflePool", () => {
 
   it("does not mutate the original state", () => {
     const state = makeState({ deck: [card("a"), card("b")] });
-    shufflePool(state, "deck");
+    shufflePool(state, "deck", rng);
     expect(state.pools.deck).toEqual([card("a"), card("b")]);
   });
 
   it("throws if pool does not exist", () => {
     const state = { pools: {} } as GenericCardGameState<string, TestCard>;
-    expect(() => shufflePool(state, "nope")).toThrow(
+    expect(() => shufflePool(state, "nope", rng)).toThrow(
       'Pool "nope" does not exist',
     );
   });

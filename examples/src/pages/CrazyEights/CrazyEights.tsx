@@ -139,7 +139,8 @@ export function CrazyEights() {
       )
     : [];
   // Lock the controls while a move (and the AI turns it triggers) plays out
-  const { transitioning } = useStateMachineEngineState<CrazyEightsState>();
+  const { transitioning, seed } =
+    useStateMachineEngineState<CrazyEightsState>();
   const canAct = isPlayerTurn && !pendingWildChoice && !transitioning;
   const canDraw = canAct && canDrawCard(state);
   const canPass = canAct && mustPass(state);
@@ -147,6 +148,7 @@ export function CrazyEights() {
   return (
     <CardDimensionsContext width={100}>
       <PageLayout
+        seed={seed}
         title="Crazy Eights"
         topRight={
           <GlassContainer className="flex items-center gap-2 text-sm font-medium">

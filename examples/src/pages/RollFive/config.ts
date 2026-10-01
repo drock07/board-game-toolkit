@@ -69,9 +69,9 @@ export const rollFiveConfig: StateMachineConfig<
   initial: "setup",
   states: {
     setup: {
-      onExit: (state) => ({
+      onExit: (state, { rng }) => ({
         ...state,
-        dice: roll(D6, 5) as RollFiveDice,
+        dice: roll(D6, 5, rng) as RollFiveDice,
         roll: 1,
         heldDice: [false, false, false, false, false],
       }),
@@ -80,12 +80,12 @@ export const rollFiveConfig: StateMachineConfig<
     roll: {
       actions: {
         roll: {
-          execute: (state) => {
+          execute: (state, _cmd, { rng }) => {
             return {
               ...state,
               roll: state.roll + 1,
               dice: state.heldDice.map((isHeld, i) =>
-                isHeld && state.dice ? state.dice[i] : roll(D6),
+                isHeld && state.dice ? state.dice[i] : roll(D6, rng),
               ) as RollFiveDice,
             };
           },

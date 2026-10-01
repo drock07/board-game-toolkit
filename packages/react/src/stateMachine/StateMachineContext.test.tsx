@@ -148,6 +148,25 @@ describe("StateMachineContext", () => {
   });
 });
 
+describe("seed", () => {
+  it("seeds the engine and exposes the seed", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StateMachineContext
+        config={makeConfig()}
+        initialState={initialState}
+        seed={42}
+      >
+        {children}
+      </StateMachineContext>
+    );
+    const { result } = renderHook(
+      () => useStateMachineEngineState<TestState>(),
+      { wrapper },
+    );
+    expect(result.current.seed).toBe(42);
+  });
+});
+
 describe("useGameEvent", () => {
   it("round-trips a declarative event and reports transitioning meanwhile", async () => {
     const config = makeConfig(async (state, _data, { emit }) => {

@@ -1,3 +1,4 @@
+import { createRng, randomSeed, type SeededRng } from "../random/index.js";
 import {
   ActionHandler,
   createTransitionSignal,
@@ -26,6 +27,16 @@ export interface MachineRuntimeState<
 }
 
 /**
+ * One completed engine operation, with the responses its `emit` calls
+ * received (in order). Together with the seed, the log reproduces a game.
+ */
+export type EngineLogEntry<TCommand extends { type: string } = any> = (
+  | { op: "start" }
+  | { op: "advance" }
+  | { op: "dispatch"; command: TCommand }
+) & { responses: unknown[] };
+
+/**
  * The full engine state: the machine stack plus the game state.
  */
 export interface EngineState<
@@ -37,7 +48,18 @@ export interface EngineState<
   state: TState;
   started: boolean;
   transitioning: boolean;
-  history: TCommand[];
+  /** The seed this engine's random source started from. */
+  seed: number;
+  /** The random source's current position. Advanced by each operation. */
+  rngState: number;
+  /** Every completed operation, in order. Replay it with {@link replay}. */
+  log: EngineLogEntry<TCommand>[];
+}
+
+/** What each operation hands to the hooks it runs. */
+interface Runtime {
+  emit: EmitFn;
+  rng: SeededRng;
 }
 
 function peek<TState>(
@@ -61,21 +83,53 @@ function parseGetNextResult(
 }
 
 /**
- * Creates an EmitFn that delegates to the provided handler, or resolves
- * immediately as a no-op if no handler is provided.
+ * Creates an EmitFn that delegates to the provided handler (or resolves
+ * immediately with `undefined` if there is none), recording each response.
  */
-function createEmitFn(handler?: EmitHandler): EmitFn {
-  if (!handler) {
-    return () => Promise.resolve(undefined as any);
-  }
-  return (event) => handler(event);
+function createEmitFn(
+  handler: EmitHandler | undefined,
+  responses: unknown[],
+): EmitFn {
+  return async (event) => {
+    const response: unknown = handler ? await handler(event) : undefined;
+    responses.push(response);
+    return response as never;
+  };
 }
 
 /**
- * Creates a LifecycleContext with the given emit function.
+ * Runs one engine operation with a fresh runtime, then stores the advanced
+ * random state and appends the operation to the log.
  */
-function createLifecycleContext(emit: EmitFn): LifecycleContext {
-  return { emit };
+async function runOperation<TState, TCommand extends { type: string }>(
+  engine: EngineState<TState, TCommand>,
+  entry: DistributiveOmit<EngineLogEntry<TCommand>, "responses">,
+  emitHandler: EmitHandler | undefined,
+  run: (rt: Runtime) => Promise<EngineState<TState, TCommand>>,
+): Promise<EngineState<TState, TCommand>> {
+  const responses: unknown[] = [];
+  const rt: Runtime = {
+    emit: createEmitFn(emitHandler, responses),
+    rng: createRng(engine.rngState),
+  };
+  const result = await run(rt);
+  return {
+    ...result,
+    transitioning: false,
+    rngState: rt.rng.state,
+    log: [...engine.log, { ...entry, responses }],
+  };
+}
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
+  ? Omit<T, K>
+  : never;
+
+/**
+ * Creates a LifecycleContext from the operation's runtime.
+ */
+function createLifecycleContext(rt: Runtime): LifecycleContext {
+  return { emit: rt.emit, rng: rt.rng };
 }
 
 /**
@@ -85,10 +139,10 @@ function createLifecycleContext(emit: EmitFn): LifecycleContext {
 async function enterState<TState>(
   engine: EngineState<TState>,
   stateConfig: StateConfig<TState> | StateMachineConfig<TState>,
-  emit: EmitFn,
+  rt: Runtime,
   data?: unknown,
 ): Promise<EngineState<TState>> {
-  const ctx = createLifecycleContext(emit);
+  const ctx = createLifecycleContext(rt);
 
   if (isMachine(stateConfig)) {
     const state = stateConfig.onEnter
@@ -113,7 +167,7 @@ async function enterState<TState>(
       state,
     };
     // Enter the initial state (no transition data for initial sub-states)
-    return enterState(newEngine, stateConfig.states[initial], emit);
+    return enterState(newEngine, stateConfig.states[initial], rt);
   }
 
   // Simple state
@@ -128,7 +182,7 @@ async function enterState<TState>(
       : stateConfig.autoadvance;
 
   if (shouldAutoAdvance) {
-    return resolveNext(newEngine, emit);
+    return resolveNext(newEngine, rt);
   }
 
   return newEngine;
@@ -141,15 +195,16 @@ async function enterState<TState>(
  */
 async function resolveNext<TState>(
   engine: EngineState<TState>,
-  emit: EmitFn,
+  rt: Runtime,
 ): Promise<EngineState<TState>> {
   const { machineStack } = engine;
   const machine = peek(machineStack)!;
   const currentStateConfig = machine.config.states[machine.currentState];
-  const ctx = createLifecycleContext(emit);
+  const ctx = createLifecycleContext(rt);
 
   // 1. Route: determine where to go
-  const rawNext = currentStateConfig.getNext?.(engine.state) ?? null;
+  const rawNext =
+    currentStateConfig.getNext?.(engine.state, { rng: rt.rng }) ?? null;
   const parsed = parseGetNextResult(rawNext);
 
   // 2. Exit: run onExit after routing decision
@@ -177,7 +232,7 @@ async function resolveNext<TState>(
     };
 
     if (newStack.length > 0) {
-      return resolveNext(newEngine, emit);
+      return resolveNext(newEngine, rt);
     }
     // Top-level machine completed
     return newEngine;
@@ -202,12 +257,7 @@ async function resolveNext<TState>(
     state: exitState,
   };
 
-  return enterState(
-    newEngine,
-    machine.config.states[nextStateName],
-    emit,
-    data,
-  );
+  return enterState(newEngine, machine.config.states[nextStateName], rt, data);
 }
 
 /**
@@ -230,17 +280,32 @@ function findActionHandler<TState>(
  *
  */
 
+/** Options for {@link createEngine}. */
+export interface CreateEngineOptions {
+  /**
+   * Seed for the engine's random source. Defaults to a random seed, which is
+   * recorded in `EngineState.seed` so the game can still be replayed.
+   */
+  seed?: number;
+}
+
 export function createEngine<
   TState,
   TCommand extends { type: string } = any,
   TEvents = DefaultEventMap,
->(initialState: TState): EngineState<TState, TCommand, TEvents> {
+>(
+  initialState: TState,
+  options: CreateEngineOptions = {},
+): EngineState<TState, TCommand, TEvents> {
+  const seed = (options.seed ?? randomSeed()) >>> 0;
   return {
     machineStack: [],
     state: initialState,
     started: false,
     transitioning: false,
-    history: [],
+    seed,
+    rngState: seed,
+    log: [],
   };
 }
 
@@ -250,30 +315,21 @@ export async function start<TState>(
   emitHandler?: EmitHandler,
 ): Promise<EngineState<TState>> {
   if (engine.started) throw new Error("Cannot start: machine already started");
-  const emit = createEmitFn(emitHandler);
-  const result = await enterState(
-    {
-      ...engine,
-      started: true,
-      transitioning: true,
-    },
-    config,
-    emit,
+  return runOperation(engine, { op: "start" }, emitHandler, (rt) =>
+    enterState({ ...engine, started: true, transitioning: true }, config, rt),
   );
-  return { ...result, transitioning: false };
 }
 
 export async function advance<TState>(
   engine: EngineState<TState>,
   emitHandler?: EmitHandler,
 ): Promise<EngineState<TState>> {
-  const { machineStack } = engine;
-  if (machineStack.length === 0)
+  if (engine.machineStack.length === 0)
     throw new Error("Cannot advance: no active machine");
 
-  const emit = createEmitFn(emitHandler);
-  const result = await resolveNext({ ...engine, transitioning: true }, emit);
-  return { ...result, transitioning: false };
+  return runOperation(engine, { op: "advance" }, emitHandler, (rt) =>
+    resolveNext({ ...engine, transitioning: true }, rt),
+  );
 }
 
 export async function dispatch<TState, TCommand extends { type: string }>(
@@ -300,60 +356,107 @@ export async function dispatch<TState, TCommand extends { type: string }>(
     );
   }
 
-  const emit = createEmitFn(emitHandler);
-  const result = await handler.execute(engine.state, command, {
-    transitionTo: createTransitionSignal,
-    emit,
+  return runOperation(
+    engine,
+    { op: "dispatch", command },
+    emitHandler,
+    async (rt) => {
+      const result = await handler.execute(engine.state, command, {
+        transitionTo: createTransitionSignal,
+        emit: rt.emit,
+        rng: rt.rng,
+      });
+
+      if (!isTransitionSignal(result)) {
+        return { ...engine, state: result };
+      }
+
+      const { machineStack } = engine;
+      const machine = peek(machineStack)!;
+      const targetName = result.target;
+
+      if (!(targetName in machine.config.states)) {
+        throw new Error(
+          `Machine '${machine.config.id}': action '${command.type}' triggered transition to '${targetName}', but it was not found in states [${Object.keys(machine.config.states).join(", ")}]`,
+        );
+      }
+
+      // Exit current state
+      const currentStateConfig = machine.config.states[machine.currentState];
+      const exitState = currentStateConfig.onExit
+        ? await currentStateConfig.onExit(
+            result.state,
+            createLifecycleContext(rt),
+          )
+        : result.state;
+
+      // Update machine to point at the target state
+      const updatedMachine: MachineRuntimeState<TState> = {
+        ...machine,
+        currentState: targetName,
+      };
+      const newEngine: EngineState<TState, TCommand> = {
+        ...engine,
+        machineStack: [...machineStack.slice(0, -1), updatedMachine],
+        state: exitState,
+        transitioning: true,
+      };
+
+      // Enter the target state (handles onEnter, autoadvance, nested machines)
+      return enterState(
+        newEngine,
+        machine.config.states[targetName],
+        rt,
+        result.data,
+      ) as Promise<EngineState<TState, TCommand>>;
+    },
+  );
+}
+
+/**
+ * Rebuilds a game from its seed and log by re-running every operation, with
+ * each `emit` answered by the response recorded at the time. Given the same
+ * config and initial state, the result matches the original engine state.
+ *
+ * @throws If the replay diverges from the log (e.g. the config changed, so
+ *   the number of `emit` calls no longer matches the recorded responses).
+ */
+export async function replay<TState, TCommand extends { type: string } = any>(
+  config: StateMachineConfig<TState>,
+  initialState: TState,
+  recording: { seed: number; log: readonly EngineLogEntry<TCommand>[] },
+): Promise<EngineState<TState, TCommand>> {
+  let engine = createEngine<TState, TCommand>(initialState, {
+    seed: recording.seed,
   });
 
-  const newHistory = [...engine.history, command];
+  for (const [index, entry] of recording.log.entries()) {
+    const pending = [...entry.responses];
+    const emitHandler: EmitHandler = (event) => {
+      if (pending.length === 0) {
+        throw new Error(
+          `Replay diverged at log entry ${index} (${entry.op}): unexpected emit '${event.type}'`,
+        );
+      }
+      return Promise.resolve(pending.shift());
+    };
 
-  if (isTransitionSignal(result)) {
-    const { machineStack } = engine;
-    const machine = peek(machineStack)!;
-    const targetName = result.target;
-
-    if (!(targetName in machine.config.states)) {
-      throw new Error(
-        `Machine '${machine.config.id}': action '${command.type}' triggered transition to '${targetName}', but it was not found in states [${Object.keys(machine.config.states).join(", ")}]`,
-      );
+    if (entry.op === "start") {
+      engine = (await start(engine, config, emitHandler)) as typeof engine;
+    } else if (entry.op === "advance") {
+      engine = (await advance(engine, emitHandler)) as typeof engine;
+    } else {
+      engine = await dispatch(engine, entry.command, emitHandler);
     }
 
-    // Exit current state
-    const currentStateConfig = machine.config.states[machine.currentState];
-    const ctx = createLifecycleContext(emit);
-    const exitState = currentStateConfig.onExit
-      ? await currentStateConfig.onExit(result.state, ctx)
-      : result.state;
-
-    // Update machine to point at the target state
-    const updatedMachine: MachineRuntimeState<TState> = {
-      ...machine,
-      currentState: targetName,
-    };
-    const newEngine: EngineState<TState, TCommand> = {
-      ...engine,
-      machineStack: [...machineStack.slice(0, -1), updatedMachine],
-      state: exitState,
-      transitioning: true,
-      history: newHistory,
-    };
-
-    // Enter the target state (handles onEnter, autoadvance, nested machines)
-    const entered = await enterState(
-      newEngine,
-      machine.config.states[targetName],
-      emit,
-      result.data,
-    );
-    return { ...entered, transitioning: false };
+    if (pending.length > 0) {
+      throw new Error(
+        `Replay diverged at log entry ${index} (${entry.op}): ${pending.length} recorded emit response(s) were not used`,
+      );
+    }
   }
 
-  return {
-    ...engine,
-    state: result,
-    history: newHistory,
-  };
+  return engine;
 }
 
 export function canDispatch<TState, TCommand extends { type: string }>(
@@ -407,8 +510,11 @@ export class StateMachineEngine<
   public get currentState(): string[] {
     return getCurrentState(this.engineState as EngineState<TState>);
   }
-  public get history(): readonly TCommand[] {
-    return this.engineState.history;
+  public get seed(): number {
+    return this.engineState.seed;
+  }
+  public get log(): readonly EngineLogEntry<TCommand>[] {
+    return this.engineState.log;
   }
   public get transitioning(): boolean {
     return this.engineState.transitioning;
@@ -418,9 +524,10 @@ export class StateMachineEngine<
     config: StateMachineConfig<TState, TCommand, TEvents>,
     initialState: TState,
     emitHandler?: EmitHandler,
+    options?: CreateEngineOptions,
   ) {
     this.config = config;
-    this.engineState = createEngine(initialState);
+    this.engineState = createEngine(initialState, options);
     this.emitHandler = emitHandler;
   }
 

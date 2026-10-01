@@ -5,11 +5,13 @@
  * event decks, tile bags, or any "draw from a collection" mechanic.
  */
 
+import type { Rng } from "../random/index.js";
+
 /** Returns a new array with items in random order (Fisher-Yates). */
-export function shuffle<T>(items: T[]): T[] {
+export function shuffle<T>(items: T[], rng: Rng): T[] {
   const shuffled = [...items];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = rng.int(i + 1);
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
@@ -20,37 +22,47 @@ export function shuffle<T>(items: T[]): T[] {
  * When called without a count, draws a single item and returns `[item, remaining]`.
  * When called with a count, draws multiple items and returns `[items[], remaining]`.
  *
- * Optionally accepts a `reshuffleFrom` array — if the draw array doesn't have
- * enough items, the reshuffle array is shuffled back in automatically. When a
- * reshuffle source is provided, the return tuple includes the (potentially
- * emptied) reshuffle array as a third element.
+ * Optionally accepts a `reshuffleFrom` array and an `rng` — if the draw array
+ * doesn't have enough items, the reshuffle array is shuffled back in
+ * automatically. When a reshuffle source is provided, the return tuple
+ * includes the (potentially emptied) reshuffle array as a third element.
  *
  * @throws If the collection is empty.
  * @throws If there are not enough items to draw.
  */
 export function draw<T>(items: T[]): [T, T[]];
-export function draw<T>(items: T[], reshuffleFrom: T[]): [T, T[], T[]];
+export function draw<T>(
+  items: T[],
+  reshuffleFrom: T[],
+  rng: Rng,
+): [T, T[], T[]];
 export function draw<T>(items: T[], count: number): [T[], T[]];
 export function draw<T>(
   items: T[],
   count: number,
   reshuffleFrom: T[],
+  rng: Rng,
 ): [T[], T[], T[]];
 export function draw<T>(
   items: T[],
   countOrReshuffleFrom?: number | T[],
-  reshuffleFrom?: T[],
+  reshuffleFromOrRng?: T[] | Rng,
+  maybeRng?: Rng,
 ): [T, T[]] | [T, T[], T[]] | [T[], T[]] | [T[], T[], T[]] {
   const count =
     typeof countOrReshuffleFrom === "number" ? countOrReshuffleFrom : 1;
   const reshuffleDeck = Array.isArray(countOrReshuffleFrom)
     ? countOrReshuffleFrom
-    : reshuffleFrom;
+    : Array.isArray(reshuffleFromOrRng)
+      ? reshuffleFromOrRng
+      : undefined;
+  const rng = Array.isArray(reshuffleFromOrRng) ? maybeRng : reshuffleFromOrRng;
 
   let drawDeck = items;
   let reshuffled = false;
   if (reshuffleDeck && drawDeck.length < count) {
-    drawDeck = [...items, ...shuffle(reshuffleDeck)];
+    if (!rng) throw new Error("draw: reshuffling requires an rng");
+    drawDeck = [...items, ...shuffle(reshuffleDeck, rng)];
     reshuffled = true;
   }
 

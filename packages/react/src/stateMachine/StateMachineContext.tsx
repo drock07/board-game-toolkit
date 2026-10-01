@@ -81,6 +81,11 @@ export interface StateMachineContextProps<
   config: StateMachineConfig<TState, TCommand, TEvents>;
   initialState: TState;
   autostart?: boolean;
+  /**
+   * Seed for the engine's random source, read on mount. Defaults to a random
+   * seed, available as `engine.seed`. Pass one to reproduce a game.
+   */
+  seed?: number;
   /** Called when an operation fails. Defaults to `console.error`. */
   onError?: StateMachineErrorHandler;
   children?: ReactNode;
@@ -93,13 +98,16 @@ export function StateMachineContext<
   config,
   initialState,
   autostart = false,
+  seed,
   onError = defaultOnError,
   children,
 }: StateMachineContextProps<TState, TCommand, TEvents>) {
   type Engine = EngineState<TState, TCommand, TEvents>;
 
   const [engine, setEngine] = useState<Engine>(() =>
-    StateMachine.createEngine<TState, TCommand, TEvents>(initialState),
+    StateMachine.createEngine<TState, TCommand, TEvents>(initialState, {
+      seed,
+    }),
   );
 
   // Ref-based engine state — always holds the latest settled state, used by
@@ -282,6 +290,7 @@ export function useStateMachineEngineState<TState>() {
   return {
     started: engine.started,
     transitioning: engine.transitioning,
+    seed: engine.seed,
     currentState: StateMachine.getCurrentState(engine),
   };
 }
@@ -433,15 +442,18 @@ export function withStateMachineContext<
   initialState: TState,
   options?: {
     autostart?: boolean;
+    seed?: number;
     onError?: StateMachineErrorHandler;
   },
 ) {
   const Component = component;
-  return () => (
+  // `seed` as a prop (e.g. read from the URL) takes precedence over options
+  return ({ seed }: { seed?: number }) => (
     <StateMachineContext
       config={config}
       initialState={initialState}
       autostart={options?.autostart ?? false}
+      seed={seed ?? options?.seed}
       onError={options?.onError}
     >
       <Component />

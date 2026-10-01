@@ -1,3 +1,4 @@
+import type { Rng } from "../random/index.js";
 import { draw, shuffle } from "./deck.js";
 
 /**
@@ -43,6 +44,10 @@ export type PoolIdOf<TState extends GenericCardGameState> = string &
 export type CardOf<TState extends GenericCardGameState> =
   TState["pools"][PoolIdOf<TState>][number];
 
+/** A position in a pool that doesn't involve randomness. */
+type FixedPosition = "bottom" | "top" | number;
+type Position = FixedPosition | "random";
+
 function assertPoolExists<TState extends GenericCardGameState>(
   state: TState,
   poolId: PoolIdOf<TState>,
@@ -78,22 +83,12 @@ export function removeFromPool<TState extends GenericCardGameState>(
   };
 }
 
-/**
- * Adds one or more cards to a pool at the specified position.
- *
- * @param position - Where to insert the cards:
- *   - `"bottom"` (default) — appends to the end of the pool.
- *   - `"top"` — prepends to the beginning of the pool.
- *   - `"random"` — inserts each card at a random position.
- *   - `number` — inserts at the given index.
- *
- * @throws If the pool does not exist.
- */
-export function addToPool<TState extends GenericCardGameState>(
+function insertIntoPool<TState extends GenericCardGameState>(
   state: TState,
   poolId: PoolIdOf<TState>,
   cards: CardOf<TState> | CardOf<TState>[],
-  position: "bottom" | "top" | "random" | number = "bottom",
+  position: Position,
+  rng: Rng | undefined,
 ): TState {
   assertPoolExists(state, poolId);
   const pool = [...state.pools[poolId]];
@@ -106,9 +101,9 @@ export function addToPool<TState extends GenericCardGameState>(
   } else if (position === "top") {
     pool.unshift(...cardsToAdd);
   } else {
+    if (!rng) throw new Error('Position "random" requires an rng');
     for (const card of cardsToAdd) {
-      const index = Math.floor(Math.random() * (pool.length + 1));
-      pool.splice(index, 0, card);
+      pool.splice(rng.int(pool.length + 1), 0, card);
     }
   }
   return {
@@ -121,15 +116,49 @@ export function addToPool<TState extends GenericCardGameState>(
 }
 
 /**
+ * Adds one or more cards to a pool at the specified position.
+ *
+ * @param position - Where to insert the cards:
+ *   - `"bottom"` (default) — appends to the end of the pool.
+ *   - `"top"` — prepends to the beginning of the pool.
+ *   - `"random"` — inserts each card at a random position. Requires `rng`.
+ *   - `number` — inserts at the given index.
+ *
+ * @throws If the pool does not exist.
+ */
+export function addToPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  cards: CardOf<TState> | CardOf<TState>[],
+  position?: FixedPosition,
+): TState;
+export function addToPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  cards: CardOf<TState> | CardOf<TState>[],
+  position: "random",
+  rng: Rng,
+): TState;
+export function addToPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  cards: CardOf<TState> | CardOf<TState>[],
+  position: Position = "bottom",
+  rng?: Rng,
+): TState {
+  return insertIntoPool(state, poolId, cards, position, rng);
+}
+
+/**
  * Draws cards from the front of a pool. Returns a tuple of the drawn
  * card(s) and the updated state.
  *
  * When called without a count, draws a single card and returns `[card, state]`.
  * When called with a count, draws multiple cards and returns `[cards[], state]`.
  *
- * Optionally accepts a `reshufflePoolId` — if the draw pool doesn't have
- * enough cards, the reshuffle pool is shuffled back in automatically and
- * emptied in the returned state.
+ * Optionally accepts a `reshufflePoolId` and an `rng` — if the draw pool
+ * doesn't have enough cards, the reshuffle pool is shuffled back in
+ * automatically and emptied in the returned state.
  *
  * @throws If the pool (or reshuffle pool) does not exist.
  * @throws If there are not enough cards to draw.
@@ -142,6 +171,7 @@ export function drawFromPool<TState extends GenericCardGameState>(
   state: TState,
   poolId: PoolIdOf<TState>,
   reshufflePoolId: PoolIdOf<TState>,
+  rng: Rng,
 ): [CardOf<TState>, TState];
 export function drawFromPool<TState extends GenericCardGameState>(
   state: TState,
@@ -153,17 +183,26 @@ export function drawFromPool<TState extends GenericCardGameState>(
   poolId: PoolIdOf<TState>,
   count: number,
   reshufflePoolId: PoolIdOf<TState>,
+  rng: Rng,
 ): [CardOf<TState>[], TState];
 export function drawFromPool<TState extends GenericCardGameState>(
   state: TState,
   poolId: PoolIdOf<TState>,
   count?: number | PoolIdOf<TState>,
-  reshufflePoolId?: PoolIdOf<TState>,
+  reshufflePoolIdOrRng?: PoolIdOf<TState> | Rng,
+  maybeRng?: Rng,
 ): [CardOf<TState>, TState] | [CardOf<TState>[], TState] {
   assertPoolExists(state, poolId);
 
   const numCount = typeof count === "number" ? count : 1;
-  const reshuffleId = typeof count === "string" ? count : reshufflePoolId;
+  const reshuffleId =
+    typeof count === "string"
+      ? count
+      : typeof reshufflePoolIdOrRng === "string"
+        ? reshufflePoolIdOrRng
+        : undefined;
+  const rng =
+    typeof reshufflePoolIdOrRng === "string" ? maybeRng : reshufflePoolIdOrRng;
 
   if (reshuffleId) {
     assertPoolExists(state, reshuffleId);
@@ -178,7 +217,8 @@ export function drawFromPool<TState extends GenericCardGameState>(
   const updatedPools = { ...state.pools };
 
   if (reshufflePool) {
-    const [d, r, leftover] = draw(pool, numCount, reshufflePool);
+    if (!rng) throw new Error("drawFromPool: reshuffling requires an rng");
+    const [d, r, leftover] = draw(pool, numCount, reshufflePool, rng);
     drawn = Array.isArray(d) ? d : [d];
     remaining = r;
     updatedPools[reshuffleId!] = leftover;
@@ -206,13 +246,14 @@ export function drawFromPool<TState extends GenericCardGameState>(
 export function shufflePool<TState extends GenericCardGameState>(
   state: TState,
   poolId: PoolIdOf<TState>,
+  rng: Rng,
 ): TState {
   assertPoolExists(state, poolId);
   return {
     ...state,
     pools: {
       ...state.pools,
-      [poolId]: shuffle(state.pools[poolId]),
+      [poolId]: shuffle(state.pools[poolId], rng),
     },
   };
 }
@@ -231,7 +272,23 @@ export function moveCard<TState extends GenericCardGameState>(
   fromPoolId: PoolIdOf<TState>,
   toPoolId: PoolIdOf<TState>,
   cardId: CardOf<TState>["id"],
-  position: "bottom" | "top" | "random" | number = "bottom",
+  position?: FixedPosition,
+): TState;
+export function moveCard<TState extends GenericCardGameState>(
+  state: TState,
+  fromPoolId: PoolIdOf<TState>,
+  toPoolId: PoolIdOf<TState>,
+  cardId: CardOf<TState>["id"],
+  position: "random",
+  rng: Rng,
+): TState;
+export function moveCard<TState extends GenericCardGameState>(
+  state: TState,
+  fromPoolId: PoolIdOf<TState>,
+  toPoolId: PoolIdOf<TState>,
+  cardId: CardOf<TState>["id"],
+  position: Position = "bottom",
+  rng?: Rng,
 ): TState {
   assertPoolExists(state, fromPoolId);
   assertPoolExists(state, toPoolId);
@@ -239,7 +296,7 @@ export function moveCard<TState extends GenericCardGameState>(
   if (!card) return state;
 
   const afterRemove = removeFromPool(state, fromPoolId, cardId);
-  return addToPool(afterRemove, toPoolId, card, position);
+  return insertIntoPool(afterRemove, toPoolId, card, position, rng);
 }
 
 /**
@@ -258,11 +315,27 @@ export function drawToPool<TState extends GenericCardGameState>(
   fromPoolId: PoolIdOf<TState>,
   toPoolId: PoolIdOf<TState>,
   count?: number,
-  position: "bottom" | "top" | "random" | number = "bottom",
+  position?: FixedPosition,
+): TState;
+export function drawToPool<TState extends GenericCardGameState>(
+  state: TState,
+  fromPoolId: PoolIdOf<TState>,
+  toPoolId: PoolIdOf<TState>,
+  count: number,
+  position: "random",
+  rng: Rng,
+): TState;
+export function drawToPool<TState extends GenericCardGameState>(
+  state: TState,
+  fromPoolId: PoolIdOf<TState>,
+  toPoolId: PoolIdOf<TState>,
+  count?: number,
+  position: Position = "bottom",
+  rng?: Rng,
 ): TState {
   const numCount = count ?? 1;
   const [drawn, newState] = drawFromPool(state, fromPoolId, numCount);
-  return addToPool(newState, toPoolId, drawn, position);
+  return insertIntoPool(newState, toPoolId, drawn, position, rng);
 }
 
 /**
@@ -295,7 +368,23 @@ export function dealFromPool<TState extends GenericCardGameState>(
   poolId: PoolIdOf<TState>,
   targetPoolIds: PoolIdOf<TState>[],
   countPerTarget: number,
-  position: "bottom" | "top" | "random" | number = "bottom",
+  position?: FixedPosition,
+): TState;
+export function dealFromPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  targetPoolIds: PoolIdOf<TState>[],
+  countPerTarget: number,
+  position: "random",
+  rng: Rng,
+): TState;
+export function dealFromPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  targetPoolIds: PoolIdOf<TState>[],
+  countPerTarget: number,
+  position: Position = "bottom",
+  rng?: Rng,
 ): TState {
   assertPoolExists(state, poolId);
   for (const targetId of targetPoolIds) {
@@ -310,11 +399,12 @@ export function dealFromPool<TState extends GenericCardGameState>(
   for (let round = 0; round < countPerTarget; round++) {
     for (let t = 0; t < targetPoolIds.length; t++) {
       const cardIndex = round * targetPoolIds.length + t;
-      result = addToPool(
+      result = insertIntoPool(
         result,
         targetPoolIds[t],
         drawnCards[cardIndex],
         position,
+        rng,
       );
     }
   }
@@ -396,7 +486,23 @@ export function splitPool<TState extends GenericCardGameState>(
   poolId: PoolIdOf<TState>,
   targetPoolIds: PoolIdOf<TState>[],
   assignFn: (card: CardOf<TState>) => PoolIdOf<TState> | null | undefined,
-  position: "bottom" | "top" | "random" | number = "bottom",
+  position?: FixedPosition,
+): TState;
+export function splitPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  targetPoolIds: PoolIdOf<TState>[],
+  assignFn: (card: CardOf<TState>) => PoolIdOf<TState> | null | undefined,
+  position: "random",
+  rng: Rng,
+): TState;
+export function splitPool<TState extends GenericCardGameState>(
+  state: TState,
+  poolId: PoolIdOf<TState>,
+  targetPoolIds: PoolIdOf<TState>[],
+  assignFn: (card: CardOf<TState>) => PoolIdOf<TState> | null | undefined,
+  position: Position = "bottom",
+  rng?: Rng,
 ): TState {
   assertPoolExists(state, poolId);
   for (const targetId of targetPoolIds) {
@@ -430,7 +536,7 @@ export function splitPool<TState extends GenericCardGameState>(
   };
 
   for (const [targetId, cards] of buckets) {
-    result = addToPool(result, targetId, cards, position);
+    result = insertIntoPool(result, targetId, cards, position, rng);
   }
 
   return result;

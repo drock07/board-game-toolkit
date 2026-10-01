@@ -6,6 +6,8 @@ import { Link } from "react-router";
 
 interface PageLayoutProps {
   title?: string;
+  /** The game's seed; shown as a link that replays this session. */
+  seed?: number;
   topRight?: ReactNode;
   bottomLeft?: ReactNode;
   bottomCenter?: ReactNode;
@@ -15,6 +17,7 @@ interface PageLayoutProps {
 
 export function PageLayout({
   title,
+  seed,
   children,
   topRight,
   bottomLeft,
@@ -44,6 +47,17 @@ export function PageLayout({
             )}
           </div>
         </GlassContainer>
+        {seed !== undefined && (
+          <GlassContainer className="text-sm">
+            <Link
+              to={`?seed=${seed}`}
+              title="Open this link to replay the game from the same seed"
+              className="text-white/70 hover:text-white"
+            >
+              Seed {seed}
+            </Link>
+          </GlassContainer>
+        )}
       </div>
 
       {topRight && (
