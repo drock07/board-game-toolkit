@@ -197,7 +197,7 @@ actions: {
 return transitionTo("resolveEffect", newState, { returnTo: "playCards" });
 ```
 
-All dispatched commands are recorded in `engine.history` for debugging, replay, or undo.
+Every operation is recorded in `engine.log`, which together with `engine.seed` can rebuild the game with core's `replay`. Pass a `seed` prop to `StateMachineContext` to reproduce a game.
 
 ## Components
 

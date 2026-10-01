@@ -117,8 +117,9 @@ Generic collection utilities for any "draw from a pile" mechanic — playing car
 ```ts
 import { draw, shuffle } from "@drock07/board-game-toolkit-core";
 
-// Shuffle an array (Fisher-Yates)
-const deck = shuffle(cards);
+// Shuffle an array (Fisher-Yates). Randomness always comes from an `rng`;
+// see "Randomness and replay" below.
+const deck = shuffle(cards, rng);
 
 // Draw a single item
 const [card, remaining] = draw(deck);
@@ -131,13 +132,39 @@ When a discard pile is available, pass it as the `reshuffleFrom` argument. If th
 
 ```ts
 // Single draw with reshuffle
-const [card, newDeck, newDiscard] = draw(deck, discardPile);
+const [card, newDeck, newDiscard] = draw(deck, discardPile, rng);
 
 // Multi-draw with reshuffle
-const [cards, newDeck, newDiscard] = draw(deck, 5, discardPile);
+const [cards, newDeck, newDiscard] = draw(deck, 5, discardPile, rng);
 ```
 
 When reshuffling occurs, the returned discard pile is empty (all cards moved back into the draw deck).
+
+### Randomness and replay
+
+Nothing in the toolkit calls `Math.random()` directly. Every helper that needs randomness takes an `Rng` as a required argument: `shuffle`, `roll` and the other dice helpers, `shufflePool`, reshuffling draws, and pool helpers with the `"random"` position.
+
+Inside the state machine, use the `rng` from the hook context. It's available in `onEnter`, `onExit`, `execute` and `getNext`:
+
+```ts
+execute: (state, cmd, { rng }) => ({
+  ...state,
+  deck: shuffle(state.deck, rng),
+  damage: roll(D6, 2, rng),
+}),
+```
+
+The engine owns that generator. `createEngine(initialState, { seed })` records the seed (a random one if you don't pass it), and every operation is recorded in `engine.log` along with any `emit` responses it received. Together they reproduce the game exactly:
+
+```ts
+const rebuilt = await replay(config, initialState, {
+  seed: engine.seed,
+  log: engine.log,
+});
+// rebuilt.state deep-equals engine.state
+```
+
+Outside the engine, use `createRng(seed)` for reproducible results, or `unseededRng` where reproducibility doesn't matter (for example visual effects).
 
 ## Usage
 
@@ -208,14 +235,15 @@ getMachineCurrentState(engine, "game"); // "round"
 
 ### Functions
 
-| Function                                    | Description                                       |
-| ------------------------------------------- | ------------------------------------------------- |
-| `createEngine(initialState)`                | Create an unstarted engine with the given state   |
-| `start(engine, config)`                     | Start the root machine                            |
-| `advance(engine)`                           | Exit the current state and transition to the next |
-| `doAction(engine, action, ...args)`         | Apply an action to the game state                 |
-| `getCurrentState(engine)`                   | Get active state names (root-to-leaf)             |
-| `getMachineCurrentState(engine, machineId)` | Get a specific machine's current state name       |
+| Function                                      | Description                                       |
+| --------------------------------------------- | ------------------------------------------------- |
+| `createEngine(initialState, { seed })`        | Create an unstarted engine with the given state   |
+| `replay(config, initialState, { seed, log })` | Rebuild a game from its seed and log              |
+| `start(engine, config)`                       | Start the root machine                            |
+| `advance(engine)`                             | Exit the current state and transition to the next |
+| `doAction(engine, action, ...args)`           | Apply an action to the game state                 |
+| `getCurrentState(engine)`                     | Get active state names (root-to-leaf)             |
+| `getMachineCurrentState(engine, machineId)`   | Get a specific machine's current state name       |
 
 ### Types
 
