@@ -40,6 +40,12 @@ export default tseslint.config(
     },
   },
 
+  // Test doubles often satisfy async interfaces without awaiting anything
+  {
+    files: ["**/*.test.{ts,tsx}"],
+    rules: { "@typescript-eslint/require-await": "off" },
+  },
+
   // React
   {
     files: ["packages/react/**/*.{ts,tsx}", "examples/**/*.{ts,tsx}"],

@@ -80,7 +80,7 @@ export function StateMachineContext<
     const handler = eventHandlersRef.current.get(event.type);
     if (!handler) return undefined;
     const { type: _, ...data } = event;
-    return handler(data);
+    return await handler(data);
   }, []);
 
   const registerEventHandler = useCallback(
@@ -200,8 +200,8 @@ export function useStateMachineEngineState<TState>() {
   };
 }
 
-export function useStateMachineCurrentState<TState>(): string[];
-export function useStateMachineCurrentState<TState>(
+export function useStateMachineCurrentState<_TState>(): string[];
+export function useStateMachineCurrentState<_TState>(
   machineId: string,
 ): string | undefined;
 export function useStateMachineCurrentState<TState>(machineId?: string) {

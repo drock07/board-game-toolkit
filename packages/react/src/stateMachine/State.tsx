@@ -19,7 +19,7 @@ export function State(props: StateProps) {
   const currentState = useStateMachineCurrentState();
 
   const { children } = props;
-  let isMatching: boolean = false;
+  let isMatching: boolean;
 
   if ("includes" in props) {
     const { includes } = props;

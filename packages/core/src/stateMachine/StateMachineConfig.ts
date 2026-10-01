@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 /**
  * Branded symbol used to distinguish a transition signal from a plain state.
  */
@@ -61,7 +59,8 @@ export type EventData<TEvents, K extends keyof TEvents> = TEvents[K] extends (
   data: infer D,
 ) => any
   ? D
-  : {};
+  : // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- revisit with the event typing in #28
+    {};
 
 /**
  * Extracts the response type for a given event key from the event map.
@@ -157,7 +156,7 @@ interface BaseConfig<
   /** Called when entering this state/machine. Returns new state. */
   onEnter?: (
     state: TState,
-    data: any | undefined,
+    data: any,
     ctx: LifecycleContext<TEvents>,
   ) => TState | Promise<TState>;
   /** Called when exiting this state/machine. Returns new state. */
