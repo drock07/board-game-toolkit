@@ -1,11 +1,11 @@
 import { Route, Routes } from "react-router";
-import Home from "./pages/Home";
-import GenericCardGame from "./pages/Concepts/GenericCardGame/GenericCardGame";
-import TicTacToe from "./pages/TicTacToe/TicTacToe";
 import Blackjack from "./pages/Blackjack/Blackjack";
-import RollFive from "./pages/RollFive/RollFive";
+import GenericCardGame from "./pages/Concepts/GenericCardGame/GenericCardGame";
 import CrazyEights from "./pages/CrazyEights/CrazyEights";
 import DungeonCrawl from "./pages/DungeonCrawl/DungeonCrawl";
+import Home from "./pages/Home";
+import RollFive from "./pages/RollFive/RollFive";
+import TicTacToe from "./pages/TicTacToe/TicTacToe";
 import TowerBattler from "./pages/TowerBattler/TowerBattler";
 
 export default function App() {

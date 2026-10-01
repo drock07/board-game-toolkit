@@ -32,9 +32,7 @@ export function isTransitionSignal<TState>(
   value: TState | TransitionSignal<TState>,
 ): value is TransitionSignal<TState> {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    TRANSITION_SIGNAL in value
+    typeof value === "object" && value !== null && TRANSITION_SIGNAL in value
   );
 }
 
@@ -59,14 +57,19 @@ export type DefaultEventMap = Record<string, (data: any) => any>;
 /**
  * Extracts the data type for a given event key from the event map.
  */
-export type EventData<TEvents, K extends keyof TEvents> =
-  TEvents[K] extends (data: infer D) => any ? D : {};
+export type EventData<TEvents, K extends keyof TEvents> = TEvents[K] extends (
+  data: infer D,
+) => any
+  ? D
+  : {};
 
 /**
  * Extracts the response type for a given event key from the event map.
  */
-export type EventResponse<TEvents, K extends keyof TEvents> =
-  TEvents[K] extends (data: any) => infer R ? R : void;
+export type EventResponse<
+  TEvents,
+  K extends keyof TEvents,
+> = TEvents[K] extends (data: any) => infer R ? R : void;
 
 /**
  * The emit function available in lifecycle hooks and action handlers.
@@ -81,9 +84,10 @@ export type EmitFn<TEvents = DefaultEventMap> = <K extends keyof TEvents>(
  * The handler function provided by the UI layer to process emitted events.
  * The engine calls this when game code calls emit().
  */
-export type EmitHandler = (
-  event: { type: string; [key: string]: any },
-) => Promise<any>;
+export type EmitHandler = (event: {
+  type: string;
+  [key: string]: any;
+}) => Promise<any>;
 
 /**
  * Context passed to onEnter and onExit lifecycle hooks.

@@ -1,4 +1,3 @@
-import clsx from "clsx";
 import {
   CardBack,
   CardDimensionsContext,
@@ -13,6 +12,7 @@ import {
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
+import clsx from "clsx";
 import { useState, type ReactNode } from "react";
 import PageLayout, { GlassButton } from "../../../components/PageLayout";
 import type { DemoCard, DemoCommand, DemoState } from "./config";
@@ -463,12 +463,20 @@ const COLUMN_OPTIONS: { value: number | undefined; label: string }[] = [
 ];
 
 const INITIAL_SPARSE: ReadonlySet<string> = new Set([
-  "0,0", "1,0", "3,1", "2,2", "0,2", "1,3", "3,3",
+  "0,0",
+  "1,0",
+  "3,1",
+  "2,2",
+  "0,2",
+  "1,3",
+  "3,3",
 ]);
 
 function CardGridSection() {
   const [columns, setColumns] = useState<number | undefined>(undefined);
-  const [filled, setFilled] = useState<Set<string>>(() => new Set(INITIAL_SPARSE));
+  const [filled, setFilled] = useState<Set<string>>(
+    () => new Set(INITIAL_SPARSE),
+  );
 
   const toggleSlot = (x: number, y: number) => {
     const key = `${x},${y}`;
@@ -486,7 +494,7 @@ function CardGridSection() {
       description="Arranges cards in a CSS grid with two modes: dense fills slots in order from children, sparse calls a render function with (x, y) coordinates for each slot."
     >
       {/* Dense */}
-      <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h3 className="mb-4 text-sm font-semibold tracking-wide text-white/50 uppercase">
         Dense
       </h3>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -522,7 +530,7 @@ function CardGridSection() {
       </div>
 
       {/* Sparse */}
-      <h3 className="mb-4 mt-8 text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h3 className="mt-8 mb-4 text-sm font-semibold tracking-wide text-white/50 uppercase">
         Sparse
       </h3>
       <div className="grid gap-6 lg:grid-cols-2">

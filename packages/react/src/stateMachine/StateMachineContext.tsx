@@ -61,8 +61,8 @@ export function StateMachineContext<
 }: StateMachineContextProps<TState, TCommand, TEvents>) {
   type Engine = EngineState<TState, TCommand, TEvents>;
 
-  const [engine, setEngine] = useState<Engine>(
-    () => StateMachine.createEngine<TState, TCommand, TEvents>(initialState),
+  const [engine, setEngine] = useState<Engine>(() =>
+    StateMachine.createEngine<TState, TCommand, TEvents>(initialState),
   );
 
   // Ref-based engine state — always holds the latest state, used by the
@@ -101,9 +101,7 @@ export function StateMachineContext<
    */
   const enqueue = useCallback(
     (
-      operation: (
-        engine: EngineState<TState>,
-      ) => Promise<EngineState<TState>>,
+      operation: (engine: EngineState<TState>) => Promise<EngineState<TState>>,
     ) => {
       queueRef.current = queueRef.current.then(async () => {
         const current = engineRef.current;
@@ -279,14 +277,12 @@ export function useGameEvent<
   handler?: (
     data: EventData<TEvents, K>,
   ) => EventResponse<TEvents, K> | Promise<EventResponse<TEvents, K>>,
-):
-  | void
-  | {
-      isEventActive: boolean;
-      eventData: EventData<TEvents, K> | null;
-      eventId: number;
-      respond: (value: EventResponse<TEvents, K>) => void;
-    } {
+): void | {
+  isEventActive: boolean;
+  eventData: EventData<TEvents, K> | null;
+  eventId: number;
+  respond: (value: EventResponse<TEvents, K>) => void;
+} {
   const { _registerEventHandler } = useStateMachine();
 
   // Declarative form state
@@ -300,16 +296,13 @@ export function useGameEvent<
 
   // Build the actual handler — either the user's callback or the promise-based one
   const isDeclarative = !handler;
-  const declarativeHandler = useCallback(
-    (data: EventData<TEvents, K>) => {
-      return new Promise<EventResponse<TEvents, K>>((resolve) => {
-        resolverRef.current = resolve;
-        setEventData(data);
-        setEventId((prev) => prev + 1);
-      });
-    },
-    [],
-  );
+  const declarativeHandler = useCallback((data: EventData<TEvents, K>) => {
+    return new Promise<EventResponse<TEvents, K>>((resolve) => {
+      resolverRef.current = resolve;
+      setEventData(data);
+      setEventId((prev) => prev + 1);
+    });
+  }, []);
 
   const activeHandler = handler ?? declarativeHandler;
   const handlerRef = useRef(activeHandler);

@@ -54,13 +54,13 @@ Both `getNext` and `onEnter` support **transition data** — extra context passe
 
 ```ts
 // From getNext — return a tuple [targetState, data]
-getNext: (state) => ["gameOver", { result: state.winner }]
+getNext: (state) => ["gameOver", { result: state.winner }];
 
 // Received in onEnter as the second argument
 onEnter: (state, data) => {
   const { result } = data as { result: string };
   return { ...state, gameResult: result };
-}
+};
 ```
 
 Machines also support `onEnter` and `onExit` for setup/teardown when the machine starts or completes.
@@ -139,14 +139,19 @@ When reshuffling occurs, the returned discard pile is empty (all cards moved bac
 The functional API is fully immutable — every operation returns a new `EngineState` object.
 
 ```ts
-import { createEngine, start, advance, doAction } from "@drock07/board-game-toolkit-core";
+import {
+  createEngine,
+  start,
+  advance,
+  doAction,
+} from "@drock07/board-game-toolkit-core";
 
 let engine = createEngine<GameState>({ score: 0, round: 1 });
 engine = start(engine, gameConfig);
 
 // Access current state
-engine.state;          // { score: 0, round: 1 }
-engine.machineStack;   // active machine stack
+engine.state; // { score: 0, round: 1 }
+engine.machineStack; // active machine stack
 
 // Apply an action
 engine = doAction(engine, addScore, 10);
@@ -165,8 +170,8 @@ import { StateMachineEngine } from "@drock07/board-game-toolkit-core";
 const engine = new StateMachineEngine(gameConfig, { score: 0, round: 1 });
 engine.start();
 
-engine.state;          // { score: 0, round: 1 }
-engine.currentState;   // ["setup"] (root-to-leaf)
+engine.state; // { score: 0, round: 1 }
+engine.currentState; // ["setup"] (root-to-leaf)
 
 engine.doAction(addScore, 10);
 engine.advance();
@@ -189,28 +194,28 @@ You can also look up a specific machine's current state by ID:
 import { getMachineCurrentState } from "@drock07/board-game-toolkit-core";
 
 getMachineCurrentState(engine, "round"); // "draw"
-getMachineCurrentState(engine, "game");  // "round"
+getMachineCurrentState(engine, "game"); // "round"
 ```
 
 ## API Reference
 
 ### Functions
 
-| Function | Description |
-| --- | --- |
-| `createEngine(initialState)` | Create an unstarted engine with the given state |
-| `start(engine, config)` | Start the root machine |
-| `advance(engine)` | Exit the current state and transition to the next |
-| `doAction(engine, action, ...args)` | Apply an action to the game state |
-| `getCurrentState(engine)` | Get active state names (root-to-leaf) |
-| `getMachineCurrentState(engine, machineId)` | Get a specific machine's current state name |
+| Function                                    | Description                                       |
+| ------------------------------------------- | ------------------------------------------------- |
+| `createEngine(initialState)`                | Create an unstarted engine with the given state   |
+| `start(engine, config)`                     | Start the root machine                            |
+| `advance(engine)`                           | Exit the current state and transition to the next |
+| `doAction(engine, action, ...args)`         | Apply an action to the game state                 |
+| `getCurrentState(engine)`                   | Get active state names (root-to-leaf)             |
+| `getMachineCurrentState(engine, machineId)` | Get a specific machine's current state name       |
 
 ### Types
 
-| Type | Description |
-| --- | --- |
-| `StateMachineConfig<TState>` | Machine config with `id`, `initial`, and `states` |
-| `StateConfig<TState>` | Config for a single state (lifecycle hooks + transitions) |
-| `EngineState<TState>` | Immutable engine snapshot (`machineStack`, `state`, `started`) |
-| `ActionFn<TState, TArgs>` | `(state, ...args) => TState` |
-| `MachineRuntimeState<TState>` | Runtime state of a single machine in the stack |
+| Type                          | Description                                                    |
+| ----------------------------- | -------------------------------------------------------------- |
+| `StateMachineConfig<TState>`  | Machine config with `id`, `initial`, and `states`              |
+| `StateConfig<TState>`         | Config for a single state (lifecycle hooks + transitions)      |
+| `EngineState<TState>`         | Immutable engine snapshot (`machineStack`, `state`, `started`) |
+| `ActionFn<TState, TArgs>`     | `(state, ...args) => TState`                                   |
+| `MachineRuntimeState<TState>` | Runtime state of a single machine in the stack                 |

@@ -14,16 +14,15 @@ import PageLayout, {
 import {
   computeScoreSummary,
   initialState,
-  SCORE_INDEX,
-  ScoreIndex,
   RollFiveCommand,
   rollFiveConfig,
   RollFiveState,
+  SCORE_INDEX,
+  ScoreIndex,
 } from "./config";
 
 export function RollFive() {
-  const { dice, heldDice, roll, score } =
-    useStateMachineState<RollFiveState>();
+  const { dice, heldDice, roll, score } = useStateMachineState<RollFiveState>();
   const { canDispatch, dispatch, advance } = useStateMachineActions<
     RollFiveState,
     RollFiveCommand
@@ -70,9 +69,7 @@ export function RollFive() {
               <HorizontalScoreSheet
                 score={score}
                 showHighlights={currentState === "scoreTurn"}
-                canClickScore={(index) =>
-                  canDispatch({ type: "score", index })
-                }
+                canClickScore={(index) => canDispatch({ type: "score", index })}
                 onScoreClicked={(index) => {
                   dispatch({ type: "score", index });
                   advance();
@@ -85,7 +82,9 @@ export function RollFive() {
               <GameOverPanel grandTotal={grandTotal} />
             ) : (
               <div className="flex flex-col items-center justify-center gap-4">
-                <div className="h-6">{currentState === "roll" && `Roll ${roll}`}</div>
+                <div className="h-6">
+                  {currentState === "roll" && `Roll ${roll}`}
+                </div>
                 <div className="flex items-center gap-4">
                   {dice?.map((roll, i) => (
                     <StandardD6

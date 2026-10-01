@@ -1,6 +1,9 @@
-import type { GenericCardGameState, StateMachineConfig } from "@drock07/board-game-toolkit-core";
+import type {
+  GenericCardGameState,
+  PlayingCard,
+  StateMachineConfig,
+} from "@drock07/board-game-toolkit-core";
 import { Cards } from "@drock07/board-game-toolkit-core";
-import type { PlayingCard } from "@drock07/board-game-toolkit-core";
 
 export type DemoPoolId = "deck" | "hand" | "discard";
 export type DemoCard = PlayingCard & { id: string };

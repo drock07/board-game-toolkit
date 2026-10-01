@@ -1,7 +1,7 @@
 import {
   CardBack,
-  CardHand,
   CardDimensionsContext,
+  CardHand,
   CardShape,
   useGameEvent,
   useStateMachineActions,
@@ -17,13 +17,12 @@ import PageLayout, {
   GlassContainer,
 } from "../../components/PageLayout";
 import {
+  COLORS,
   type CardColor,
   type CrazyEightsCard,
   type CrazyEightsCommand,
-  type CrazyEightsPlayer,
-  type CrazyEightsState,
-  COLORS,
   type CrazyEightsEvent,
+  type CrazyEightsState,
   canDrawCard,
   canPlayCard,
   crazyEightsConfig,
@@ -239,7 +238,10 @@ export function CrazyEights() {
 
               {/* Center: draw pile + discard pile */}
               <div className="flex items-center gap-8">
-                <div ref={drawPileRef} className="flex flex-col items-center gap-1">
+                <div
+                  ref={drawPileRef}
+                  className="flex flex-col items-center gap-1"
+                >
                   {state.pools.drawPile.length > 0 ? (
                     <CardBack pattern="green" />
                   ) : (
@@ -249,7 +251,10 @@ export function CrazyEights() {
                     {state.pools.drawPile.length}
                   </span>
                 </div>
-                <div ref={discardRef} className="flex flex-col items-center gap-1">
+                <div
+                  ref={discardRef}
+                  className="flex flex-col items-center gap-1"
+                >
                   {topCard ? (
                     <CrazyEightsCardFace card={topCard} />
                   ) : (
@@ -382,7 +387,11 @@ function FlyingCard({
       transition={{ duration: 0.5, ease: "easeInOut" }}
       onAnimationComplete={onComplete}
     >
-      {card ? <CrazyEightsCardFace card={card} /> : <CardBack pattern="green" />}
+      {card ? (
+        <CrazyEightsCardFace card={card} />
+      ) : (
+        <CardBack pattern="green" />
+      )}
     </motion.div>
   );
 }
