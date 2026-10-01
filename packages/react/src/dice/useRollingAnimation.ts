@@ -1,4 +1,5 @@
 import { roll, type Die } from "@drock07/board-game-toolkit-core/dice";
+import { unseededRng } from "@drock07/board-game-toolkit-core/random";
 import { useState } from "react";
 import { useInterval } from "../hooks/useInterval.js";
 
@@ -12,7 +13,8 @@ export function useRollingAnimation<T>(
 
   useInterval(
     () => {
-      setRollingValue(roll(die));
+      // Purely visual flicker, so it doesn't need to be reproducible
+      setRollingValue(roll(die, unseededRng));
     },
     isRolling ? delay : null,
   );

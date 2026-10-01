@@ -8,7 +8,6 @@ import {
   createPlayingCardDeck,
   drawToPool,
   moveCard,
-  shuffle,
   shufflePool,
 } from "@drock07/board-game-toolkit-core";
 
@@ -30,7 +29,7 @@ function createDeck(): DemoCard[] {
 
 export const initialState: DemoState = {
   pools: {
-    deck: shuffle(createDeck()),
+    deck: createDeck(),
     hand: [],
     discard: [],
   },
@@ -39,6 +38,7 @@ export const initialState: DemoState = {
 export const config: StateMachineConfig<DemoState, DemoCommand> = {
   id: "card-pools",
   initial: "idle",
+  onEnter: (state, _data, { rng }) => shufflePool(state, "deck", rng),
   states: {
     idle: {
       actions: {
@@ -54,10 +54,10 @@ export const config: StateMachineConfig<DemoState, DemoCommand> = {
         },
         shuffleBack: {
           validate: (state) => state.pools.discard.length > 0,
-          execute: (state) => {
+          execute: (state, _cmd, { rng }) => {
             let next = addToPool(state, "deck", state.pools.discard);
             next = { ...next, pools: { ...next.pools, discard: [] } };
-            return shufflePool(next, "deck");
+            return shufflePool(next, "deck", rng);
           },
         },
       },

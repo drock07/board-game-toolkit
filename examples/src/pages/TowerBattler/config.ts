@@ -8,6 +8,7 @@ import type {
   TransferCardsEffect,
 } from "@drock07/board-game-toolkit-core";
 import {
+  type Rng,
   addToPool,
   createBuiltinEffectHandlers,
   drawToPool,
@@ -140,7 +141,7 @@ function getEnemyIntent(turn: number): number {
   return turn % 3 === 0 ? 14 : 8;
 }
 
-function reshuffleDraw(state: TowerBattlerState): TowerBattlerState {
+function reshuffleDraw(state: TowerBattlerState, rng: Rng): TowerBattlerState {
   if (state.pools.drawPile.length > 0) return state;
   if (state.pools.discardPile.length === 0) return state;
   let newState = addToPool(state, "drawPile", state.pools.discardPile);
@@ -148,13 +149,17 @@ function reshuffleDraw(state: TowerBattlerState): TowerBattlerState {
     ...newState,
     pools: { ...newState.pools, discardPile: [] },
   };
-  return shufflePool(newState, "drawPile");
+  return shufflePool(newState, "drawPile", rng);
 }
 
-function drawCards(state: TowerBattlerState, count: number): TowerBattlerState {
+function drawCards(
+  state: TowerBattlerState,
+  count: number,
+  rng: Rng,
+): TowerBattlerState {
   let current = state;
   for (let i = 0; i < count; i++) {
-    current = reshuffleDraw(current);
+    current = reshuffleDraw(current, rng);
     if (current.pools.drawPile.length === 0) break;
     current = drawToPool(current, "drawPile", "hand");
   }
@@ -198,15 +203,15 @@ export const towerBattlerConfig: StateMachineConfig<
   states: {
     setup: {
       autoadvance: true,
-      onEnter: () => {
+      onEnter: (_state, _data, { rng }) => {
         nextCardId = 0;
-        const deck = shuffle(createDeck());
+        const deck = shuffle(createDeck(), rng);
         const state: TowerBattlerState = {
           ...initialState,
           pools: { ...initialState.pools, drawPile: deck },
           enemyIntent: getEnemyIntent(1),
         };
-        return drawCards(state, 5);
+        return drawCards(state, 5, rng);
       },
       getNext: () => "playerTurn",
     },
@@ -232,7 +237,7 @@ export const towerBattlerConfig: StateMachineConfig<
             );
             return !!card && card.cost <= state.energy;
           },
-          execute: (state, _cmd, { transitionTo }) => {
+          execute: (state, _cmd, { transitionTo, rng }) => {
             const card = state.pools.hand.find(
               (c) => c.id === state.selectedCardId,
             )!;
@@ -250,6 +255,7 @@ export const towerBattlerConfig: StateMachineConfig<
             // Resolve effects
             newState = resolveEffects(newState, card.effects, effectHandlers, {
               card,
+              rng,
             });
 
             // Check for enemy defeat
@@ -306,7 +312,7 @@ export const towerBattlerConfig: StateMachineConfig<
 
     drawPhase: {
       autoadvance: true,
-      onEnter: (state) => {
+      onEnter: (state, _data, { rng }) => {
         const nextTurn = state.turn + 1;
         const newState: TowerBattlerState = {
           ...state,
@@ -315,7 +321,7 @@ export const towerBattlerConfig: StateMachineConfig<
           turn: nextTurn,
           enemyIntent: getEnemyIntent(nextTurn),
         };
-        return drawCards(newState, 5);
+        return drawCards(newState, 5, rng);
       },
       getNext: () => "playerTurn",
     },

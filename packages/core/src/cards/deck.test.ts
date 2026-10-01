@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { createRng } from "../random/index.js";
 import { draw, shuffle } from "./deck.js";
+
+const rng = createRng(1);
 
 describe("shuffle", () => {
   it("returns a new array with the same elements", () => {
     const items = [1, 2, 3, 4, 5];
-    const result = shuffle(items);
+    const result = shuffle(items, rng);
     expect(result).toHaveLength(items.length);
     expect(result.sort()).toEqual(items.sort());
   });
@@ -12,7 +15,7 @@ describe("shuffle", () => {
   it("does not mutate the original array", () => {
     const items = [1, 2, 3];
     const copy = [...items];
-    shuffle(items);
+    shuffle(items, rng);
     expect(items).toEqual(copy);
   });
 });
@@ -26,7 +29,7 @@ describe("draw", () => {
     });
 
     it("draws a single item with reshuffleFrom", () => {
-      const [item, remaining, discard] = draw([1, 2, 3], [4, 5]);
+      const [item, remaining, discard] = draw([1, 2, 3], [4, 5], rng);
       expect(item).toBe(1);
       expect(remaining).toEqual([2, 3]);
       expect(discard).toEqual([4, 5]);
@@ -48,14 +51,14 @@ describe("draw", () => {
     });
 
     it("draws multiple items with reshuffleFrom", () => {
-      const [drawn, remaining, discard] = draw([1, 2, 3, 4], 2, [5, 6]);
+      const [drawn, remaining, discard] = draw([1, 2, 3, 4], 2, [5, 6], rng);
       expect(drawn).toEqual([1, 2]);
       expect(remaining).toEqual([3, 4]);
       expect(discard).toEqual([5, 6]);
     });
 
     it("draws count=1 with reshuffleFrom and returns an array", () => {
-      const [drawn, remaining, discard] = draw([1, 2, 3], 1, [4, 5]);
+      const [drawn, remaining, discard] = draw([1, 2, 3], 1, [4, 5], rng);
       expect(Array.isArray(drawn)).toBe(true);
       expect(drawn).toEqual([1]);
       expect(remaining).toEqual([2, 3]);
@@ -77,28 +80,28 @@ describe("draw", () => {
 
   describe("reshuffle behavior", () => {
     it("reshuffles discard pile when deck is too small", () => {
-      const [drawn, , discard] = draw([1], 2, [2, 3, 4]);
+      const [drawn, , discard] = draw([1], 2, [2, 3, 4], rng);
       expect(drawn).toHaveLength(2);
       expect(drawn[0]).toBe(1);
       expect(discard).toEqual([]);
     });
 
     it("returns discard pile unchanged when no reshuffle is needed", () => {
-      const [drawn, remaining, discard] = draw([1, 2, 3], 2, [4, 5]);
+      const [drawn, remaining, discard] = draw([1, 2, 3], 2, [4, 5], rng);
       expect(drawn).toEqual([1, 2]);
       expect(remaining).toEqual([3]);
       expect(discard).toEqual([4, 5]);
     });
 
     it("returns discard pile unchanged for single draw when no reshuffle is needed", () => {
-      const [item, remaining, discard] = draw([1, 2], [3, 4]);
+      const [item, remaining, discard] = draw([1, 2], [3, 4], rng);
       expect(item).toBe(1);
       expect(remaining).toEqual([2]);
       expect(discard).toEqual([3, 4]);
     });
 
     it("empties discard pile for single draw when reshuffle occurs", () => {
-      const [item, remaining, discard] = draw([], [1, 2, 3]);
+      const [item, remaining, discard] = draw([], [1, 2, 3], rng);
       expect([1, 2, 3]).toContain(item);
       expect(remaining).toHaveLength(2);
       expect(discard).toEqual([]);

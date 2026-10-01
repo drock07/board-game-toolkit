@@ -1,8 +1,10 @@
 import {
+  type Rng,
   type StateMachineConfig,
   D20,
   D6,
   roll,
+  shuffle,
 } from "@drock07/board-game-toolkit-core";
 
 // --- Constants ---
@@ -94,16 +96,16 @@ const MONSTERS = {
 
 // --- Helpers ---
 
-function generateTreasureItem(): Item {
-  const rolled = roll(D6);
+function generateTreasureItem(rng: Rng): Item {
+  const rolled = roll(D6, rng);
   if (rolled <= 2)
     return { type: "healthPotion", name: "Health Potion", value: 8 };
   if (rolled <= 4) return { type: "weapon", name: "Sharp Sword", value: 2 };
   return { type: "shield", name: "Sturdy Shield", value: 2 };
 }
 
-function generateTrapItem(): Item {
-  const rolled = roll(D6);
+function generateTrapItem(rng: Rng): Item {
+  const rolled = roll(D6, rng);
   if (rolled <= 2)
     return { type: "healthPotion", name: "Greater Health Potion", value: 15 };
   if (rolled <= 4) return { type: "weapon", name: "Fine Sword", value: 4 };
@@ -116,7 +118,7 @@ function monsterForDistance(distance: number): Monster {
   return { ...MONSTERS.orc };
 }
 
-function generateDungeon(): Room[][] {
+function generateDungeon(rng: Rng): Room[][] {
   const grid: Room[][] = Array.from({ length: GRID_HEIGHT }, () =>
     Array.from(
       { length: GRID_WIDTH },
@@ -138,7 +140,7 @@ function generateDungeon(): Room[][] {
   };
 
   // Collect remaining positions and shuffle
-  const positions: [number, number][] = [];
+  const unshuffled: [number, number][] = [];
   for (let r = 0; r < GRID_HEIGHT; r++) {
     for (let c = 0; c < GRID_WIDTH; c++) {
       if (
@@ -146,13 +148,10 @@ function generateDungeon(): Room[][] {
         (r === GRID_HEIGHT - 1 && c === GRID_WIDTH - 1)
       )
         continue;
-      positions.push([r, c]);
+      unshuffled.push([r, c]);
     }
   }
-  for (let i = positions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [positions[i], positions[j]] = [positions[j], positions[i]];
-  }
+  const positions = shuffle(unshuffled, rng);
 
   // Distribute: 8 monsters, 8 treasures, 7 traps (no empty rooms)
   const distribution: RoomType[] = [
@@ -168,10 +167,10 @@ function generateDungeon(): Room[][] {
       room.monster = monsterForDistance(r + c);
     }
     if (roomType === "treasure") {
-      room.item = generateTreasureItem();
+      room.item = generateTreasureItem(rng);
     }
     if (roomType === "trap") {
-      room.item = generateTrapItem();
+      room.item = generateTrapItem(rng);
     }
     grid[r][c] = room;
   });
@@ -238,8 +237,8 @@ export const dungeonCrawlConfig: StateMachineConfig<
     // --- Setup: generate dungeon and reset player ---
     setup: {
       autoadvance: true,
-      onEnter: (state) => {
-        const grid = generateDungeon();
+      onEnter: (state, _data, { rng }) => {
+        const grid = generateDungeon(rng);
         const revealedGrid = revealAdjacentRooms(grid, 0, 0);
         return {
           ...state,
@@ -377,11 +376,11 @@ export const dungeonCrawlConfig: StateMachineConfig<
           }),
           actions: {
             attack: {
-              execute: (state) => {
+              execute: (state, _cmd, { rng }) => {
                 const combat = state.combat!;
-                const hitRoll = roll(D20);
+                const hitRoll = roll(D20, rng);
                 const hit = hitRoll >= combat.monster.defense;
-                const damage = hit ? roll(D6) + state.playerAttack : 0;
+                const damage = hit ? roll(D6, rng) + state.playerAttack : 0;
                 const newMonsterHp = Math.max(
                   0,
                   combat.monsterCurrentHp - damage,
@@ -403,8 +402,8 @@ export const dungeonCrawlConfig: StateMachineConfig<
               },
             },
             flee: {
-              execute: (state) => {
-                const fleeRoll = roll(D20);
+              execute: (state, _cmd, { rng }) => {
+                const fleeRoll = roll(D20, rng);
                 const success = fleeRoll >= 12;
                 const logEntry = success
                   ? `You tried to flee — Rolled ${fleeRoll} — Escaped!`
@@ -435,12 +434,12 @@ export const dungeonCrawlConfig: StateMachineConfig<
         },
         monsterAttack: {
           autoadvance: true,
-          onEnter: (state) => {
+          onEnter: (state, _data, { rng }) => {
             const combat = state.combat!;
-            const hitRoll = roll(D20);
+            const hitRoll = roll(D20, rng);
             const playerDefenseThreshold = 10 + state.playerDefense;
             const hit = hitRoll >= playerDefenseThreshold;
-            const damage = hit ? roll(D6) + combat.monster.attack : 0;
+            const damage = hit ? roll(D6, rng) + combat.monster.attack : 0;
             const newHp = Math.max(0, state.playerHp - damage);
             const logEntry = hit
               ? `${combat.monster.name} rolled ${hitRoll} — Hit for ${damage} damage! (You: ${newHp}/${state.playerMaxHp})`
@@ -560,10 +559,10 @@ export const dungeonCrawlConfig: StateMachineConfig<
       },
       actions: {
         dismantle: {
-          execute: (state) => {
-            const rolled = roll(D20);
+          execute: (state, _cmd, { rng }) => {
+            const rolled = roll(D20, rng);
             const succeeded = rolled >= 12;
-            const damage = succeeded ? 0 : roll(D6) + 2;
+            const damage = succeeded ? 0 : roll(D6, rng) + 2;
             const newHp = Math.max(0, state.playerHp - damage);
             const trapResult: TrapResult = {
               ...state.trapResult!,

@@ -5,6 +5,7 @@ import {
   canDispatch,
   createEngine,
   dispatch,
+  type EngineLogEntry,
   start,
   StateMachineEngine,
 } from "./StateMachineEngine.js";
@@ -33,6 +34,11 @@ function makeConfig(
     },
     ...overrides,
   };
+}
+
+/** The commands dispatched so far, from the engine log. */
+function commands(engine: { log: readonly EngineLogEntry[] }) {
+  return engine.log.flatMap((e) => (e.op === "dispatch" ? [e.command] : []));
 }
 
 describe("start", () => {
@@ -503,8 +509,8 @@ describe("dispatch", () => {
     const after1 = await dispatch(engine, cmd1);
     const after2 = await dispatch(after1, cmd2);
 
-    expect(after1.history).toEqual([cmd1]);
-    expect(after2.history).toEqual([cmd1, cmd2]);
+    expect(commands(after1)).toEqual([cmd1]);
+    expect(commands(after2)).toEqual([cmd1, cmd2]);
   });
 
   it("throws when machine not started", async () => {
@@ -534,7 +540,7 @@ describe("dispatch", () => {
     await dispatch(engine, { type: "set", value: 99 });
 
     expect(engine.state.count).toBe(0);
-    expect(engine.history).toEqual([]);
+    expect(commands(engine)).toEqual([]);
   });
 });
 
@@ -607,7 +613,7 @@ describe("action-triggered transitions", () => {
 
     const next = await dispatch(engine, { type: "set", value: 5 });
 
-    expect(next.history).toEqual([{ type: "set", value: 5 }]);
+    expect(commands(next)).toEqual([{ type: "set", value: 5 }]);
   });
 
   it("throws when target state does not exist", async () => {
@@ -1065,7 +1071,7 @@ describe("StateMachineEngine class", () => {
 
     await engine.dispatch({ type: "set", value: 7 });
 
-    expect(engine.history).toEqual([{ type: "set", value: 7 }]);
+    expect(commands(engine)).toEqual([{ type: "set", value: 7 }]);
   });
 
   it("canDispatch returns correct values", async () => {

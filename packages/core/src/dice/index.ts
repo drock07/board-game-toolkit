@@ -1,3 +1,5 @@
+import type { Rng } from "../random/index.js";
+
 export interface Die<T = number> {
   readonly values: T[];
 }
@@ -59,51 +61,66 @@ export type FudgeResult = DieResult<typeof FudgeDie>;
  * Helper functions
  */
 
-function rollOne<T>(die: Die<T>): T {
-  return die.values[Math.floor(Math.random() * die.values.length)];
+function rollOne<T>(die: Die<T>, rng: Rng): T {
+  return rng.pick(die.values);
 }
 
-export function roll<T>(die: Die<T>): T;
-export function roll<T>(die: Die<T>, amount: number): T[];
-export function roll<T>(die: Die<T>, amount?: number): T | T[] {
-  if (amount === undefined) {
-    return rollOne(die);
+/** Rolls a die once, or `amount` times. */
+export function roll<T>(die: Die<T>, rng: Rng): T;
+export function roll<T>(die: Die<T>, amount: number, rng: Rng): T[];
+export function roll<T>(
+  die: Die<T>,
+  amountOrRng: number | Rng,
+  maybeRng?: Rng,
+): T | T[] {
+  if (typeof amountOrRng !== "number") {
+    return rollOne(die, amountOrRng);
   }
-  return Array.from({ length: amount }, () => rollOne(die));
+  const rng = maybeRng!;
+  return Array.from({ length: amountOrRng }, () => rollOne(die, rng));
 }
 
-export function sum(die: Die<number>, amount: number): number {
-  return roll(die, amount).reduce((acc, val) => acc + val, 0);
+/** Rolls a die `amount` times and adds up the results. */
+export function sum(die: Die<number>, amount: number, rng: Rng): number {
+  return roll(die, amount, rng).reduce((acc, val) => acc + val, 0);
 }
 
+/** Rolls twice and keeps the higher result. */
 export function withAdvantage<TDie extends Die<number>>(
   die: TDie,
+  rng: Rng,
 ): DieResult<TDie> {
-  return Math.max(rollOne(die), rollOne(die));
+  return Math.max(rollOne(die, rng), rollOne(die, rng));
 }
 
+/** Rolls twice and keeps the lower result. */
 export function withDisadvantage<TDie extends Die<number>>(
   die: TDie,
+  rng: Rng,
 ): DieResult<TDie> {
-  return Math.min(rollOne(die), rollOne(die));
+  return Math.min(rollOne(die, rng), rollOne(die, rng));
 }
 
+/** Rolls `rolls` times and keeps the `keep` highest results, highest first. */
 export function keepHighest<TDie extends Die<number>>(
   die: TDie,
   rolls: number,
   keep: number,
+  rng: Rng,
 ): DieResult<TDie>[] {
-  return roll(die, rolls)
+  return roll(die, rolls, rng)
     .sort((a, b) => b - a)
     .slice(0, keep);
 }
 
+/** Rolls `rolls` times and keeps the `keep` lowest results, lowest first. */
 export function keepLowest<TDie extends Die<number>>(
   die: TDie,
   rolls: number,
   keep: number,
+  rng: Rng,
 ): DieResult<TDie>[] {
-  return roll(die, rolls)
+  return roll(die, rolls, rng)
     .sort((a, b) => a - b)
     .slice(0, keep);
 }

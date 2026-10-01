@@ -1,3 +1,4 @@
+import type { Rng } from "../random/index.js";
 import type {
   GenericCardGameState,
   GenericCardInstance,
@@ -54,6 +55,8 @@ export interface EffectContext<
   TCard extends GenericCardInstance = GenericCardInstance,
 > {
   card: TCard;
+  /** Randomness for effects that need it; pass the `rng` from the hook context. */
+  rng: Rng;
 }
 
 // ---------------------------------------------------------------------------
@@ -197,21 +200,25 @@ export function createBuiltinEffectHandlers<
   TContext extends EffectContext = EffectContext,
 >(): EffectHandlerMap<TState, BuiltinEffect, TContext> {
   return {
-    transferCards: (state, effect) => {
+    transferCards: (state, effect, ctx) => {
       const fromPool = effect.fromPool as PoolIdOf<TState>;
+      const toPool = effect.toPool as PoolIdOf<TState>;
       const count =
         effect.count === "all" ? state.pools[fromPool].length : effect.count;
       if (count === 0) return state;
+      if (effect.toPosition === "random") {
+        return drawToPool(state, fromPool, toPool, count, "random", ctx.rng);
+      }
       return drawToPool(
         state,
         fromPool,
-        effect.toPool as PoolIdOf<TState>,
+        toPool,
         count,
         effect.toPosition ?? "bottom",
       );
     },
-    shufflePool: (state, effect) => {
-      return shufflePool(state, effect.pool as PoolIdOf<TState>);
+    shufflePool: (state, effect, ctx) => {
+      return shufflePool(state, effect.pool as PoolIdOf<TState>, ctx.rng);
     },
   };
 }
