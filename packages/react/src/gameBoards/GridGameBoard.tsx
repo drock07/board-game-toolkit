@@ -4,6 +4,10 @@ export interface GridGameBoardProps {
   width: number;
   height: number;
   tileSize?: number;
+  /**
+   * Render function called once per tile with x (column) and y (row)
+   * coordinates, both zero-based.
+   */
   children?: (x: number, y: number) => ReactNode;
 }
 
@@ -11,7 +15,7 @@ export const GridGameBoard = forwardRef<
   HTMLDivElement,
   GridGameBoardProps &
     Omit<ComponentPropsWithRef<"div">, keyof GridGameBoardProps>
->(({ width, height, tileSize, children, ...props }, ref) => {
+>(({ width, height, tileSize, children, style, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -26,10 +30,11 @@ export const GridGameBoard = forwardRef<
         gridTemplateRows: tileSize
           ? `repeat(${height}, ${tileSize}px)`
           : `repeat(${height}, 1fr)`,
+        ...style,
       }}
     >
       {Array.from({ length: width * height }).map((_, i) => (
-        <div key={i}>{children?.(Math.floor(i / width), i % width)}</div>
+        <div key={i}>{children?.(i % width, Math.floor(i / width))}</div>
       ))}
     </div>
   );
