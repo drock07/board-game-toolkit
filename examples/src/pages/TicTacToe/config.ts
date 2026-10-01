@@ -60,7 +60,9 @@ export const ticTacToeConfig: StateMachineConfig<
             placeMark: {
               validate: (state, cmd) => {
                 const index = cmd.index;
-                return index >= 0 && index <= 8 && state.marks[index] === undefined;
+                return (
+                  index >= 0 && index <= 8 && state.marks[index] === undefined
+                );
               },
               execute: (state, cmd) => {
                 const newMarks = [...state.marks];

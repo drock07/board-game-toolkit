@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Link, type To } from "react-router";
 import PageLayout from "../components/PageLayout";
-import GenericCardGamePreview from "./Concepts/GenericCardGame/GenericCardGamePreview";
 import BlackjackPreview from "./Blackjack/BlackjackPreview";
+import GenericCardGamePreview from "./Concepts/GenericCardGame/GenericCardGamePreview";
 import CrazyEightsPreview from "./CrazyEights/CrazyEightsPreview";
 import DungeonCrawlPreview from "./DungeonCrawl/DungeonCrawlPreview";
 import RollFivePreview from "./RollFive/RollFivePreview";

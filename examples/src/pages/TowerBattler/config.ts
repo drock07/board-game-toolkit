@@ -1,13 +1,13 @@
-import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
-import { Cards } from "@drock07/board-game-toolkit-core";
 import type {
+  BuiltinEffect,
   EffectCard,
   EffectContext,
   EffectHandlerMap,
-  BuiltinEffect,
-  TransferCardsEffect,
   GenericCardGameState,
+  StateMachineConfig,
+  TransferCardsEffect,
 } from "@drock07/board-game-toolkit-core";
+import { Cards } from "@drock07/board-game-toolkit-core";
 
 // ---------------------------------------------------------------------------
 // Effects
@@ -16,10 +16,7 @@ import type {
 export type DealDamageEffect = { type: "dealDamage"; amount: number };
 export type GainBlockEffect = { type: "gainBlock"; amount: number };
 
-export type BattleEffect =
-  | BuiltinEffect
-  | DealDamageEffect
-  | GainBlockEffect;
+export type BattleEffect = BuiltinEffect | DealDamageEffect | GainBlockEffect;
 
 // ---------------------------------------------------------------------------
 // Card type
@@ -81,8 +78,10 @@ export function createDeck(): BattleCard[] {
 
 export type BattlePoolId = "drawPile" | "hand" | "discardPile";
 
-export interface TowerBattlerState
-  extends GenericCardGameState<BattlePoolId, BattleCard> {
+export interface TowerBattlerState extends GenericCardGameState<
+  BattlePoolId,
+  BattleCard
+> {
   playerHp: number;
   playerMaxHp: number;
   playerBlock: number;
@@ -136,11 +135,7 @@ function getEnemyIntent(turn: number): number {
 function reshuffleDraw(state: TowerBattlerState): TowerBattlerState {
   if (state.pools.drawPile.length > 0) return state;
   if (state.pools.discardPile.length === 0) return state;
-  let newState = Cards.addToPool(
-    state,
-    "drawPile",
-    state.pools.discardPile,
-  );
+  let newState = Cards.addToPool(state, "drawPile", state.pools.discardPile);
   newState = {
     ...newState,
     pools: { ...newState.pools, discardPile: [] },
@@ -148,10 +143,7 @@ function reshuffleDraw(state: TowerBattlerState): TowerBattlerState {
   return Cards.shufflePool(newState, "drawPile");
 }
 
-function drawCards(
-  state: TowerBattlerState,
-  count: number,
-): TowerBattlerState {
+function drawCards(state: TowerBattlerState, count: number): TowerBattlerState {
   let current = state;
   for (let i = 0; i < count; i++) {
     current = reshuffleDraw(current);
@@ -298,9 +290,10 @@ export const towerBattlerConfig: StateMachineConfig<
           ...newState,
           playerHp: Math.max(0, newState.playerHp - remaining),
           playerBlock: 0,
-          message: remaining > 0
-            ? `Enemy deals ${remaining} damage${blocked > 0 ? ` (${blocked} blocked)` : ""}!`
-            : `Blocked all ${damage} damage!`,
+          message:
+            remaining > 0
+              ? `Enemy deals ${remaining} damage${blocked > 0 ? ` (${blocked} blocked)` : ""}!`
+              : `Blocked all ${damage} damage!`,
         };
 
         return newState;

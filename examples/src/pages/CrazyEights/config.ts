@@ -299,7 +299,9 @@ export const crazyEightsConfig: StateMachineConfig<
           { ...state, currentPlayer: "opponent1" },
           "opponent1",
         );
-        if (newState.pools.discardPile.length > state.pools.discardPile.length) {
+        if (
+          newState.pools.discardPile.length > state.pools.discardPile.length
+        ) {
           const card =
             newState.pools.discardPile[newState.pools.discardPile.length - 1];
           await emit({ type: "aiCardPlayed", card, player: "opponent1" });
@@ -321,7 +323,9 @@ export const crazyEightsConfig: StateMachineConfig<
           { ...state, currentPlayer: "opponent2" },
           "opponent2",
         );
-        if (newState.pools.discardPile.length > state.pools.discardPile.length) {
+        if (
+          newState.pools.discardPile.length > state.pools.discardPile.length
+        ) {
           const card =
             newState.pools.discardPile[newState.pools.discardPile.length - 1];
           await emit({ type: "aiCardPlayed", card, player: "opponent2" });

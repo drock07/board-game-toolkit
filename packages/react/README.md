@@ -22,7 +22,10 @@ import {
 
 function App() {
   return (
-    <StateMachineContext config={gameConfig} initialState={{ score: 0, round: 1 }}>
+    <StateMachineContext
+      config={gameConfig}
+      initialState={{ score: 0, round: 1 }}
+    >
       <Game />
     </StateMachineContext>
   );
@@ -59,11 +62,11 @@ Wraps your app and manages the engine state internally. Pass your machine config
 </StateMachineContext>
 ```
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `config` | `StateMachineConfig<TState, TCommand>` | The state machine configuration |
-| `initialState` | `TState` | The initial game state |
-| `children` | `ReactNode` | Child components |
+| Prop           | Type                                   | Description                     |
+| -------------- | -------------------------------------- | ------------------------------- |
+| `config`       | `StateMachineConfig<TState, TCommand>` | The state machine configuration |
+| `initialState` | `TState`                               | The initial game state          |
+| `children`     | `ReactNode`                            | Child components                |
 
 ## Hooks
 
@@ -81,7 +84,10 @@ const gameState = useStateMachineState<GameState>();
 Returns the engine action functions: `start`, `advance`, `dispatch`, and `canDispatch`.
 
 ```tsx
-const { start, advance, dispatch, canDispatch } = useStateMachineActions<GameState, GameCommand>();
+const { start, advance, dispatch, canDispatch } = useStateMachineActions<
+  GameState,
+  GameCommand
+>();
 
 // Start the machine
 start();
@@ -126,9 +132,7 @@ Actions are defined as command objects with a `type` discriminant. Define a comm
 
 ```tsx
 // Define your command types
-type GameCommand =
-  | { type: "addScore"; points: number }
-  | { type: "drawCard" };
+type GameCommand = { type: "addScore"; points: number } | { type: "drawCard" };
 
 // Define your config with command handlers
 const gameConfig: StateMachineConfig<GameState, GameCommand> = {
@@ -200,10 +204,12 @@ Conditionally renders children based on the current state. Supports three matchi
 **Hierarchy match with wildcards** - matches against the state path (root-to-leaf):
 
 ```tsx
-{/* "round" machine with any leaf state */}
+{
+  /* "round" machine with any leaf state */
+}
 <State state={["round", "*"]}>
   <RoundLayout />
-</State>
+</State>;
 ```
 
 **Includes match** - matches if the state appears anywhere in the stack:
@@ -219,7 +225,11 @@ Conditionally renders children based on the current state. Supports three matchi
 Automatically renders the correct component tree based on the current machine state. Uses `StateModule` definitions to map states to components and supports nested machines with optional layouts.
 
 ```tsx
-import { StateTree, StateMachineModule, StateLeafModule } from "@drock07/board-game-toolkit-react";
+import {
+  StateTree,
+  StateMachineModule,
+  StateLeafModule,
+} from "@drock07/board-game-toolkit-react";
 
 const drawModule: StateLeafModule = {
   component: DrawScreen,
@@ -272,19 +282,19 @@ import { CardHand, UncontrolledCardHand } from "@drock07/board-game-toolkit-reac
 </CardHand>
 ```
 
-| Prop | Type | Description |
-| --- | --- | --- |
-| `children` | `ReactNode` | Card elements to display |
-| `selectedKey` | `string \| null` | Currently selected card key (controlled) |
-| `onCardClick` | `(key: string) => void` | Called when a card is clicked (controlled) |
-| `onSelect` | `(key: string \| null) => void` | Called when selection changes (uncontrolled) |
-| `arc` | `number` | Fan intensity (0 = flat, 1 = full arc). Default `0` |
-| `getCardProps` | `(key: string) => CardWrapperProps` | Prop getter for drag-and-drop integration |
-| `cardWidth` | `number` | Card width override (falls back to `CardDimensionsContext`) |
-| `cardAspectRatio` | `number` | Card aspect ratio override |
-| `className` | `string` | Container class (replaces default `"w-full"`) |
-| `style` | `CSSProperties` | Container style |
-| `aria-label` | `string` | Accessible label. Default `"Card hand"` |
+| Prop              | Type                                | Description                                                 |
+| ----------------- | ----------------------------------- | ----------------------------------------------------------- |
+| `children`        | `ReactNode`                         | Card elements to display                                    |
+| `selectedKey`     | `string \| null`                    | Currently selected card key (controlled)                    |
+| `onCardClick`     | `(key: string) => void`             | Called when a card is clicked (controlled)                  |
+| `onSelect`        | `(key: string \| null) => void`     | Called when selection changes (uncontrolled)                |
+| `arc`             | `number`                            | Fan intensity (0 = flat, 1 = full arc). Default `0`         |
+| `getCardProps`    | `(key: string) => CardWrapperProps` | Prop getter for drag-and-drop integration                   |
+| `cardWidth`       | `number`                            | Card width override (falls back to `CardDimensionsContext`) |
+| `cardAspectRatio` | `number`                            | Card aspect ratio override                                  |
+| `className`       | `string`                            | Container class (replaces default `"w-full"`)               |
+| `style`           | `CSSProperties`                     | Container style                                             |
+| `aria-label`      | `string`                            | Accessible label. Default `"Card hand"`                     |
 
 **Keyboard navigation:** Arrow keys to move focus, Home/End to jump, Enter/Space to select. The component uses `role="listbox"` with `role="option"` on each card.
 
@@ -292,8 +302,8 @@ import { CardHand, UncontrolledCardHand } from "@drock07/board-game-toolkit-reac
 
 ### StateModule Types
 
-| Type | Description |
-| --- | --- |
-| `StateLeafModule` | `{ component: React.FC }` - a leaf state with a component |
+| Type                         | Description                                                     |
+| ---------------------------- | --------------------------------------------------------------- |
+| `StateLeafModule`            | `{ component: React.FC }` - a leaf state with a component       |
 | `StateMachineModule<TState>` | A machine state with config, optional layout, and child modules |
-| `StateModule<TState>` | Union of `StateLeafModule \| StateMachineModule<TState>` |
+| `StateModule<TState>`        | Union of `StateLeafModule \| StateMachineModule<TState>`        |

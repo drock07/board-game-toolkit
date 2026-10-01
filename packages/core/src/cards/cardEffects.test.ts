@@ -1,19 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type {
-  GenericCardGameState,
-  GenericCardInstance,
-} from "./genericCardGame";
 import {
-  type CardEffect,
+  type BuiltinEffect,
+  createBuiltinEffectHandlers,
   type EffectCard,
   type EffectContext,
   type EffectHandlerMap,
-  type TransferCardsEffect,
-  type ShufflePoolEffect,
-  type BuiltinEffect,
   resolveEffects,
-  createBuiltinEffectHandlers,
+  type ShufflePoolEffect,
+  type TransferCardsEffect,
 } from "./cardEffects";
+import type { GenericCardGameState } from "./genericCardGame";
 
 // --- helpers ---
 
@@ -159,9 +155,7 @@ function poolCard(
   return { id, label, effects };
 }
 
-function makePoolState(
-  pools: Partial<Record<PoolId, PoolCard[]>>,
-): PoolState {
+function makePoolState(pools: Partial<Record<PoolId, PoolCard[]>>): PoolState {
   return {
     pools: {
       deck: [],
@@ -287,9 +281,7 @@ describe("createBuiltinEffectHandlers", () => {
   });
 
   it("can be spread into a custom handler map", () => {
-    type CustomEffect =
-      | BuiltinEffect
-      | { type: "gainLife"; amount: number };
+    type CustomEffect = BuiltinEffect | { type: "gainLife"; amount: number };
 
     interface CustomState extends GenericCardGameState<PoolId, PoolCard> {
       life: number;

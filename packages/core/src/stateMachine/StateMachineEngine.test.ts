@@ -455,9 +455,9 @@ describe("dispatch", () => {
     });
     const engine = await start(createEngine(initialState), config);
 
-    await expect(
-      dispatch(engine, { type: "set", value: -1 }),
-    ).rejects.toThrow("Command 'set' failed validation");
+    await expect(dispatch(engine, { type: "set", value: -1 })).rejects.toThrow(
+      "Command 'set' failed validation",
+    );
   });
 
   it("succeeds when validate returns true", async () => {
@@ -627,9 +627,9 @@ describe("action-triggered transitions", () => {
     });
     const engine = await start(createEngine(initialState), config);
 
-    await expect(
-      dispatch(engine, { type: "set", value: 1 }),
-    ).rejects.toThrow("triggered transition to 'nonexistent'");
+    await expect(dispatch(engine, { type: "set", value: 1 })).rejects.toThrow(
+      "triggered transition to 'nonexistent'",
+    );
   });
 
   it("handles autoadvance on the target state", async () => {
@@ -1165,7 +1165,11 @@ describe("emit", () => {
       },
     });
     const engine = await start(createEngine(initialState), config, emitHandler);
-    const next = await dispatch(engine, { type: "set", value: 42 }, emitHandler);
+    const next = await dispatch(
+      engine,
+      { type: "set", value: 42 },
+      emitHandler,
+    );
 
     expect(events).toEqual(["handled:setting"]);
     expect(next.state.count).toBe(42);
@@ -1197,11 +1201,7 @@ describe("emit", () => {
       },
     });
     const engine = await start(createEngine(initialState), config, emitHandler);
-    const next = await dispatch(
-      engine,
-      { type: "set", value: 1 },
-      emitHandler,
-    );
+    const next = await dispatch(engine, { type: "set", value: 1 }, emitHandler);
 
     expect(next.state.log).toEqual(["chose:red"]);
   });

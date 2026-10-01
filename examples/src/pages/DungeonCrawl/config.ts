@@ -1,4 +1,7 @@
-import { Dice, type StateMachineConfig } from "@drock07/board-game-toolkit-core";
+import {
+  Dice,
+  type StateMachineConfig,
+} from "@drock07/board-game-toolkit-core";
 
 // --- Constants ---
 
@@ -197,12 +200,7 @@ function revealAdjacentRooms(
   return newGrid;
 }
 
-function isAdjacent(
-  r1: number,
-  c1: number,
-  r2: number,
-  c2: number,
-): boolean {
+function isAdjacent(r1: number, c1: number, r2: number, c2: number): boolean {
   return Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1;
 }
 
@@ -311,7 +309,10 @@ export const dungeonCrawlConfig: StateMachineConfig<
               inventory: newInventory,
               playerHp: newHp,
               message: `Used ${item.name}! Healed for ${healed} HP.`,
-              log: [...state.log, `Used ${item.name}. Healed ${healed} HP. (${newHp}/${state.playerMaxHp})`],
+              log: [
+                ...state.log,
+                `Used ${item.name}. Healed ${healed} HP. (${newHp}/${state.playerMaxHp})`,
+              ],
             };
           },
         },
@@ -353,7 +354,10 @@ export const dungeonCrawlConfig: StateMachineConfig<
             fled: false,
           },
           message: `A ${monster.name} appears!`,
-          log: [...state.log, `--- A ${monster.name} appears! (${monster.hp} HP) ---`],
+          log: [
+            ...state.log,
+            `--- A ${monster.name} appears! (${monster.hp} HP) ---`,
+          ],
         };
       },
       states: {
@@ -375,7 +379,9 @@ export const dungeonCrawlConfig: StateMachineConfig<
                 const combat = state.combat!;
                 const hitRoll = Dice.roll(Dice.D20);
                 const hit = hitRoll >= combat.monster.defense;
-                const damage = hit ? Dice.roll(Dice.D6) + state.playerAttack : 0;
+                const damage = hit
+                  ? Dice.roll(Dice.D6) + state.playerAttack
+                  : 0;
                 const newMonsterHp = Math.max(
                   0,
                   combat.monsterCurrentHp - damage,
@@ -434,9 +440,7 @@ export const dungeonCrawlConfig: StateMachineConfig<
             const hitRoll = Dice.roll(Dice.D20);
             const playerDefenseThreshold = 10 + state.playerDefense;
             const hit = hitRoll >= playerDefenseThreshold;
-            const damage = hit
-              ? Dice.roll(Dice.D6) + combat.monster.attack
-              : 0;
+            const damage = hit ? Dice.roll(Dice.D6) + combat.monster.attack : 0;
             const newHp = Math.max(0, state.playerHp - damage);
             const logEntry = hit
               ? `${combat.monster.name} rolled ${hitRoll} — Hit for ${damage} damage! (You: ${newHp}/${state.playerMaxHp})`
@@ -577,9 +581,7 @@ export const dungeonCrawlConfig: StateMachineConfig<
 
             if (succeeded) {
               const item = state.trapResult!.rewardItem;
-              const newGrid = state.grid.map((r) =>
-                r.map((rm) => ({ ...rm })),
-              );
+              const newGrid = state.grid.map((r) => r.map((rm) => ({ ...rm })));
               newGrid[state.playerRow][state.playerCol] = {
                 ...newGrid[state.playerRow][state.playerCol],
                 item: undefined,
@@ -607,10 +609,16 @@ export const dungeonCrawlConfig: StateMachineConfig<
                   logDetail = `${item.name} — Defense +${item.value}.`;
                   break;
               }
-              newState.log = [...state.log, `Rolled ${roll} — Dismantled! ${logDetail!}`];
+              newState.log = [
+                ...state.log,
+                `Rolled ${roll} — Dismantled! ${logDetail!}`,
+              ];
             } else {
               newState.message = `Rolled ${roll} — Failed! Took ${damage} damage.`;
-              newState.log = [...state.log, `Rolled ${roll} — Failed! Took ${damage} damage. (You: ${newHp}/${state.playerMaxHp})`];
+              newState.log = [
+                ...state.log,
+                `Rolled ${roll} — Failed! Took ${damage} damage. (You: ${newHp}/${state.playerMaxHp})`,
+              ];
             }
 
             return newState;

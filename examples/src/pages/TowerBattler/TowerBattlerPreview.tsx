@@ -54,7 +54,15 @@ export default function TowerBattlerPreview() {
         fillOpacity="0.15"
       />
       {/* HP bar fill */}
-      <rect x="20" y="52" width="56" height="6" rx="3" fill="#22c55e" fillOpacity="0.7" />
+      <rect
+        x="20"
+        y="52"
+        width="56"
+        height="6"
+        rx="3"
+        fill="#22c55e"
+        fillOpacity="0.7"
+      />
 
       {/* Cards at bottom */}
       <rect

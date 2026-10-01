@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
-  type GenericCardGameState,
-  type GenericCardInstance,
-  removeFromPool,
   addToPool,
+  countInPool,
+  dealFromPool,
   drawFromPool,
-  shufflePool,
-  moveCard,
   drawToPool,
   findInPool,
-  dealFromPool,
+  type GenericCardGameState,
+  type GenericCardInstance,
+  moveCard,
   peekPool,
+  removeFromPool,
+  shufflePool,
   sortPool,
-  countInPool,
   splitPool,
   swapCards,
 } from "./genericCardGame";
@@ -373,9 +373,7 @@ describe("peekPool", () => {
 
   it("throws if pool does not exist", () => {
     const state = { pools: {} } as GenericCardGameState<string, TestCard>;
-    expect(() => peekPool(state, "nope")).toThrow(
-      'Pool "nope" does not exist',
-    );
+    expect(() => peekPool(state, "nope")).toThrow('Pool "nope" does not exist');
   });
 });
 

@@ -1,4 +1,8 @@
-import type { GenericCardInstance, GenericCardGameState, PoolIdOf } from "./genericCardGame";
+import type {
+  GenericCardGameState,
+  GenericCardInstance,
+  PoolIdOf,
+} from "./genericCardGame";
 import { drawToPool, shufflePool } from "./genericCardGame";
 
 // ---------------------------------------------------------------------------
@@ -33,8 +37,9 @@ export interface CardEffect {
  * }
  * ```
  */
-export interface EffectCard<TEffect extends CardEffect = CardEffect>
-  extends GenericCardInstance {
+export interface EffectCard<
+  TEffect extends CardEffect = CardEffect,
+> extends GenericCardInstance {
   effects: TEffect[];
 }
 
@@ -45,7 +50,9 @@ export interface EffectCard<TEffect extends CardEffect = CardEffect>
  * Games can extend this with additional context (current player, target, etc.)
  * by passing a custom context type to {@link EffectHandler}.
  */
-export interface EffectContext<TCard extends GenericCardInstance = GenericCardInstance> {
+export interface EffectContext<
+  TCard extends GenericCardInstance = GenericCardInstance,
+> {
   card: TCard;
 }
 
@@ -193,9 +200,7 @@ export function createBuiltinEffectHandlers<
     transferCards: (state, effect) => {
       const fromPool = effect.fromPool as PoolIdOf<TState>;
       const count =
-        effect.count === "all"
-          ? state.pools[fromPool].length
-          : effect.count;
+        effect.count === "all" ? state.pools[fromPool].length : effect.count;
       if (count === 0) return state;
       return drawToPool(
         state,

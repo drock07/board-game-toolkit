@@ -272,10 +272,7 @@ export async function advance<TState>(
     throw new Error("Cannot advance: no active machine");
 
   const emit = createEmitFn(emitHandler);
-  const result = await resolveNext(
-    { ...engine, transitioning: true },
-    emit,
-  );
+  const result = await resolveNext({ ...engine, transitioning: true }, emit);
   return { ...result, transitioning: false };
 }
 

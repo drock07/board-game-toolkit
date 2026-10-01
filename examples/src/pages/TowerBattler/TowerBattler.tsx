@@ -17,7 +17,7 @@ import type {
   TowerBattlerCommand,
   TowerBattlerState,
 } from "./config";
-import { towerBattlerConfig, initialState } from "./config";
+import { initialState, towerBattlerConfig } from "./config";
 
 // --- Card Face ---
 
@@ -80,7 +80,10 @@ function HpBar({
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-white/20">
         <div
-          className={clsx("h-full rounded-full transition-all duration-300", color)}
+          className={clsx(
+            "h-full rounded-full transition-all duration-300",
+            color,
+          )}
           style={{ width: `${pct}%` }}
         />
       </div>

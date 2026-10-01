@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so `changeset status` can diff against main
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm format:check
+
+      # Also type-checks and builds the examples app
+      - run: pnpm build
+
+      # Type-checks test files, which the package builds exclude
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      # Fail if a package changed without a changeset. Use `pnpm changeset --empty`
+      # for package changes that don't need a release. Version Packages PRs consume
+      # changesets rather than add them, so they're skipped.
+      - name: Check for changesets
+        if: ${{ !startsWith(github.head_ref, 'changeset-release/') }}
+        run: pnpm changeset status --since=origin/main
