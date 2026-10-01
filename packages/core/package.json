@@ -21,6 +21,10 @@
       "types": "./dist/dice/index.d.ts",
       "import": "./dist/dice/index.js"
     },
+    "./random": {
+      "types": "./dist/random/index.d.ts",
+      "import": "./dist/random/index.js"
+    },
     "./cards": {
       "types": "./dist/cards/index.d.ts",
       "import": "./dist/cards/index.js"
