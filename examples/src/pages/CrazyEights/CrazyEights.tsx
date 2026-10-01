@@ -1,8 +1,8 @@
 import {
   CardBack,
+  CardHand,
   CardDimensionsContext,
   CardShape,
-  UncontrolledCardHand,
   useGameEvent,
   useStateMachineActions,
   useStateMachineCurrentState,
@@ -24,9 +24,11 @@ import {
   type CrazyEightsState,
   COLORS,
   type CrazyEightsEvent,
+  canDrawCard,
   canPlayCard,
   crazyEightsConfig,
   initialState,
+  mustPass,
 } from "./config";
 
 // --- Color mapping ---
@@ -136,11 +138,8 @@ export function CrazyEights() {
         (c) => topCard && canPlayCard(c, state.activeColor, topCard),
       )
     : [];
-  const canDraw =
-    isPlayerTurn &&
-    playableCards.length === 0 &&
-    state.pools.drawPile.length > 0 &&
-    !pendingWildChoice;
+  const canDraw = isPlayerTurn && !pendingWildChoice && canDrawCard(state);
+  const canPass = isPlayerTurn && !pendingWildChoice && mustPass(state);
 
   return (
     <CardDimensionsContext width={100}>
@@ -180,6 +179,16 @@ export function CrazyEights() {
                 >
                   Draw
                 </GlassButton>
+                {canPass && (
+                  <GlassButton
+                    onClick={() => {
+                      dispatch({ type: "pass" });
+                      advance();
+                    }}
+                  >
+                    Pass
+                  </GlassButton>
+                )}
               </>
             )}
             {pendingWildChoice && (
@@ -300,11 +309,10 @@ export function CrazyEights() {
 
               {/* Player hand */}
               <div className="w-full max-w-2xl px-4">
-                <UncontrolledCardHand
-                  onSelect={(key) => {
-                    if (key) {
-                      dispatch({ type: "selectCard", cardId: key });
-                    }
+                <CardHand
+                  selectedKey={state.selectedCardId}
+                  onCardClick={(key) => {
+                    dispatch({ type: "selectCard", cardId: key });
                   }}
                   aria-label="Your hand"
                 >
@@ -321,7 +329,7 @@ export function CrazyEights() {
                       />
                     );
                   })}
-                </UncontrolledCardHand>
+                </CardHand>
                 <div className="mt-2 text-center text-sm text-white/60">
                   Your Hand ({state.pools.player.length})
                 </div>

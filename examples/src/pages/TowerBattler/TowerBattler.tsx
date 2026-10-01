@@ -1,7 +1,7 @@
 import {
   CardDimensionsContext,
+  CardHand,
   CardShape,
-  UncontrolledCardHand,
   useStateMachineActions,
   useStateMachineCurrentState,
   useStateMachineState,
@@ -211,9 +211,10 @@ export function TowerBattler() {
 
               {/* Player hand */}
               <div className="w-full max-w-2xl px-4">
-                <UncontrolledCardHand
-                  onSelect={(key) => {
-                    if (key && isPlayerTurn) {
+                <CardHand
+                  selectedKey={state.selectedCardId}
+                  onCardClick={(key) => {
+                    if (isPlayerTurn) {
                       dispatch({ type: "selectCard", cardId: key });
                     }
                   }}
@@ -226,7 +227,7 @@ export function TowerBattler() {
                       dimmed={!isPlayerTurn || card.cost > state.energy}
                     />
                   ))}
-                </UncontrolledCardHand>
+                </CardHand>
                 <div className="mt-2 text-center text-sm text-white/60">
                   Hand ({state.pools.hand.length})
                 </div>

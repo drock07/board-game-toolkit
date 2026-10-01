@@ -79,10 +79,10 @@ export function DungeonCrawl() {
           <div className="relative flex h-full flex-1 items-center justify-center">
             <div className="aspect-square h-full max-h-full max-w-full overflow-hidden rounded-lg border-4 border-stone-500">
               <GridGameBoard width={GRID_WIDTH} height={GRID_HEIGHT}>
-                {(row, col) => (
+                {(x, y) => (
                   <DungeonTile
-                    row={row}
-                    col={col}
+                    row={y}
+                    col={x}
                     state={state}
                     isExploring={isExploring}
                     dispatch={dispatch}
