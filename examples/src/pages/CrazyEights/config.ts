@@ -56,7 +56,8 @@ export interface CrazyEightsState extends GenericCardGameState<
 export type CrazyEightsCommand =
   | { type: "selectCard"; cardId: string }
   | { type: "playCard" }
-  | { type: "drawCard" };
+  | { type: "drawCard" }
+  | { type: "pass" };
 
 export type CrazyEightsPlayer = "player" | "opponent1" | "opponent2";
 
@@ -90,6 +91,48 @@ function getPlayableCards(
   topCard: CrazyEightsCard,
 ): CrazyEightsCard[] {
   return hand.filter((c) => canPlayCard(c, activeColor, topCard));
+}
+
+/**
+ * When the draw pile is empty, shuffles the discard pile (minus its top card)
+ * back into it. Returns the state unchanged if the draw pile still has cards.
+ */
+function refillDrawPile(state: CrazyEightsState): CrazyEightsState {
+  if (state.pools.drawPile.length > 0) return state;
+  const discardTop = topDiscard(state);
+  return {
+    ...state,
+    pools: {
+      ...state.pools,
+      drawPile: Cards.shuffle(state.pools.discardPile.slice(0, -1)),
+      discardPile: [discardTop],
+    },
+  };
+}
+
+/** True if a card can be drawn, counting discards that can be reshuffled in. */
+function hasCardsToDraw(state: CrazyEightsState): boolean {
+  return state.pools.drawPile.length > 0 || state.pools.discardPile.length > 1;
+}
+
+function hasPlayableCard(
+  state: CrazyEightsState,
+  poolId: CrazyEightsPlayer,
+): boolean {
+  return (
+    getPlayableCards(state.pools[poolId], state.activeColor, topDiscard(state))
+      .length > 0
+  );
+}
+
+/** The player must draw when they have no playable card and cards remain. */
+export function canDrawCard(state: CrazyEightsState): boolean {
+  return !hasPlayableCard(state, "player") && hasCardsToDraw(state);
+}
+
+/** The player may pass only when they can neither play nor draw. */
+export function mustPass(state: CrazyEightsState): boolean {
+  return !hasPlayableCard(state, "player") && !hasCardsToDraw(state);
 }
 
 function playCardToDiscard(
@@ -135,23 +178,9 @@ function aiTurn(
     return newState;
   }
 
-  // Must draw — if draw pile is empty, reshuffle discard (minus top card)
-  if (state.pools.drawPile.length === 0) {
-    const discardTop = topDiscard(state);
-    const toReshuffle = state.pools.discardPile.slice(0, -1);
-    const reshuffled: CrazyEightsState = {
-      ...state,
-      pools: {
-        ...state.pools,
-        drawPile: Cards.shuffle(toReshuffle),
-        discardPile: [discardTop],
-      },
-    };
-    if (reshuffled.pools.drawPile.length === 0) return reshuffled;
-    return Cards.drawToPool(reshuffled, "drawPile", poolId);
-  }
-
-  return Cards.drawToPool(state, "drawPile", poolId);
+  // Must draw (reshuffling the discard pile if needed), or pass if no cards remain
+  if (!hasCardsToDraw(state)) return state;
+  return Cards.drawToPool(refillDrawPile(state), "drawPile", poolId);
 }
 
 // --- Initial State ---
@@ -251,18 +280,13 @@ export const crazyEightsConfig: StateMachineConfig<
           },
         },
         drawCard: {
-          validate: (state) => {
-            const playable = getPlayableCards(
-              state.pools.player,
-              state.activeColor,
-              topDiscard(state),
-            );
-            return playable.length === 0 && state.pools.drawPile.length > 0;
-          },
-          execute: (state) => {
-            if (state.pools.drawPile.length === 0) return state;
-            return Cards.drawToPool(state, "drawPile", "player");
-          },
+          validate: canDrawCard,
+          execute: (state) =>
+            Cards.drawToPool(refillDrawPile(state), "drawPile", "player"),
+        },
+        pass: {
+          validate: mustPass,
+          execute: (state) => state,
         },
       },
       getNext: (state) => {

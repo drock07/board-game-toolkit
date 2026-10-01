@@ -24,9 +24,11 @@ import {
   type CrazyEightsState,
   COLORS,
   type CrazyEightsEvent,
+  canDrawCard,
   canPlayCard,
   crazyEightsConfig,
   initialState,
+  mustPass,
 } from "./config";
 
 // --- Color mapping ---
@@ -136,11 +138,8 @@ export function CrazyEights() {
         (c) => topCard && canPlayCard(c, state.activeColor, topCard),
       )
     : [];
-  const canDraw =
-    isPlayerTurn &&
-    playableCards.length === 0 &&
-    state.pools.drawPile.length > 0 &&
-    !pendingWildChoice;
+  const canDraw = isPlayerTurn && !pendingWildChoice && canDrawCard(state);
+  const canPass = isPlayerTurn && !pendingWildChoice && mustPass(state);
 
   return (
     <CardDimensionsContext width={100}>
@@ -180,6 +179,16 @@ export function CrazyEights() {
                 >
                   Draw
                 </GlassButton>
+                {canPass && (
+                  <GlassButton
+                    onClick={() => {
+                      dispatch({ type: "pass" });
+                      advance();
+                    }}
+                  >
+                    Pass
+                  </GlassButton>
+                )}
               </>
             )}
             {pendingWildChoice && (
