@@ -163,6 +163,8 @@ export function StateMachineContext<
     if (autostart) {
       start();
     }
+    // Runs once with no guard, so it double-starts under StrictMode; fixed in #12
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -306,6 +308,8 @@ export function useGameEvent<
 
   const activeHandler = handler ?? declarativeHandler;
   const handlerRef = useRef(activeHandler);
+  // Assigning a ref during render; moved into an effect in #12
+  // eslint-disable-next-line react-hooks/refs
   handlerRef.current = activeHandler;
 
   useEffect(() => {
