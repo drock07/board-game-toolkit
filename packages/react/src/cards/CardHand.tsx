@@ -60,7 +60,7 @@ export function CardHand({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [rawFocusedIndex, setFocusedIndex] = useState(-1);
   const [hasFocus, setHasFocus] = useState(false);
 
   useEffect(() => {
@@ -77,12 +77,9 @@ export function CardHand({
   const items = React.Children.toArray(children);
   const count = items.length;
 
-  // Keep focusedIndex in bounds when children change
-  useEffect(() => {
-    if (count > 0 && focusedIndex >= count) {
-      setFocusedIndex(count - 1);
-    }
-  }, [count, focusedIndex]);
+  // Keep the focused index in bounds when children change
+  const focusedIndex =
+    count > 0 ? Math.min(rawFocusedIndex, count - 1) : rawFocusedIndex;
 
   // Calculate the offset between each card's left edge.
   // If cards fit side-by-side, use full card width. Otherwise, compress evenly.
@@ -101,13 +98,13 @@ export function CardHand({
     switch (e.key) {
       case "ArrowLeft": {
         e.preventDefault();
-        setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        setFocusedIndex(focusedIndex > 0 ? focusedIndex - 1 : 0);
         break;
       }
       case "ArrowRight": {
         e.preventDefault();
-        setFocusedIndex((prev) =>
-          prev < 0 ? 0 : prev < count - 1 ? prev + 1 : prev,
+        setFocusedIndex(
+          focusedIndex < 0 ? 0 : Math.min(focusedIndex + 1, count - 1),
         );
         break;
       }
@@ -257,21 +254,37 @@ export function UncontrolledCardHand({
   ...props
 }: UncontrolledCardHandProps) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [prevKeysStr, setPrevKeysStr] = useState("");
+  // Bumped whenever the selection is cleared because its card left the hand
+  const [selectionDropCount, setSelectionDropCount] = useState(0);
 
   const items = React.Children.toArray(children);
   const currentKeysStr = items
     .map((child, i) => getItemKey(child, i))
     .join("\0");
 
-  useEffect(() => {
-    if (selectedKey !== null) {
-      const currentKeys = new Set(currentKeysStr.split("\0"));
-      if (!currentKeys.has(selectedKey)) {
-        setSelectedKey(null);
-        onSelect?.(null);
-      }
+  // When the children change, clear a selection whose card is gone. Adjusting
+  // state during render (rather than in an effect) avoids rendering the stale
+  // selection first.
+  if (currentKeysStr !== prevKeysStr) {
+    setPrevKeysStr(currentKeysStr);
+    if (
+      selectedKey !== null &&
+      !currentKeysStr.split("\0").includes(selectedKey)
+    ) {
+      setSelectedKey(null);
+      setSelectionDropCount((n) => n + 1);
     }
-  }, [selectedKey, currentKeysStr, onSelect]);
+  }
+
+  // Tell the parent about the cleared selection once it has rendered
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  });
+  useEffect(() => {
+    if (selectionDropCount > 0) onSelectRef.current?.(null);
+  }, [selectionDropCount]);
 
   const handleCardClick = (key: string | null) => {
     setSelectedKey(key);
