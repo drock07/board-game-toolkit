@@ -2,6 +2,7 @@ import {
   GridGameBoard,
   useStateMachineActions,
   useStateMachineCurrentState,
+  useStateMachineEngineState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
@@ -28,6 +29,7 @@ import {
 
 export function DungeonCrawl() {
   const state = useStateMachineState<DungeonCrawlState>();
+  const { seed } = useStateMachineEngineState<DungeonCrawlState>();
   const currentStates = useStateMachineCurrentState<DungeonCrawlState>();
   const { dispatch, advance } = useStateMachineActions<
     DungeonCrawlState,
@@ -46,6 +48,7 @@ export function DungeonCrawl() {
 
   return (
     <PageLayout
+      seed={seed}
       title="Dungeon Crawl"
       bottomCenter={
         <ActionButtons

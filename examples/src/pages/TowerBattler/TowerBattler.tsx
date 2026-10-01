@@ -4,6 +4,7 @@ import {
   CardShape,
   useStateMachineActions,
   useStateMachineCurrentState,
+  useStateMachineEngineState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
@@ -96,6 +97,7 @@ function HpBar({
 export function TowerBattler() {
   const currentStates = useStateMachineCurrentState<TowerBattlerState>();
   const state = useStateMachineState<TowerBattlerState>();
+  const { seed } = useStateMachineEngineState<TowerBattlerState>();
   const { advance, dispatch } = useStateMachineActions<
     TowerBattlerState,
     TowerBattlerCommand
@@ -112,6 +114,7 @@ export function TowerBattler() {
   return (
     <CardDimensionsContext width={90}>
       <PageLayout
+        seed={seed}
         title="TowerBattler"
         topRight={
           <GlassContainer className="flex items-center gap-3 text-sm font-medium">

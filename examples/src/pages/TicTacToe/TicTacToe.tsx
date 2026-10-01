@@ -2,6 +2,7 @@ import {
   State,
   useStateMachineActions,
   useStateMachineCurrentState,
+  useStateMachineEngineState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
@@ -17,6 +18,7 @@ import {
 export function TicTacToe() {
   const currentStates = useStateMachineCurrentState<TicTacToeState>();
   const { marks, winner } = useStateMachineState<TicTacToeState>();
+  const { seed } = useStateMachineEngineState<TicTacToeState>();
   const { advance, dispatch } = useStateMachineActions<
     TicTacToeState,
     TicTacToeCommand
@@ -26,7 +28,7 @@ export function TicTacToe() {
   const showOverlay = !isPlaying;
 
   return (
-    <PageLayout title="Tic-Tac-Toe">
+    <PageLayout seed={seed} title="Tic-Tac-Toe">
       <div className="flex h-full flex-col items-center gap-4 px-4 pb-12">
         <PageLayout.SafeInset />
 

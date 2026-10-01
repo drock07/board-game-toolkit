@@ -447,12 +447,13 @@ export function withStateMachineContext<
   },
 ) {
   const Component = component;
-  return () => (
+  // `seed` as a prop (e.g. read from the URL) takes precedence over options
+  return ({ seed }: { seed?: number }) => (
     <StateMachineContext
       config={config}
       initialState={initialState}
       autostart={options?.autostart ?? false}
-      seed={options?.seed}
+      seed={seed ?? options?.seed}
       onError={options?.onError}
     >
       <Component />

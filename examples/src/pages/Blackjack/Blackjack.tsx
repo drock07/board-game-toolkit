@@ -5,6 +5,7 @@ import {
   StandardPlayingCard,
   useStateMachineActions,
   useStateMachineCurrentState,
+  useStateMachineEngineState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
@@ -24,6 +25,7 @@ import {
 export function Blackjack() {
   const currentStates = useStateMachineCurrentState<BlackjackState>();
   const state = useStateMachineState<BlackjackState>();
+  const { seed } = useStateMachineEngineState<BlackjackState>();
   const { advance, dispatch } = useStateMachineActions<
     BlackjackState,
     BlackjackCommand
@@ -38,6 +40,7 @@ export function Blackjack() {
   return (
     <CardDimensionsContext width={150}>
       <PageLayout
+        seed={seed}
         title="Blackjack"
         topRight={
           <>
