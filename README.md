@@ -29,7 +29,7 @@ pnpm build        # Build all packages
 pnpm dev          # Watch mode for all packages
 pnpm test         # Run tests across all packages
 pnpm typecheck    # Type-check all packages, including tests
-pnpm lint         # Lint the whole repo with ESLint
+pnpm lint         # Lint the whole repo with ESLint (run pnpm build first)
 pnpm format       # Format with Prettier (format:check to verify)
 ```
 

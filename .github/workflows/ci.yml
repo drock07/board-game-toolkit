@@ -32,11 +32,12 @@ jobs:
 
       - run: pnpm format:check
 
-      # Errors fail the build; warnings (the `any` rules, until #28) don't
-      - run: pnpm lint
-
       # Also type-checks and builds the examples app
       - run: pnpm build
+
+      # Type-aware rules resolve workspace packages through their built types, so
+      # this runs after the build. Errors fail; the `any` warnings don't until #28.
+      - run: pnpm lint
 
       # Type-checks test files, which the package builds exclude
       - run: pnpm typecheck
