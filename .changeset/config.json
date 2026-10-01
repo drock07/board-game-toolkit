@@ -6,7 +6,7 @@
   ],
   "commit": false,
   "fixed": [
-    ["@drock07/board-game-toolkit-core", "@drock07/board-game-toolkit-react"]
+    ["@drock07/board-game-toolkit-engine", "@drock07/board-game-toolkit-react"]
   ],
   "linked": [],
   "access": "restricted",

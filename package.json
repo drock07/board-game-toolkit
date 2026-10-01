@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "build": "pnpm -r build",
-    "build:core": "pnpm --filter @drock07/board-game-toolkit-core build",
+    "build:engine": "pnpm --filter @drock07/board-game-toolkit-engine build",
     "build:react": "pnpm --filter @drock07/board-game-toolkit-react build",
     "build:examples": "pnpm --filter board-game-toolkit-examples build",
     "dev": "pnpm -r --parallel dev",
@@ -14,7 +14,7 @@
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check:packages": "publint --strict packages/core && publint --strict packages/react && attw --pack packages/core --profile esm-only && attw --pack packages/react --profile esm-only",
+    "check:packages": "publint --strict packages/engine && publint --strict packages/react && attw --pack packages/engine --profile esm-only && attw --pack packages/react --profile esm-only",
     "changeset": "changeset"
   },
   "pnpm": {

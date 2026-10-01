@@ -1,13 +1,13 @@
 {
-  "name": "@drock07/board-game-toolkit-react",
+  "name": "@drock07/board-game-toolkit-engine",
   "version": "0.0.0",
-  "description": "React host for the board game toolkit engine",
+  "description": "A pure, deterministic board game engine driven by a data-first flow spec",
   "type": "module",
   "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/drock07/board-game-toolkit.git",
-    "directory": "packages/react"
+    "directory": "packages/engine"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -17,6 +17,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -28,13 +32,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "immer": "^10.1.1"
   },
   "devDependencies": {
-    "@drock07/board-game-toolkit-engine": "workspace:*",
-    "typescript": "catalog:"
-  },
-  "peerDependencies": {
-    "@drock07/board-game-toolkit-engine": "workspace:^"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
