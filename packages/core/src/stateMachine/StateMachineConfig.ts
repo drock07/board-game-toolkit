@@ -1,7 +1,11 @@
 /**
  * Branded symbol used to distinguish a transition signal from a plain state.
+ * Registered with `Symbol.for`, so signals are still recognized if two copies
+ * of this package end up in one bundle (e.g. through mismatched dependencies).
  */
-export const TRANSITION_SIGNAL: unique symbol = Symbol("transition");
+export const TRANSITION_SIGNAL: unique symbol = Symbol.for(
+  "board-game-toolkit.transition",
+);
 
 /**
  * Returned by the `transitionTo` helper inside `execute` to signal

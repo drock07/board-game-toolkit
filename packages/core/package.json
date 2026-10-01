@@ -2,15 +2,15 @@
   "name": "@drock07/board-game-toolkit-core",
   "version": "0.5.0",
   "type": "module",
+  "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/drock07/board-game-toolkit.git",
+    "url": "git+https://github.com/drock07/board-game-toolkit.git",
     "directory": "packages/core"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -25,7 +25,7 @@
       "types": "./dist/cards/index.d.ts",
       "import": "./dist/cards/index.js"
     },
-    "./stateMachine": {
+    "./state-machine": {
       "types": "./dist/stateMachine/index.d.ts",
       "import": "./dist/stateMachine/index.js"
     }
@@ -33,6 +33,9 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",

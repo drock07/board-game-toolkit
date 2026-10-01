@@ -1,12 +1,12 @@
+import * as StateMachine from "@drock07/board-game-toolkit-core/state-machine";
 import {
   DefaultEventMap,
   EmitHandler,
   EngineState,
   EventData,
   EventResponse,
-  StateMachine,
   StateMachineConfig,
-} from "@drock07/board-game-toolkit-core";
+} from "@drock07/board-game-toolkit-core/state-machine";
 import {
   createContext,
   ReactNode,

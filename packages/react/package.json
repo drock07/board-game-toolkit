@@ -2,25 +2,48 @@
   "name": "@drock07/board-game-toolkit-react",
   "version": "0.4.0",
   "type": "module",
+  "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/drock07/board-game-toolkit.git",
+    "url": "git+https://github.com/drock07/board-game-toolkit.git",
     "directory": "packages/react"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./backgrounds": {
+      "types": "./dist/backgrounds/index.d.ts",
+      "import": "./dist/backgrounds/index.js"
+    },
+    "./boards": {
+      "types": "./dist/gameBoards/index.d.ts",
+      "import": "./dist/gameBoards/index.js"
+    },
+    "./cards": {
+      "types": "./dist/cards/index.d.ts",
+      "import": "./dist/cards/index.js"
+    },
+    "./dice": {
+      "types": "./dist/dice/index.d.ts",
+      "import": "./dist/dice/index.js"
+    },
+    "./state-machine": {
+      "types": "./dist/stateMachine/index.d.ts",
+      "import": "./dist/stateMachine/index.js"
     }
   },
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
@@ -28,10 +51,8 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
-    "@drock07/board-game-toolkit-core": "workspace:*"
-  },
   "devDependencies": {
+    "@drock07/board-game-toolkit-core": "workspace:*",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/react": "catalog:",
@@ -43,6 +64,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@drock07/board-game-toolkit-core": "workspace:^",
     "react": "^19.0.0"
   }
 }

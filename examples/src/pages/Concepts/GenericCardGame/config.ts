@@ -3,7 +3,14 @@ import type {
   PlayingCard,
   StateMachineConfig,
 } from "@drock07/board-game-toolkit-core";
-import { Cards } from "@drock07/board-game-toolkit-core";
+import {
+  addToPool,
+  createPlayingCardDeck,
+  drawToPool,
+  moveCard,
+  shuffle,
+  shufflePool,
+} from "@drock07/board-game-toolkit-core";
 
 export type DemoPoolId = "deck" | "hand" | "discard";
 export type DemoCard = PlayingCard & { id: string };
@@ -15,7 +22,7 @@ export type DemoCommand =
   | { type: "shuffleBack" };
 
 function createDeck(): DemoCard[] {
-  return Cards.createPlayingCardDeck().map((c) => ({
+  return createPlayingCardDeck().map((c) => ({
     ...c,
     id: `${c.suit}-${c.rank}`,
   }));
@@ -23,7 +30,7 @@ function createDeck(): DemoCard[] {
 
 export const initialState: DemoState = {
   pools: {
-    deck: Cards.shuffle(createDeck()),
+    deck: shuffle(createDeck()),
     hand: [],
     discard: [],
   },
@@ -37,20 +44,20 @@ export const config: StateMachineConfig<DemoState, DemoCommand> = {
       actions: {
         draw: {
           validate: (state) => state.pools.deck.length > 0,
-          execute: (state) => Cards.drawToPool(state, "deck", "hand"),
+          execute: (state) => drawToPool(state, "deck", "hand"),
         },
         discard: {
           validate: (state, cmd) =>
             state.pools.hand.some((c) => c.id === cmd.cardId),
           execute: (state, cmd) =>
-            Cards.moveCard(state, "hand", "discard", cmd.cardId),
+            moveCard(state, "hand", "discard", cmd.cardId),
         },
         shuffleBack: {
           validate: (state) => state.pools.discard.length > 0,
           execute: (state) => {
-            let next = Cards.addToPool(state, "deck", state.pools.discard);
+            let next = addToPool(state, "deck", state.pools.discard);
             next = { ...next, pools: { ...next.pools, discard: [] } };
-            return Cards.shufflePool(next, "deck");
+            return shufflePool(next, "deck");
           },
         },
       },

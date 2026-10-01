@@ -10,7 +10,7 @@ import {
   LifecycleContext,
   StateConfig,
   StateMachineConfig,
-} from "./StateMachineConfig";
+} from "./StateMachineConfig.js";
 
 /**
  * Runtime state of a single machine in the stack.
@@ -457,7 +457,7 @@ export class StateMachineEngine<
     );
   }
 
-  public getCurrentStateForMachine(machineId: string) {
+  public getMachineCurrentState(machineId: string) {
     return getMachineCurrentState(
       this.engineState as EngineState<TState>,
       machineId,

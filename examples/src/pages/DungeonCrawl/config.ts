@@ -1,6 +1,8 @@
 import {
-  Dice,
   type StateMachineConfig,
+  D20,
+  D6,
+  roll,
 } from "@drock07/board-game-toolkit-core";
 
 // --- Constants ---
@@ -93,18 +95,18 @@ const MONSTERS = {
 // --- Helpers ---
 
 function generateTreasureItem(): Item {
-  const roll = Dice.roll(Dice.D6);
-  if (roll <= 2)
+  const rolled = roll(D6);
+  if (rolled <= 2)
     return { type: "healthPotion", name: "Health Potion", value: 8 };
-  if (roll <= 4) return { type: "weapon", name: "Sharp Sword", value: 2 };
+  if (rolled <= 4) return { type: "weapon", name: "Sharp Sword", value: 2 };
   return { type: "shield", name: "Sturdy Shield", value: 2 };
 }
 
 function generateTrapItem(): Item {
-  const roll = Dice.roll(Dice.D6);
-  if (roll <= 2)
+  const rolled = roll(D6);
+  if (rolled <= 2)
     return { type: "healthPotion", name: "Greater Health Potion", value: 15 };
-  if (roll <= 4) return { type: "weapon", name: "Fine Sword", value: 4 };
+  if (rolled <= 4) return { type: "weapon", name: "Fine Sword", value: 4 };
   return { type: "shield", name: "Tower Shield", value: 4 };
 }
 
@@ -377,11 +379,9 @@ export const dungeonCrawlConfig: StateMachineConfig<
             attack: {
               execute: (state) => {
                 const combat = state.combat!;
-                const hitRoll = Dice.roll(Dice.D20);
+                const hitRoll = roll(D20);
                 const hit = hitRoll >= combat.monster.defense;
-                const damage = hit
-                  ? Dice.roll(Dice.D6) + state.playerAttack
-                  : 0;
+                const damage = hit ? roll(D6) + state.playerAttack : 0;
                 const newMonsterHp = Math.max(
                   0,
                   combat.monsterCurrentHp - damage,
@@ -404,7 +404,7 @@ export const dungeonCrawlConfig: StateMachineConfig<
             },
             flee: {
               execute: (state) => {
-                const fleeRoll = Dice.roll(Dice.D20);
+                const fleeRoll = roll(D20);
                 const success = fleeRoll >= 12;
                 const logEntry = success
                   ? `You tried to flee — Rolled ${fleeRoll} — Escaped!`
@@ -437,10 +437,10 @@ export const dungeonCrawlConfig: StateMachineConfig<
           autoadvance: true,
           onEnter: (state) => {
             const combat = state.combat!;
-            const hitRoll = Dice.roll(Dice.D20);
+            const hitRoll = roll(D20);
             const playerDefenseThreshold = 10 + state.playerDefense;
             const hit = hitRoll >= playerDefenseThreshold;
-            const damage = hit ? Dice.roll(Dice.D6) + combat.monster.attack : 0;
+            const damage = hit ? roll(D6) + combat.monster.attack : 0;
             const newHp = Math.max(0, state.playerHp - damage);
             const logEntry = hit
               ? `${combat.monster.name} rolled ${hitRoll} — Hit for ${damage} damage! (You: ${newHp}/${state.playerMaxHp})`
@@ -561,13 +561,13 @@ export const dungeonCrawlConfig: StateMachineConfig<
       actions: {
         dismantle: {
           execute: (state) => {
-            const roll = Dice.roll(Dice.D20);
-            const succeeded = roll >= 12;
-            const damage = succeeded ? 0 : Dice.roll(Dice.D6) + 2;
+            const rolled = roll(D20);
+            const succeeded = rolled >= 12;
+            const damage = succeeded ? 0 : roll(D6) + 2;
             const newHp = Math.max(0, state.playerHp - damage);
             const trapResult: TrapResult = {
               ...state.trapResult!,
-              roll,
+              roll: rolled,
               succeeded,
               damage: state.trapResult!.damage + damage,
               dismantled: succeeded,
@@ -593,31 +593,31 @@ export const dungeonCrawlConfig: StateMachineConfig<
               switch (item.type) {
                 case "healthPotion":
                   newState.inventory = [...state.inventory, item];
-                  newState.message = `Rolled ${roll} — Dismantled! Found ${item.name}.`;
+                  newState.message = `Rolled ${rolled} — Dismantled! Found ${item.name}.`;
                   logDetail = `${item.name} added to inventory.`;
                   break;
                 case "weapon":
                   newState.playerAttack = state.playerAttack + item.value;
                   newState.equipment = [...state.equipment, item];
-                  newState.message = `Rolled ${roll} — Dismantled! ${item.name} — Attack +${item.value}.`;
+                  newState.message = `Rolled ${rolled} — Dismantled! ${item.name} — Attack +${item.value}.`;
                   logDetail = `${item.name} — Attack +${item.value}.`;
                   break;
                 case "shield":
                   newState.playerDefense = state.playerDefense + item.value;
                   newState.equipment = [...state.equipment, item];
-                  newState.message = `Rolled ${roll} — Dismantled! ${item.name} — Defense +${item.value}.`;
+                  newState.message = `Rolled ${rolled} — Dismantled! ${item.name} — Defense +${item.value}.`;
                   logDetail = `${item.name} — Defense +${item.value}.`;
                   break;
               }
               newState.log = [
                 ...state.log,
-                `Rolled ${roll} — Dismantled! ${logDetail!}`,
+                `Rolled ${rolled} — Dismantled! ${logDetail!}`,
               ];
             } else {
-              newState.message = `Rolled ${roll} — Failed! Took ${damage} damage.`;
+              newState.message = `Rolled ${rolled} — Failed! Took ${damage} damage.`;
               newState.log = [
                 ...state.log,
-                `Rolled ${roll} — Failed! Took ${damage} damage. (You: ${newHp}/${state.playerMaxHp})`,
+                `Rolled ${rolled} — Failed! Took ${damage} damage. (You: ${newHp}/${state.playerMaxHp})`,
               ];
             }
 

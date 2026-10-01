@@ -8,7 +8,7 @@ import React, {
   type ReactNode,
   type Ref,
 } from "react";
-import { useCardDimensionsContext } from "./CardDimensionsContext";
+import { useCardDimensionsContext } from "./CardDimensionsContext.js";
 
 function getItemKey(child: ReactNode, index: number): string {
   if (React.isValidElement(child) && child.key != null) {

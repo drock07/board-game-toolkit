@@ -8,8 +8,8 @@ import {
   resolveEffects,
   type ShufflePoolEffect,
   type TransferCardsEffect,
-} from "./cardEffects";
-import type { GenericCardGameState } from "./genericCardGame";
+} from "./cardEffects.js";
+import type { GenericCardGameState } from "./genericCardGame.js";
 
 // --- helpers ---
 

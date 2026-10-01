@@ -3,7 +3,12 @@ import type {
   GenericCardInstance,
   StateMachineConfig,
 } from "@drock07/board-game-toolkit-core";
-import { Cards } from "@drock07/board-game-toolkit-core";
+import {
+  dealFromPool,
+  drawToPool,
+  moveCard,
+  shuffle,
+} from "@drock07/board-game-toolkit-core";
 
 // --- Card Type ---
 
@@ -104,7 +109,7 @@ function refillDrawPile(state: CrazyEightsState): CrazyEightsState {
     ...state,
     pools: {
       ...state.pools,
-      drawPile: Cards.shuffle(state.pools.discardPile.slice(0, -1)),
+      drawPile: shuffle(state.pools.discardPile.slice(0, -1)),
       discardPile: [discardTop],
     },
   };
@@ -141,7 +146,7 @@ function playCardToDiscard(
   cardId: string,
 ): CrazyEightsState {
   const card = state.pools[poolId].find((c) => c.id === cardId)!;
-  const newState = Cards.moveCard(state, poolId, "discardPile", cardId);
+  const newState = moveCard(state, poolId, "discardPile", cardId);
   return {
     ...newState,
     activeColor: card.color,
@@ -180,7 +185,7 @@ function aiTurn(
 
   // Must draw (reshuffling the discard pile if needed), or pass if no cards remain
   if (!hasCardsToDraw(state)) return state;
-  return Cards.drawToPool(refillDrawPile(state), "drawPile", poolId);
+  return drawToPool(refillDrawPile(state), "drawPile", poolId);
 }
 
 // --- Initial State ---
@@ -214,7 +219,7 @@ export const crazyEightsConfig: StateMachineConfig<
       autoadvance: true,
       onEnter: () => {
         nextCardId = 0;
-        const deck = Cards.shuffle(createDeck());
+        const deck = shuffle(createDeck());
         let state: CrazyEightsState = {
           ...initialState,
           pools: {
@@ -223,14 +228,14 @@ export const crazyEightsConfig: StateMachineConfig<
           },
         };
         // Deal 7 cards to each player
-        state = Cards.dealFromPool(
+        state = dealFromPool(
           state,
           "drawPile",
           ["player", "opponent1", "opponent2"],
           7,
         );
         // Flip top card to discard pile
-        state = Cards.drawToPool(state, "drawPile", "discardPile");
+        state = drawToPool(state, "drawPile", "discardPile");
         const top = topDiscard(state);
         return { ...state, activeColor: top.color, message: null };
       },
@@ -279,7 +284,7 @@ export const crazyEightsConfig: StateMachineConfig<
         drawCard: {
           validate: canDrawCard,
           execute: (state) =>
-            Cards.drawToPool(refillDrawPile(state), "drawPile", "player"),
+            drawToPool(refillDrawPile(state), "drawPile", "player"),
         },
         pass: {
           validate: mustPass,

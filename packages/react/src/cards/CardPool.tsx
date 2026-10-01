@@ -2,9 +2,9 @@ import {
   CardOf,
   GenericCardGameState,
   PoolIdOf,
-} from "@drock07/board-game-toolkit-core";
+} from "@drock07/board-game-toolkit-core/cards";
 import { ReactNode } from "react";
-import { useStateMachineState } from "../stateMachine";
+import { useStateMachineState } from "../stateMachine/index.js";
 
 export interface CardPoolProps<TState extends GenericCardGameState> {
   poolId: PoolIdOf<TState>;

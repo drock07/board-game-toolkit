@@ -8,7 +8,9 @@ React bindings for `@drock07/board-game-toolkit-core`. Provides a context provid
 pnpm add @drock07/board-game-toolkit-react @drock07/board-game-toolkit-core
 ```
 
-Requires React 19 or higher.
+Requires React 19 or higher. `@drock07/board-game-toolkit-core` is a peer dependency, so install it alongside this package. Both packages are versioned together.
+
+Everything is exported from the package root. Each domain also has its own entry point: `/backgrounds`, `/boards`, `/cards`, `/dice` and `/state-machine`.
 
 ## Quick Start
 

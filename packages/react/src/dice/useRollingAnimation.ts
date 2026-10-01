@@ -1,6 +1,6 @@
 import { roll, type Die } from "@drock07/board-game-toolkit-core/dice";
 import { useState } from "react";
-import { useInterval } from "../hooks/useInterval";
+import { useInterval } from "../hooks/useInterval.js";
 
 export function useRollingAnimation<T>(
   currentValue: T | null,

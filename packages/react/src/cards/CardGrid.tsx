@@ -1,5 +1,5 @@
 import { type CSSProperties, type ReactNode } from "react";
-import { useCardDimensionsContext } from "./CardDimensionsContext";
+import { useCardDimensionsContext } from "./CardDimensionsContext.js";
 
 interface CardGridBaseProps {
   /** Gap between cards in pixels. Defaults to 12.5% of card width. */

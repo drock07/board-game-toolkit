@@ -4,7 +4,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { useCardDimensionsContext } from "./CardDimensionsContext";
+import { useCardDimensionsContext } from "./CardDimensionsContext.js";
 
 export interface CardShapeProps {
   /** Card width in pixels. Height is derived from aspectRatio. Default: 64 */

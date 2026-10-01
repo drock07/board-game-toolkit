@@ -1,4 +1,4 @@
-import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
+import type { StateMachineConfig } from "@drock07/board-game-toolkit-core/state-machine";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -10,7 +10,7 @@ import {
   useStateMachineEngineState,
   useStateMachineState,
   type StateMachineErrorHandler,
-} from "./StateMachineContext";
+} from "./StateMachineContext.js";
 
 interface TestState {
   log: string[];

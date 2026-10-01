@@ -1,1 +1,1 @@
-export * from "./GridGameBoard";
+export * from "./GridGameBoard.js";

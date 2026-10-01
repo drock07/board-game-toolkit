@@ -1,5 +1,10 @@
 import type { StateMachineConfig } from "@drock07/board-game-toolkit-core";
-import { type PlayingCard, Cards } from "@drock07/board-game-toolkit-core";
+import {
+  type PlayingCard,
+  createPlayingCardDeck,
+  draw,
+  shuffle,
+} from "@drock07/board-game-toolkit-core";
 
 // --- Game State ---
 
@@ -60,7 +65,7 @@ export const blackjackConfig: StateMachineConfig<
     betting: {
       onEnter: (state) => ({
         ...state,
-        deck: Cards.shuffle(Cards.createPlayingCardDeck()),
+        deck: shuffle(createPlayingCardDeck()),
         playerHand: [],
         dealerHand: [],
         bet: 0,
@@ -88,13 +93,13 @@ export const blackjackConfig: StateMachineConfig<
         const dealerHand: PlayingCard[] = [];
 
         let card: PlayingCard;
-        [card, deck] = Cards.draw(deck);
+        [card, deck] = draw(deck);
         playerHand.push(card);
-        [card, deck] = Cards.draw(deck);
+        [card, deck] = draw(deck);
         dealerHand.push(card);
-        [card, deck] = Cards.draw(deck);
+        [card, deck] = draw(deck);
         playerHand.push(card);
-        [card, deck] = Cards.draw(deck);
+        [card, deck] = draw(deck);
         dealerHand.push(card);
 
         return { ...state, deck, playerHand, dealerHand };
@@ -110,7 +115,7 @@ export const blackjackConfig: StateMachineConfig<
         hit: {
           validate: (state) => handTotal(state.playerHand) < 21,
           execute: (state) => {
-            const [card, deck] = Cards.draw(state.deck);
+            const [card, deck] = draw(state.deck);
             return {
               ...state,
               deck,
@@ -140,7 +145,7 @@ export const blackjackConfig: StateMachineConfig<
         const dealerHand = [...state.dealerHand];
         while (handTotal(dealerHand) < 17) {
           let card: PlayingCard;
-          [card, deck] = Cards.draw(deck);
+          [card, deck] = draw(deck);
           dealerHand.push(card);
         }
         return { ...state, deck, dealerHand };

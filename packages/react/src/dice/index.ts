@@ -1,1 +1,2 @@
-export * from "./StandardD6";
+export * from "./StandardD6.js";
+export * from "./useRollingAnimation.js";

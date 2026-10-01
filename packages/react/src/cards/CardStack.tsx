@@ -1,5 +1,5 @@
 import React, { type CSSProperties, type ReactNode } from "react";
-import { useCardDimensionsContext } from "./CardDimensionsContext";
+import { useCardDimensionsContext } from "./CardDimensionsContext.js";
 
 /** Deterministic pseudo-random in [0, 1) based on an integer seed. */
 function seededRandom(seed: number): number {
