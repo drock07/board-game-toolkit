@@ -6,6 +6,7 @@ import {
   useGameEvent,
   useStateMachineActions,
   useStateMachineCurrentState,
+  useStateMachineEngineState,
   useStateMachineState,
   withStateMachineContext,
 } from "@drock07/board-game-toolkit-react";
@@ -137,8 +138,11 @@ export function CrazyEights() {
         (c) => topCard && canPlayCard(c, state.activeColor, topCard),
       )
     : [];
-  const canDraw = isPlayerTurn && !pendingWildChoice && canDrawCard(state);
-  const canPass = isPlayerTurn && !pendingWildChoice && mustPass(state);
+  // Lock the controls while a move (and the AI turns it triggers) plays out
+  const { transitioning } = useStateMachineEngineState<CrazyEightsState>();
+  const canAct = isPlayerTurn && !pendingWildChoice && !transitioning;
+  const canDraw = canAct && canDrawCard(state);
+  const canPass = canAct && mustPass(state);
 
   return (
     <CardDimensionsContext width={100}>
@@ -159,6 +163,7 @@ export function CrazyEights() {
               <>
                 <GlassButton
                   disabled={
+                    !canAct ||
                     !state.selectedCardId ||
                     !playableCards.some((c) => c.id === state.selectedCardId)
                   }
@@ -316,9 +321,11 @@ export function CrazyEights() {
               <div className="w-full max-w-2xl px-4">
                 <CardHand
                   selectedKey={state.selectedCardId}
-                  onCardClick={(key) => {
-                    dispatch({ type: "selectCard", cardId: key });
-                  }}
+                  onCardClick={
+                    canAct
+                      ? (key) => dispatch({ type: "selectCard", cardId: key })
+                      : undefined
+                  }
                   aria-label="Your hand"
                 >
                   {state.pools.player.map((card) => {
