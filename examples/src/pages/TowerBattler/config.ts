@@ -308,7 +308,7 @@ export const towerBattlerConfig: StateMachineConfig<
       autoadvance: true,
       onEnter: (state) => {
         const nextTurn = state.turn + 1;
-        let newState: TowerBattlerState = {
+        const newState: TowerBattlerState = {
           ...state,
           energy: state.maxEnergy,
           playerBlock: 0,

@@ -16,10 +16,7 @@ export default tseslint.config(
     languageOptions: {
       globals: globals.browser,
       parserOptions: {
-        projectService: {
-          // Files outside any tsconfig's `include`
-          allowDefaultProject: ["examples/vite.config.ts"],
-        },
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },

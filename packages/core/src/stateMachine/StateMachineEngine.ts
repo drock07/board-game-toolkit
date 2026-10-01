@@ -68,7 +68,7 @@ function createEmitFn(handler?: EmitHandler): EmitFn {
   if (!handler) {
     return () => Promise.resolve(undefined as any);
   }
-  return (event) => handler(event as any);
+  return (event) => handler(event);
 }
 
 /**

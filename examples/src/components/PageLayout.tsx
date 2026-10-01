@@ -107,7 +107,10 @@ export function GlassIconButton<T extends React.ElementType = "button">({
 }: GlassIconButtonProps<T> &
   Omit<React.ComponentPropsWithoutRef<T>, keyof GlassIconButtonProps<T>>) {
   return (
-    <GlassButton {...(props as GlassButtonProps)}>
+    <GlassButton
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- narrows the polymorphic props; tsc fails without it
+      {...(props as GlassButtonProps)}
+    >
       <Icon className="size-6" />
     </GlassButton>
   );
@@ -123,6 +126,7 @@ export function GlassButton<T extends React.ElementType = "button">({
   ...props
 }: GlassButtonProps<T> &
   Omit<React.ComponentPropsWithoutRef<T>, keyof GlassButtonProps<T>>) {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- widens the generic tag for JSX; tsc fails without it
   const Component = Tag as React.ElementType;
   return (
     <Component

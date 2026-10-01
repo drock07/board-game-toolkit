@@ -77,7 +77,7 @@ export function StateMachineContext<
   const eventHandlersRef = useRef<Map<string, (data: any) => any>>(new Map());
 
   const emitHandler = useCallback<EmitHandler>(async (event) => {
-    const handler = eventHandlersRef.current.get(event.type as string);
+    const handler = eventHandlersRef.current.get(event.type);
     if (!handler) return undefined;
     const { type: _, ...data } = event;
     return handler(data);

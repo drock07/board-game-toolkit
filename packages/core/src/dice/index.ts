@@ -79,13 +79,13 @@ export function sum(die: Die<number>, amount: number): number {
 export function withAdvantage<TDie extends Die<number>>(
   die: TDie,
 ): DieResult<TDie> {
-  return Math.max(rollOne(die), rollOne(die)) as DieResult<TDie>;
+  return Math.max(rollOne(die), rollOne(die));
 }
 
 export function withDisadvantage<TDie extends Die<number>>(
   die: TDie,
 ): DieResult<TDie> {
-  return Math.min(rollOne(die), rollOne(die)) as DieResult<TDie>;
+  return Math.min(rollOne(die), rollOne(die));
 }
 
 export function keepHighest<TDie extends Die<number>>(
@@ -94,8 +94,8 @@ export function keepHighest<TDie extends Die<number>>(
   keep: number,
 ): DieResult<TDie>[] {
   return roll(die, rolls)
-    .sort((a, b) => (b as number) - (a as number))
-    .slice(0, keep) as DieResult<TDie>[];
+    .sort((a, b) => b - a)
+    .slice(0, keep);
 }
 
 export function keepLowest<TDie extends Die<number>>(
@@ -104,6 +104,6 @@ export function keepLowest<TDie extends Die<number>>(
   keep: number,
 ): DieResult<TDie>[] {
   return roll(die, rolls)
-    .sort((a, b) => (a as number) - (b as number))
-    .slice(0, keep) as DieResult<TDie>[];
+    .sort((a, b) => a - b)
+    .slice(0, keep);
 }
