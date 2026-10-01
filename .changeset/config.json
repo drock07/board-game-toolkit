@@ -5,7 +5,9 @@
     { "repo": "drock07/board-game-toolkit" }
   ],
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    ["@drock07/board-game-toolkit-core", "@drock07/board-game-toolkit-react"]
+  ],
   "linked": [],
   "access": "restricted",
   "baseBranch": "main",

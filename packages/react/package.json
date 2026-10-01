@@ -2,6 +2,7 @@
   "name": "@drock07/board-game-toolkit-react",
   "version": "0.4.0",
   "type": "module",
+  "sideEffects": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/drock07/board-game-toolkit.git",
@@ -10,7 +11,6 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -41,6 +41,9 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
@@ -48,10 +51,8 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
-    "@drock07/board-game-toolkit-core": "workspace:*"
-  },
   "devDependencies": {
+    "@drock07/board-game-toolkit-core": "workspace:*",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/react": "catalog:",
@@ -63,6 +64,7 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@drock07/board-game-toolkit-core": "workspace:^",
     "react": "^19.0.0"
   }
 }
