@@ -77,10 +77,10 @@ export function StateMachineContext<
   const eventHandlersRef = useRef<Map<string, (data: any) => any>>(new Map());
 
   const emitHandler = useCallback<EmitHandler>(async (event) => {
-    const handler = eventHandlersRef.current.get(event.type as string);
+    const handler = eventHandlersRef.current.get(event.type);
     if (!handler) return undefined;
     const { type: _, ...data } = event;
-    return handler(data);
+    return await handler(data);
   }, []);
 
   const registerEventHandler = useCallback(
@@ -163,6 +163,8 @@ export function StateMachineContext<
     if (autostart) {
       start();
     }
+    // Runs once with no guard, so it double-starts under StrictMode; fixed in #12
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -200,8 +202,8 @@ export function useStateMachineEngineState<TState>() {
   };
 }
 
-export function useStateMachineCurrentState<TState>(): string[];
-export function useStateMachineCurrentState<TState>(
+export function useStateMachineCurrentState<_TState>(): string[];
+export function useStateMachineCurrentState<_TState>(
   machineId: string,
 ): string | undefined;
 export function useStateMachineCurrentState<TState>(machineId?: string) {
@@ -306,6 +308,8 @@ export function useGameEvent<
 
   const activeHandler = handler ?? declarativeHandler;
   const handlerRef = useRef(activeHandler);
+  // Assigning a ref during render; moved into an effect in #12
+  // eslint-disable-next-line react-hooks/refs
   handlerRef.current = activeHandler;
 
   useEffect(() => {

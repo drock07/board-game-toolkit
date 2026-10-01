@@ -1,5 +1,4 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
-import { useCardDimensionsContext } from "./CardDimensionsContext";
 import { CardShape, type CardShapeProps } from "./CardShape";
 
 export const PATTERNS = [
@@ -34,8 +33,6 @@ export function CardBack({
   className,
   style,
 }: CardBackProps) {
-  const { width: inheritedWidth } = useCardDimensionsContext();
-  const width = cardWidth ?? inheritedWidth;
   const cardBgColor = CARD_BG_COLOR;
 
   let patternFill: ReactNode = null;
@@ -140,7 +137,6 @@ const cardColors = {
   green: "rgb(76,	140,	125)",
 };
 function SimplePattern({ pattern }: { pattern: "blue" | "red" | "green" }) {
-  const id = useId();
   const color = cardColors[pattern];
   return (
     <Pattern bgColor={color} translateX={1} translateY={1}>

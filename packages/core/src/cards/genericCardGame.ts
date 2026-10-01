@@ -163,8 +163,7 @@ export function drawFromPool<TState extends GenericCardGameState>(
   assertPoolExists(state, poolId);
 
   const numCount = typeof count === "number" ? count : 1;
-  const reshuffleId =
-    typeof count === "string" ? (count as PoolIdOf<TState>) : reshufflePoolId;
+  const reshuffleId = typeof count === "string" ? count : reshufflePoolId;
 
   if (reshuffleId) {
     assertPoolExists(state, reshuffleId);
@@ -176,17 +175,17 @@ export function drawFromPool<TState extends GenericCardGameState>(
   type TCard = CardOf<TState>;
   let drawn: TCard[];
   let remaining: TCard[];
-  let updatedPools = { ...state.pools };
+  const updatedPools = { ...state.pools };
 
   if (reshufflePool) {
     const [d, r, leftover] = draw(pool, numCount, reshufflePool);
-    drawn = (Array.isArray(d) ? d : [d]) as TCard[];
-    remaining = r as TCard[];
-    updatedPools[reshuffleId!] = leftover as TCard[];
+    drawn = Array.isArray(d) ? d : [d];
+    remaining = r;
+    updatedPools[reshuffleId!] = leftover;
   } else {
     const [d, r] = draw(pool, numCount);
-    drawn = (Array.isArray(d) ? d : [d]) as TCard[];
-    remaining = r as TCard[];
+    drawn = Array.isArray(d) ? d : [d];
+    remaining = r;
   }
 
   updatedPools[poolId] = remaining;
@@ -263,7 +262,7 @@ export function drawToPool<TState extends GenericCardGameState>(
 ): TState {
   const numCount = count ?? 1;
   const [drawn, newState] = drawFromPool(state, fromPoolId, numCount);
-  return addToPool(newState, toPoolId, drawn as CardOf<TState>[], position);
+  return addToPool(newState, toPoolId, drawn, position);
 }
 
 /**
@@ -305,7 +304,7 @@ export function dealFromPool<TState extends GenericCardGameState>(
 
   const totalNeeded = targetPoolIds.length * countPerTarget;
   const [drawn, newState] = drawFromPool(state, poolId, totalNeeded);
-  const drawnCards = drawn as CardOf<TState>[];
+  const drawnCards = drawn;
 
   let result = newState;
   for (let round = 0; round < countPerTarget; round++) {

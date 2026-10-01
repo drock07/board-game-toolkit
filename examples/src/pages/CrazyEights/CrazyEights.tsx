@@ -361,7 +361,10 @@ function FlyingCard({
   toRef: React.RefObject<HTMLDivElement | null>;
   onComplete: () => void;
 }) {
+  // Measuring refs during render; replaced when CrazyEights is rewritten in #23
+  // eslint-disable-next-line react-hooks/refs
   const from = fromRef.current?.getBoundingClientRect();
+  // eslint-disable-next-line react-hooks/refs
   const to = toRef.current?.getBoundingClientRect();
 
   if (!from || !to) {

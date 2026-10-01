@@ -28,7 +28,9 @@ pnpm install
 pnpm build        # Build all packages
 pnpm dev          # Watch mode for all packages
 pnpm test         # Run tests across all packages
-pnpm lint         # Lint all packages
+pnpm typecheck    # Type-check all packages, including tests
+pnpm lint         # Lint the whole repo with ESLint (run pnpm build first)
+pnpm format       # Format with Prettier (format:check to verify)
 ```
 
 ### Project Structure

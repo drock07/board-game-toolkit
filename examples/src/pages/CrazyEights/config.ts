@@ -212,7 +212,7 @@ export const crazyEightsConfig: StateMachineConfig<
   states: {
     setup: {
       autoadvance: true,
-      onEnter: async (_, __, { emit }) => {
+      onEnter: () => {
         nextCardId = 0;
         const deck = Cards.shuffle(createDeck());
         let state: CrazyEightsState = {
