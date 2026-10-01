@@ -1,9 +1,10 @@
 name: Deploy Examples
 
+# Deploys the examples site, which documents the latest *published* release.
+# Called from publish.yml only when changesets actually publishes packages.
+# Manual runs deploy `main`; use them only when `main` matches the latest release.
 on:
-  release:
-    types:
-      - published
+  workflow_call:
   workflow_dispatch:
 
 permissions:
