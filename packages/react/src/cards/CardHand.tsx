@@ -134,7 +134,11 @@ export function CardHand({
   };
 
   return (
-    <div ref={containerRef} className={className ?? "w-full"} style={style}>
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ width: "100%", ...style }}
+    >
       <div
         role="listbox"
         aria-label={ariaLabel}
@@ -147,8 +151,11 @@ export function CardHand({
         onKeyDown={handleKeyDown}
         onFocus={() => setHasFocus(true)}
         onBlur={() => setHasFocus(false)}
-        className="relative outline-none"
-        style={{ height: count > 0 ? cardHeight : 0 }}
+        style={{
+          position: "relative",
+          outline: "none",
+          height: count > 0 ? cardHeight : 0,
+        }}
       >
         {items.map((child, i) => {
           const key = getItemKey(child, i);

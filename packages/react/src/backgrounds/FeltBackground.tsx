@@ -7,8 +7,8 @@ export interface FeltBackgroundProps {
 /**
  * Renders a green casino felt texture as a full-bleed SVG background.
  *
- * Usage: place inside a `relative` container, then layer content on top
- * with `relative z-10`.
+ * Usage: place inside a positioned container (e.g. `position: relative`),
+ * then layer content on top with its own positioning and a higher `z-index`.
  */
 export function FeltBackground({ className }: FeltBackgroundProps) {
   const id = useId();
@@ -18,9 +18,13 @@ export function FeltBackground({ className }: FeltBackgroundProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      className={["absolute inset-0 size-full", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={className}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+      }}
       aria-hidden="true"
     >
       <defs>
