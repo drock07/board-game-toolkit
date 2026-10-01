@@ -1,8 +1,9 @@
 import {
-  Cards,
   PlayingCard,
   PlayingCardRank,
-} from "@drock07/board-game-toolkit-core";
+  isPlayingCardRedSuit,
+  playingCardSuitSymbol,
+} from "@drock07/board-game-toolkit-core/cards";
 import { useCardDimensionsContext } from "./CardDimensionsContext.js";
 import { CardShape, CardShapeProps } from "./CardShape.js";
 
@@ -20,7 +21,7 @@ export function StandardPlayingCard({
   const { width: inheritedWidth } = useCardDimensionsContext();
   const width = customWidth ?? inheritedWidth;
   const { suit } = card;
-  const isRed = Cards.isPlayingCardRedSuit(suit);
+  const isRed = isPlayingCardRedSuit(suit);
   return (
     <CardShape
       {...props}
@@ -69,7 +70,7 @@ function CardLabel({
   card: PlayingCard;
 }) {
   const { rank, suit } = card;
-  const symbol = Cards.playingCardSuitSymbol(suit);
+  const symbol = playingCardSuitSymbol(suit);
   return (
     <div
       style={{
@@ -186,7 +187,7 @@ function CardDesign({
   card: PlayingCard;
 }) {
   const { rank, suit } = card;
-  const symbol = Cards.playingCardSuitSymbol(suit);
+  const symbol = playingCardSuitSymbol(suit);
 
   if (rank === "J" || rank === "Q" || rank === "K")
     return (

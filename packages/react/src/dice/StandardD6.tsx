@@ -1,4 +1,4 @@
-import { Dice, type D6Result } from "@drock07/board-game-toolkit-core";
+import { type D6Result, D6 } from "@drock07/board-game-toolkit-core/dice";
 import { ComponentPropsWithoutRef } from "react";
 import { useRollingAnimation } from "./useRollingAnimation.js";
 
@@ -36,7 +36,7 @@ export function StandardD6({
   ...props
 }: StandardD6Props &
   Omit<ComponentPropsWithoutRef<"svg">, keyof StandardD6Props | "viewBox">) {
-  const faceValue = useRollingAnimation(value, Dice.D6, rolling);
+  const faceValue = useRollingAnimation(value, D6, rolling);
 
   if (faceValue === null) {
     return (

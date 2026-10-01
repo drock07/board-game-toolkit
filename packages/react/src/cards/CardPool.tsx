@@ -2,7 +2,7 @@ import {
   CardOf,
   GenericCardGameState,
   PoolIdOf,
-} from "@drock07/board-game-toolkit-core";
+} from "@drock07/board-game-toolkit-core/cards";
 import { ReactNode } from "react";
 import { useStateMachineState } from "../stateMachine/index.js";
 

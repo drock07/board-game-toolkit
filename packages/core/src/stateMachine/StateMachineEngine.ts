@@ -457,7 +457,7 @@ export class StateMachineEngine<
     );
   }
 
-  public getCurrentStateForMachine(machineId: string) {
+  public getMachineCurrentState(machineId: string) {
     return getMachineCurrentState(
       this.engineState as EngineState<TState>,
       machineId,

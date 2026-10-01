@@ -25,7 +25,7 @@
       "types": "./dist/cards/index.d.ts",
       "import": "./dist/cards/index.js"
     },
-    "./stateMachine": {
+    "./state-machine": {
       "types": "./dist/stateMachine/index.d.ts",
       "import": "./dist/stateMachine/index.js"
     }

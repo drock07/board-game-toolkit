@@ -1,7 +1,8 @@
 import {
-  Dice,
   type D6Result,
   type StateMachineConfig,
+  D6,
+  roll,
 } from "@drock07/board-game-toolkit-core";
 
 // --- Constants ---
@@ -70,7 +71,7 @@ export const rollFiveConfig: StateMachineConfig<
     setup: {
       onExit: (state) => ({
         ...state,
-        dice: Dice.roll(Dice.D6, 5) as RollFiveDice,
+        dice: roll(D6, 5) as RollFiveDice,
         roll: 1,
         heldDice: [false, false, false, false, false],
       }),
@@ -84,7 +85,7 @@ export const rollFiveConfig: StateMachineConfig<
               ...state,
               roll: state.roll + 1,
               dice: state.heldDice.map((isHeld, i) =>
-                isHeld && state.dice ? state.dice[i] : Dice.roll(Dice.D6),
+                isHeld && state.dice ? state.dice[i] : roll(D6),
               ) as RollFiveDice,
             };
           },

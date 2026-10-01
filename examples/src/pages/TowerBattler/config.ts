@@ -7,7 +7,15 @@ import type {
   StateMachineConfig,
   TransferCardsEffect,
 } from "@drock07/board-game-toolkit-core";
-import { Cards } from "@drock07/board-game-toolkit-core";
+import {
+  addToPool,
+  createBuiltinEffectHandlers,
+  drawToPool,
+  moveCard,
+  resolveEffects,
+  shuffle,
+  shufflePool,
+} from "@drock07/board-game-toolkit-core";
 
 // ---------------------------------------------------------------------------
 // Effects
@@ -112,7 +120,7 @@ const effectHandlers: EffectHandlerMap<
   BattleEffect,
   BattleContext
 > = {
-  ...Cards.createBuiltinEffectHandlers<TowerBattlerState, BattleContext>(),
+  ...createBuiltinEffectHandlers<TowerBattlerState, BattleContext>(),
   dealDamage: (state, effect) => ({
     ...state,
     enemyHp: Math.max(0, state.enemyHp - effect.amount),
@@ -135,12 +143,12 @@ function getEnemyIntent(turn: number): number {
 function reshuffleDraw(state: TowerBattlerState): TowerBattlerState {
   if (state.pools.drawPile.length > 0) return state;
   if (state.pools.discardPile.length === 0) return state;
-  let newState = Cards.addToPool(state, "drawPile", state.pools.discardPile);
+  let newState = addToPool(state, "drawPile", state.pools.discardPile);
   newState = {
     ...newState,
     pools: { ...newState.pools, discardPile: [] },
   };
-  return Cards.shufflePool(newState, "drawPile");
+  return shufflePool(newState, "drawPile");
 }
 
 function drawCards(state: TowerBattlerState, count: number): TowerBattlerState {
@@ -148,7 +156,7 @@ function drawCards(state: TowerBattlerState, count: number): TowerBattlerState {
   for (let i = 0; i < count; i++) {
     current = reshuffleDraw(current);
     if (current.pools.drawPile.length === 0) break;
-    current = Cards.drawToPool(current, "drawPile", "hand");
+    current = drawToPool(current, "drawPile", "hand");
   }
   return current;
 }
@@ -192,7 +200,7 @@ export const towerBattlerConfig: StateMachineConfig<
       autoadvance: true,
       onEnter: () => {
         nextCardId = 0;
-        const deck = Cards.shuffle(createDeck());
+        const deck = shuffle(createDeck());
         const state: TowerBattlerState = {
           ...initialState,
           pools: { ...initialState.pools, drawPile: deck },
@@ -230,12 +238,7 @@ export const towerBattlerConfig: StateMachineConfig<
             )!;
 
             // Move card to discard
-            let newState = Cards.moveCard(
-              state,
-              "hand",
-              "discardPile",
-              card.id,
-            );
+            let newState = moveCard(state, "hand", "discardPile", card.id);
 
             // Spend energy
             newState = {
@@ -245,12 +248,9 @@ export const towerBattlerConfig: StateMachineConfig<
             };
 
             // Resolve effects
-            newState = Cards.resolveEffects(
-              newState,
-              card.effects,
-              effectHandlers,
-              { card },
-            );
+            newState = resolveEffects(newState, card.effects, effectHandlers, {
+              card,
+            });
 
             // Check for enemy defeat
             if (newState.enemyHp <= 0) {
