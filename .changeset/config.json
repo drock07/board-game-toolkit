@@ -12,5 +12,5 @@
   "access": "restricted",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["board-game-toolkit-examples"]
+  "ignore": ["board-game-toolkit-examples", "board-game-toolkit-docs"]
 }

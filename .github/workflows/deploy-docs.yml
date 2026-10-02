@@ -1,6 +1,6 @@
-name: Deploy Examples
+name: Deploy Docs
 
-# Deploys the examples site, which documents the latest *published* release.
+# Deploys the docs site, which documents the latest *published* release.
 # Called from publish.yml only when changesets actually publishes packages.
 # Manual runs deploy `main`; use them only when `main` matches the latest release.
 on:
@@ -27,11 +27,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -r --filter="!board-game-toolkit-examples" build
-      - run: pnpm --filter=board-game-toolkit-examples build
+      # Builds the packages, then the site
+      - run: pnpm build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: examples/dist
+          path: docs/dist
 
   deploy:
     needs: build

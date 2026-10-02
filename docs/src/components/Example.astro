@@ -1,0 +1,29 @@
+---
+import ExampleIsland from "./ExampleIsland";
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+---
+
+<div class="bgt-wide not-content bgt-example">
+  <ExampleIsland slug={slug} client:only="react" />
+</div>
+
+<style>
+  .bgt-example {
+    margin-block: 1.5rem 2rem;
+    min-height: 640px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--page);
+  }
+  @media (min-width: 80rem) {
+    .bgt-example {
+      height: min(900px, calc(100dvh - var(--sl-nav-height) - 4rem));
+    }
+  }
+</style>

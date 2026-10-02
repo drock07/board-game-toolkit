@@ -32,7 +32,7 @@ jobs:
 
       - run: pnpm format:check
 
-      # Also type-checks and builds the examples app
+      # Also builds the docs site, which renders every example
       - run: pnpm build
 
       # Type-aware rules resolve workspace packages through their built types, so

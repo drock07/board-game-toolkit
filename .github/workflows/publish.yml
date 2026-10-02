@@ -46,11 +46,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy-examples:
+  deploy-docs:
     needs: publish
     if: needs.publish.outputs.published == 'true'
     permissions:
       contents: read
       pages: write
       id-token: write
-    uses: ./.github/workflows/deploy-examples.yml
+    uses: ./.github/workflows/deploy-docs.yml

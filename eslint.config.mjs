@@ -5,7 +5,9 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", ".local/**"] },
+  {
+    ignores: ["**/dist/**", "**/node_modules/**", "**/.astro/**", ".local/**"],
+  },
 
   js.configs.recommended,
 
@@ -62,7 +64,11 @@ export default tseslint.config(
 
   // React
   {
-    files: ["packages/react/**/*.{ts,tsx}", "examples/**/*.{ts,tsx}"],
+    files: [
+      "packages/react/**/*.{ts,tsx}",
+      "examples/**/*.{ts,tsx}",
+      "docs/**/*.{ts,tsx}",
+    ],
     extends: [reactHooks.configs.flat.recommended],
   },
 
@@ -84,7 +90,7 @@ export default tseslint.config(
 
   // Node-run config files
   {
-    files: ["*.{js,mjs}", "examples/vite.config.ts"],
+    files: ["*.{js,mjs}", "docs/*.{js,mjs}"],
     languageOptions: { globals: globals.node },
   },
 

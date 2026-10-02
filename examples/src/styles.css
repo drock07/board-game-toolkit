@@ -1,6 +1,15 @@
-@import "tailwindcss";
+/* The examples' design tokens and utilities. Import after Tailwind, in the
+   same stylesheet, so the theme and utilities are part of that build:
 
-@custom-variant dark (&:where(.dark, .dark *));
+     @import "tailwindcss";
+     @import "board-game-toolkit-examples/styles.css";
+
+   Dark mode follows a `.dark` class or Starlight's `data-theme="dark"`. */
+
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+/* Game UIs live in this package, so Tailwind must scan it */
+@source ".";
 
 /* Colors from the Direction A mockups. Components use these tokens, so dark
    mode only redefines them. */
@@ -40,7 +49,8 @@
   --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
-.dark {
+.dark,
+[data-theme="dark"] {
   --page: #111113;
   --chrome: #18181b;
   --panel: #1c1c1f;
@@ -131,17 +141,6 @@
   --bgt-dt-bad: var(--bad);
   --bgt-dt-mono: "IBM Plex Mono", ui-monospace, monospace;
   --bgt-dt-sans: "IBM Plex Sans", ui-sans-serif, sans-serif;
-}
-
-@layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-  }
-  body {
-    @apply bg-page font-sans text-ink antialiased;
-  }
 }
 
 /* The small uppercase mono label used across the mockups */
