@@ -1,7 +1,8 @@
 # @drock07/board-game-toolkit-react
 
 The React host for
-[`@drock07/board-game-toolkit-engine`](../engine): it runs a game in a
+[`@drock07/board-game-toolkit-engine`](../engine), which it depends on and
+installs for you (the two are always released together): it runs a game in a
 component, plays events back one at a time so the UI can animate them, and
 lets bots answer their prompts.
 

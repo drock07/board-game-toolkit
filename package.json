@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:packages": "publint --strict packages/engine && publint --strict packages/react && attw --pack packages/engine --profile esm-only && attw --pack packages/react --profile esm-only",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "release": "changeset publish"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
