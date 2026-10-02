@@ -1,0 +1,23 @@
+---
+interface Props {
+  n: number;
+  title: string;
+}
+const { n, title } = Astro.props;
+---
+
+<div class="grid min-w-0 gap-x-10 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+  <div class="flex flex-col gap-3">
+  <div class="flex items-center gap-3">
+    <span
+      class="flex size-7 shrink-0 items-center justify-center rounded-full border border-accent-line bg-accent-soft font-mono text-xs font-medium text-accent"
+      >{n}</span
+    >
+    <h3 class="text-base font-semibold text-ink">{title}</h3>
+  </div>
+    <div class="text-[15px]/relaxed text-pretty text-muted">
+      <slot name="text" />
+    </div>
+  </div>
+  <div class="min-w-0"><slot /></div>
+</div>

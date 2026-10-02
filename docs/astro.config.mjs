@@ -63,6 +63,8 @@ export default defineConfig({
       components: {
         // Brings old hash links (/#/crazy-eights) to their new pages
         Head: "./src/overrides/Head.astro",
+        // The landing page's header
+        Hero: "./src/overrides/Hero.astro",
       },
     }),
     react(),

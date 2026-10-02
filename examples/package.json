@@ -9,6 +9,7 @@
     "./catalog": "./src/catalog.ts",
     "./registry": "./src/games/registry.ts",
     "./games/*": "./src/games/*/index.ts",
+    "./games/*/Table": "./src/games/*/Table.tsx",
     "./site/*": "./src/site/*.tsx",
     "./ui/*": "./src/ui/*.tsx"
   },

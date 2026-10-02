@@ -8,11 +8,12 @@ import {
   type GameSpec,
 } from "@drock07/board-game-toolkit-engine";
 
+// #region spec
 export const spec = {
   id: "tic-tac-toe",
   version: 1,
   players: { min: 2, max: 2 },
-  // The board is nine cells in vars (see open question Q1)
+  // The board is nine cells in vars, so there are no zones
   zones: {},
   vars: { marks: {}, winner: {}, tie: {}, line: {}, wins: {}, ties: {} },
   flow: loop(
@@ -30,3 +31,4 @@ export const spec = {
     ]),
   ),
 } as const satisfies GameSpec;
+// #endregion spec

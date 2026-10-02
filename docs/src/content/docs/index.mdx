@@ -1,7 +1,76 @@
 ---
 title: Board Game Toolkit
-description: A TypeScript toolkit for board games.
+description: A TypeScript toolkit for board games. Describe the flow as data, write the rules as small functions, and play it in React with bots, hidden information and replays.
 template: splash
+hero:
+  title: Your game's flow is data.
+  tagline: Describe phases, turns and decisions as a JSON spec. A pure, deterministic engine runs it, and a React host plays it back with bots, hidden information and animation.
+  actions:
+    - text: Get started
+      link: start/quickstart/
+      variant: primary
+    - text: Browse examples
+      link: examples/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/drock07/board-game-toolkit
+      variant: minimal
 ---
 
-Landing page coming soon.
+import FeatureGrid from "../../components/FeatureGrid";
+import LandingDemo from "../../components/LandingDemo";
+import LandingSection from "../../components/LandingSection.astro";
+import Source from "../../components/Source.astro";
+import Step from "../../components/Step.astro";
+
+<div class="not-content bgt-wide">
+  <LandingDemo client:only="react">
+    <Source file="games/crazy-eights/spec.ts" title={false} />
+  </LandingDemo>
+  <p class="mt-3 text-sm text-subtle">
+    You play the bottom hand against two bots. Every move runs through the spec
+    on the right, and the graph below lights up the nodes that are running.
+  </p>
+</div>
+
+<LandingSection
+  eyebrow="How it fits together"
+  title="A spec, its rules, and a hook"
+>
+  <Fragment slot="blurb">
+    Three pieces make a game. Here they are for Tic-Tac-Toe, taken straight from
+    the [example's source](examples/tic-tac-toe/).
+  </Fragment>
+  <div class="flex flex-col gap-10">
+    <Step n={1} title="Describe the flow">
+      <Fragment slot="text">
+        The spec is plain data: zones, vars and a tree of flow nodes. Strings
+        like `"boardDecided"` name rules in the impl.
+      </Fragment>
+      <Source file="games/tic-tac-toe/spec.ts" region="spec" />
+    </Step>
+    <Step n={2} title="Write the rules">
+      <Fragment slot="text">
+        The impl gives each name a function. Actions validate, list their legal
+        arguments for bots, and change state through a transaction.
+      </Fragment>
+      <Source file="games/tic-tac-toe/impl.ts" region="actions" />
+    </Step>
+    <Step n={3} title="Play it">
+      <Fragment slot="text">
+        `useGame` hosts the game: the viewer's view, their legal inputs, bots
+        for the other seats, and event playback.
+      </Fragment>
+      <Source file="snippets/MinimalBoard.tsx" region="board" />
+    </Step>
+  </div>
+</LandingSection>
+
+<LandingSection eyebrow="What you get" title="Built for real board games">
+  <Fragment slot="blurb">
+    The hard parts of board game code — whose turn it is, who can see what,
+    reactions that interrupt, and games you can reproduce — are part of the
+    model, not something each game invents.
+  </Fragment>
+  <FeatureGrid />
+</LandingSection>

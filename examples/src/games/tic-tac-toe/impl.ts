@@ -63,10 +63,12 @@ export const impl = {
       ties: 0,
     };
   },
+  // #region conditions
   conditions: {
     boardDecided: (s) =>
       winningLine(s.vars.marks) !== null || isFull(s.vars.marks),
   },
+  // #endregion conditions
   steps: {
     clearBoard(tx) {
       tx.vars.marks = Array<Cell>(9).fill(null);
@@ -90,6 +92,7 @@ export const impl = {
       }
     },
   },
+  // #region actions
   actions: {
     placeMark: {
       enumerate: (s): PlaceArgs[] =>
@@ -103,4 +106,5 @@ export const impl = {
       },
     },
   },
+  // #endregion actions
 } satisfies GameImpl<Types>;
