@@ -7,7 +7,40 @@ sidebar:
 ---
 
 import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
 
-Take turns until the board is decided. Shows each over players from a random seat, and a minimax bot.
+Two players alternate until someone makes a line or the board fills. The
+[Quickstart](../../start/quickstart/) builds this game step by step.
 
 <Example slug="tic-tac-toe" />
+
+## How it works
+
+**Turns are an `each` over players.** It starts from a random seat
+(`from: "random"`, drawn from the seeded RNG) and goes clockwise. `repeat: true`
+starts another pass after the last player, and `until: "boardDecided"` stops it
+as soon as the condition holds after a turn. See
+[`each`](../../reference/flow/each/).
+
+**Each turn is a decision for the current player.** `actor: "current"` is the
+player bound by the nearest `each`, so only they get the prompt.
+
+<Source file="games/tic-tac-toe/spec.ts" region="spec" />
+
+**The board is vars, not zones.** Nine cells fit naturally in a var. Zones are
+for things that move and can be hidden, like cards.
+
+**The computer is a bot.** A bot is a function from its own view and prompt to
+one of its legal inputs. This one scores every legal placement with minimax.
+The host runs it after a short delay, and the engine checks its input like
+anyone else's. See [Writing a bot](../../guides/bots/).
+
+`placeMark` lists its legal arguments with `enumerate`, which is how the bot
+(and the page) know which cells are open:
+
+<Source file="games/tic-tac-toe/impl.ts" region="actions" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/tic-tac-toe`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/tic-tac-toe).

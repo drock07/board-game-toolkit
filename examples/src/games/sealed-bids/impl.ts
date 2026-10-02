@@ -94,6 +94,7 @@ export const impl = {
     },
   },
   actions: {
+    // #region placeBid
     placeBid: {
       enumerate: (s, scope): BidArgs[] =>
         Array.from(
@@ -112,5 +113,6 @@ export const impl = {
         tx.vars.bids[tx.scope.actor!] = amount;
       },
     },
+    // #endregion placeBid
   },
 } satisfies GameImpl<Types>;

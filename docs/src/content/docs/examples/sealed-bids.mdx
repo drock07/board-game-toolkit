@@ -7,7 +7,32 @@ sidebar:
 ---
 
 import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
 
-Everyone bids at once, in secret, on three lots. Shows parallel each and owner-only vars.
+Three items come up for auction. Everyone bids at the same time, in secret, and
+the highest bid wins the lot.
 
 <Example slug="sealed-bids" />
+
+## How it works
+
+**Everyone bids at once.** The `bidding` each has `mode: "parallel"`: it runs a
+fiber per player, so every player has an open prompt at the same time and can
+answer in any order. The round resolves once all are in. See
+[Simultaneous turns](../../guides/simultaneous-turns/).
+
+**Bids are secret.** The `bids` var has `visibility: "owner"`. It's a record
+keyed by player, and each player's view holds only their own entry. Switch
+**Viewing as** to check.
+
+<Source file="games/sealed-bids/spec.ts" />
+
+**The actor comes from scope.** In a parallel each, several players act on the
+same action, so the rules read who is bidding from `scope.actor`:
+
+<Source file="games/sealed-bids/impl.ts" region="placeBid" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/sealed-bids`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/sealed-bids).

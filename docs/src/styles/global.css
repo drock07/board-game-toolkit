@@ -46,7 +46,8 @@
   --sl-color-hairline-shade: var(--line);
 }
 
-:root[data-theme="light"] .sl-markdown-content a {
+/* Prose links; components inside .not-content style their own */
+.sl-markdown-content a:not(:where(.not-content *)) {
   color: var(--accent);
 }
 
@@ -60,10 +61,14 @@
   color: var(--label);
 }
 
-/* Pages with a live game or a wide figure use the full content width */
+/* Pages with a live game or a wide figure use the full content width, and
+   keep their prose and code at a readable measure */
 @media (min-width: 72rem) {
   :root:has(.bgt-wide) {
     --sl-content-width: 100%;
+  }
+  .sl-markdown-content:has(.bgt-wide) > :not(.bgt-wide) {
+    max-width: 52rem;
   }
 }
 

@@ -139,6 +139,7 @@ export const impl = {
   setup(tx) {
     tx.vars = { scores: emptyScores(), bonus: 0 };
   },
+  // #region locals
   locals: {
     freshDice: (): TurnLocals => ({
       dice: [],
@@ -146,12 +147,14 @@ export const impl = {
       rolls: 0,
     }),
   },
+  // #endregion locals
   steps: {
     resetScores(tx) {
       tx.vars = { scores: emptyScores(), bonus: 0 };
     },
   },
   actions: {
+    // #region roll
     roll: {
       validate: (s) =>
         s.local("turn").rolls < MAX_ROLLS ? true : "No rolls left",
@@ -163,6 +166,7 @@ export const impl = {
         turn.rolls++;
       },
     },
+    // #endregion roll
     toggleHold: {
       enumerate: (): HoldArgs[] => [0, 1, 2, 3, 4].map((index) => ({ index })),
       validate(s, args: HoldArgs) {

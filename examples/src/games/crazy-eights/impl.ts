@@ -106,11 +106,13 @@ export const impl = {
         tx.state.players.find((p) => hand(tx, p).length === 0) ?? null;
     },
   },
+  // #region choices
   choices: {
     setColor(tx, [color]) {
       tx.vars.activeColor = color as Color;
     },
   },
+  // #endregion choices
   actions: {
     playCard: {
       enumerate: (s, scope): PlayArgs[] =>

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 /** `examples/src`, found upward from the working directory (the docs package when building). */
-function examplesRoot(): string {
+export function examplesRoot(): string {
   for (let dir = process.cwd(); ; dir = dirname(dir)) {
     const candidate = join(dir, "examples", "src");
     if (existsSync(candidate)) return candidate;

@@ -7,7 +7,36 @@ sidebar:
 ---
 
 import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
 
-Deck-building combat against one enemy. Shows card effects resolved in one transaction, and exits checked mid-turn.
+Play cards with your energy to attack and block, then take the enemy's hit.
+Bring its health to zero before it does the same to you.
 
 <Example slug="tower-battler" />
+
+## How it works
+
+**The fight ends the moment someone falls.** The `rounds` loop's exits are
+checked after every transaction, so a card that deals the last point of damage
+ends the loop at once, mid-turn. Both use inline expressions on vars. See
+[Outcomes and guards](../../concepts/outcomes/).
+
+<Source file="games/tower-battler/spec.ts" />
+
+**Cards are data.** Each card's props list its effects, and playing one
+resolves them all in the same transaction. Every change becomes an event, in
+order, so the page plays them back as damage, block and draws. See
+[Card effects](../../guides/card-effects/).
+
+<Source file="games/tower-battler/impl.ts" region="playCard" />
+
+**The enemy's attack emits a custom event.** `tx.emit` adds a presentation-only
+event that changes no state. The page flashes the damage when it plays back.
+See [Animating events](../../guides/animating-events/).
+
+<Source file="games/tower-battler/impl.ts" region="enemyAttack" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/tower-battler`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/tower-battler).

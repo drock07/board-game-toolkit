@@ -7,7 +7,42 @@ sidebar:
 ---
 
 import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
 
-One hand at a time against the dealer. Shows exits on a seq, a face-down hole card, and a branch when you go broke.
+Bet, play your hand, and watch the dealer play theirs. Run out of chips and
+the bankroll resets.
 
 <Example slug="blackjack" />
+
+## How it works
+
+**Guards end the hand early.** The `play` seq declares
+`exits: { natural, bust }`. Guards are checked after every transaction, so
+hitting to 22 ends `play` at once and the dealer never takes a turn. See
+[Outcomes and guards](../../concepts/outcomes/).
+
+**The decision stays open until you stand.** `hit` sets `ends: false`, so the
+decision prompts again after it. Its `endWhen: "playerAt21"` closes it on 21
+without asking.
+
+**A branch handles going broke.** It uses an inline
+[expression](../../reference/spec/expressions/), not a named condition:
+`{ lte: [{ var: "vars.bankroll" }, 0] }`.
+
+<Source file="games/blackjack/spec.ts" />
+
+**The hole card is face down in a public zone.** The dealer's zone is public,
+but the second card is dealt with `faceUp: false`, which overrides the zone for
+that one entity:
+
+<Source file="games/blackjack/impl.ts" region="deal" />
+
+Turning it up later is a `flip`, which emits a `flipped` event. The view shows
+the card from then on:
+
+<Source file="games/blackjack/impl.ts" region="reveal" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/blackjack`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/blackjack).

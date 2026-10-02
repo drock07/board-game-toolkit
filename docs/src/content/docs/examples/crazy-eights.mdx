@@ -7,7 +7,32 @@ sidebar:
 ---
 
 import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
 
-Shed your hand against two bots. Shows owner-only hands, a top-only discard pile, and choose for the wild color.
+Match the top card's color or number, or play an eight to call a new color.
+The first to empty their hand wins.
 
 <Example slug="crazy-eights" />
+
+## How it works
+
+**Each zone declares who can see it.** Hands are per-player zones
+(`hand:p1`, `hand:p2`, …) with `visibility: "owner"`, the deck is `"hidden"`,
+and the discard pile is `"top"`: only its top card shows. Switch **Viewing as**
+in the inspector to see another seat's view. Bots get their own view too, so
+they can't cheat. See [Views and hidden information](../../concepts/views/).
+
+**Playing an eight asks for a color.** The `playCard` action has a `then` flow:
+a `branch` that, when an eight was played, runs a `choose` prompt over the
+`colors` list. See [`choose`](../../reference/flow/choose/).
+
+<Source file="games/crazy-eights/spec.ts" />
+
+The choice is applied by a `choices` entry, which gets the selected options:
+
+<Source file="games/crazy-eights/impl.ts" region="choices" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/crazy-eights`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/crazy-eights).

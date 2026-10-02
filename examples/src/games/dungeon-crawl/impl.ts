@@ -332,6 +332,7 @@ export const impl = {
         );
       },
     },
+    // #region flee
     flee: {
       execute(tx) {
         const roll = tx.random.roll(D20) as number;
@@ -340,6 +341,7 @@ export const impl = {
         else log(tx, `You rolled ${roll}: couldn't escape!`);
       },
     },
+    // #endregion flee
     dismantle: {
       execute(tx) {
         const trap = tx.local("trap.trapRoom");
