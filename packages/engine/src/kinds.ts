@@ -1,3 +1,4 @@
+import type { ExpandedUse } from "./compile.js";
 import { GameDefinitionError } from "./errors.js";
 import {
   inputError,
@@ -12,6 +13,7 @@ import type {
   DecisionAction,
   DecisionNode,
   EachNode,
+  ExitNode,
   FlowNode,
   LoopNode,
   PauseNode,
@@ -335,6 +337,21 @@ const choose: NodeKind<ChooseNode> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// exit and use
+
+/** Raises its outcome: the nearest enclosing node that handles it ends. */
+const exit: NodeKind<ExitNode> = {
+  enter: (_ctx, _frame, node) => ({ end: node.outcome }),
+  childEnded: () => DONE,
+};
+
+/** Runs the subflow the compiler expanded into `body`. */
+const use: NodeKind<ExpandedUse> = {
+  enter: (_ctx, _frame, node) => ({ push: node.body.id }),
+  childEnded: () => DONE,
+};
+
 /** The built-in node kinds. */
 export const builtinKinds = new Map<FlowNode["kind"], NodeKind<never>>([
   ["seq", seq],
@@ -345,4 +362,6 @@ export const builtinKinds = new Map<FlowNode["kind"], NodeKind<never>>([
   ["pause", pause],
   ["each", each],
   ["choose", choose],
+  ["exit", exit],
+  ["use", use],
 ] as [FlowNode["kind"], NodeKind<never>][]);

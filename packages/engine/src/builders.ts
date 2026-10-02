@@ -144,10 +144,15 @@ export function exit<const O extends CommonOptions = {}>(
   return { kind: "exit", id, outcome, ...opts } as never;
 }
 
-export function use<const O extends CommonOptions = {}>(
+/**
+ * A `use` node: runs `spec.subflows[name]`, with its node ids prefixed by
+ * `id`. Named `subflow` rather than `use`, which React's lint rules treat as
+ * a hook.
+ */
+export function subflow<const O extends CommonOptions = {}>(
   id: string,
-  subflow: string,
+  name: string,
   opts?: O,
 ): NoInfer<{ kind: "use"; id: string; subflow: string } & O> {
-  return { kind: "use", id, subflow, ...opts } as never;
+  return { kind: "use", id, subflow: name, ...opts } as never;
 }

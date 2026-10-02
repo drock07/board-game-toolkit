@@ -4,8 +4,8 @@ A pure, deterministic board game engine. Game state is plain JSON, rules code
 changes it only through a transaction (`tx`), and every change is recorded as
 an event that can be replayed.
 
-> Under construction: `exit`/`use`, `parallel`, triggers and views arrive in
-> later milestones.
+> Under construction: `parallel`, triggers and views arrive in later
+> milestones.
 
 ## Defining a game
 
@@ -85,6 +85,19 @@ if (!res.ok) console.log(res.error.code); // invalid inputs return errors
 Guards (`exits: { outcome: condition }`) are checked outermost first whenever
 a frame is pushed and after every transaction. A node that lists an outcome
 in `exits` or `on` handles it: its `on` flow runs, then its parent continues.
+
+An `exit` node or `tx.exit(outcome)` in rules code raises an outcome, which
+unwinds to the nearest enclosing node that handles it (`tx.exit` takes effect
+when the transaction commits). Raising an outcome no enclosing node handles is
+a definition error.
+
+`subflow(id, name)` runs `spec.subflows[name]` in place, with the subflow's
+node ids prefixed by `id`: `subflow("combat", "combat")` turns its `fight`
+node into `combat.fight`. (The node kind is `use`; the builder isn't called
+`use` because React's lint rules treat that name as a hook.)
+
+A guard is also checked when its node is pushed again, before any of its
+children run, so reset the state it watches before re-entering it.
 
 ## State model
 

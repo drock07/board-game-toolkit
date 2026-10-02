@@ -11,7 +11,7 @@ export {
   pause,
   seq,
   step,
-  use,
+  subflow,
 } from "./builders.js";
 export type { CompiledGame, CompiledNode } from "./compile.js";
 export { D10, D100, D12, D20, D4, D6, D8, Fudge } from "./dice.js";

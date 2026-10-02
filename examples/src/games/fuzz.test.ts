@@ -2,9 +2,11 @@ import { fuzz } from "@drock07/board-game-toolkit-engine/testing";
 import { expect, test } from "vitest";
 import { blackjack } from "./blackjack";
 import { crazyEights } from "./crazy-eights";
+import { dungeonCrawl } from "./dungeon-crawl";
 import { rollFive } from "./roll-five";
 import { sandbox } from "./sandbox";
 import { ticTacToe } from "./tic-tac-toe";
+import { towerBattler } from "./tower-battler";
 
 // Every ported game must fuzz clean for 1,000 seeds (the milestone
 // criterion), which CI runs. Locally it runs 100 for speed; FUZZ_SEEDS
@@ -32,6 +34,8 @@ const games = [
       "impl.actions.pass was never legal without args; if it takes args, give it enumerate",
     ],
   },
+  { name: "tower-battler", game: towerBattler, players: ["p1"], maxInputs: 80 },
+  { name: "dungeon-crawl", game: dungeonCrawl, players: ["p1"], maxInputs: 80 },
 ] as const;
 
 for (const { name, game, players, maxInputs, ...rest } of games) {

@@ -1,6 +1,6 @@
 import { GameDefinitionError } from "./errors.js";
 import { IMPL_CATEGORIES, type GameImpl, type ImplCategory } from "./impl.js";
-import type { FlowNode, GameSpec } from "./spec.js";
+import type { FlowNode, GameSpec, UseNode } from "./spec.js";
 import type { NodeId, PlayerId, Zone } from "./types.js";
 
 export interface CompiledNode {
@@ -17,8 +17,54 @@ export type KindRegistry = ReadonlySet<string>;
 export interface CompiledGame {
   spec: GameSpec;
   impl: GameImpl;
+  /** The flow with every `use` expanded. */
+  flow: FlowNode;
   nodes: ReadonlyMap<NodeId, CompiledNode>;
   root: NodeId;
+}
+
+/** A `use` node after compiling: its subflow, with ids prefixed, as `body`. */
+export type ExpandedUse = UseNode & { readonly body: FlowNode };
+
+/** Rebuilds a node with `f` applied to each child, slot by slot. */
+function mapChildren(
+  node: FlowNode,
+  f: (child: FlowNode) => FlowNode,
+): FlowNode {
+  const out: Record<string, unknown> = { ...node };
+  switch (node.kind) {
+    case "seq":
+    case "parallel":
+      out.children = node.children.map(f);
+      break;
+    case "loop":
+    case "each":
+      out.body = f(node.body);
+      break;
+    case "branch":
+      out.cases = node.cases.map((c) => ({ ...c, then: f(c.then) }));
+      if (node.else) out.else = f(node.else);
+      break;
+    case "decision":
+      out.actions = Object.fromEntries(
+        Object.entries(node.actions).map(([k, a]) => [
+          k,
+          a.then ? { ...a, then: f(a.then) } : a,
+        ]),
+      );
+      break;
+    case "use":
+      if ("body" in node) out.body = f((node as ExpandedUse).body);
+      break;
+    default:
+      break;
+  }
+  if (node.on) {
+    out.on = Object.fromEntries(
+      Object.entries(node.on).map(([k, v]) => [k, f(v)]),
+    );
+  }
+  return out as unknown as FlowNode;
 }
 
 /** The child nodes of a node, in slot order. */
@@ -39,6 +85,9 @@ export function childNodes(node: FlowNode): FlowNode[] {
       break;
     case "decision":
       for (const a of Object.values(node.actions)) if (a.then) out.push(a.then);
+      break;
+    case "use":
+      if ("body" in node) out.push((node as ExpandedUse).body);
       break;
     default:
       break;
@@ -121,7 +170,48 @@ export function compile(
   const problems: string[] = [];
   const nodes = new Map<NodeId, CompiledNode>();
 
-  const visit = (node: FlowNode, parent?: NodeId, underPlayers = false) => {
+  // Expand `use` nodes: each gets its subflow as `body`, with every node id
+  // inside prefixed by the use node's id, so `use("combat", "combat")` turns
+  // the subflow's "fight" into "combat.fight"
+  const usedSubflows = new Set<string>();
+  const expand = (
+    node: FlowNode,
+    prefix: string,
+    stack: string[],
+  ): FlowNode => {
+    const renamed = {
+      ...mapChildren(node, (c) => expand(c, prefix, stack)),
+      id: prefix + node.id,
+    } as FlowNode;
+    if (renamed.kind !== "use") return renamed;
+    const sub = spec.subflows?.[renamed.subflow];
+    if (!sub) {
+      problems.push(
+        `Node "${renamed.id}" uses unknown subflow "${renamed.subflow}"`,
+      );
+      return renamed;
+    }
+    if (stack.includes(renamed.subflow)) {
+      problems.push(
+        `Subflow "${renamed.subflow}" uses itself (${[...stack, renamed.subflow].join(" → ")})`,
+      );
+      return renamed;
+    }
+    usedSubflows.add(renamed.subflow);
+    const body = expand(sub, `${renamed.id}.`, [...stack, renamed.subflow]);
+    return { ...renamed, body } as ExpandedUse;
+  };
+  const flow = expand(spec.flow, "", []);
+  for (const name of Object.keys(spec.subflows ?? {})) {
+    if (!usedSubflows.has(name)) problems.push(`Unused subflow "${name}"`);
+  }
+
+  const visit = (
+    node: FlowNode,
+    parent?: NodeId,
+    underPlayers = false,
+    handled: ReadonlySet<string> = new Set(),
+  ) => {
     if (nodes.has(node.id)) problems.push(`Duplicate node id "${node.id}"`);
     if (!kinds.has(node.kind)) {
       problems.push(`Node "${node.id}" has unsupported kind "${node.kind}"`);
@@ -168,14 +258,33 @@ export function compile(
     if (node.kind === "each" && node.mode === "parallel") {
       problems.push(`Each "${node.id}": parallel mode is not supported yet`);
     }
-    // An each over players binds `current` for its body, not its `on` flows
+    if (node.kind === "exit") {
+      if (node.outcome === "done") {
+        problems.push(
+          `Exit "${node.id}" can't raise "done", the normal outcome`,
+        );
+      } else if (!handled.has(node.outcome)) {
+        problems.push(
+          `Exit "${node.id}" raises "${node.outcome}", which no enclosing node handles (list it in exits or on)`,
+        );
+      }
+    }
+    // An each over players binds `current` for its body, not its `on` flows,
+    // and a node doesn't handle outcomes raised from its own `on` flows
     const binds = node.kind === "each" && "players" in node.over;
     const onFlows = new Set(Object.values(node.on ?? {}));
+    const handledBelow = new Set([...handled, ...handles]);
     for (const child of childNodes(node)) {
-      visit(child, node.id, underPlayers || (binds && !onFlows.has(child)));
+      const inOn = onFlows.has(child);
+      visit(
+        child,
+        node.id,
+        underPlayers || (binds && !inOn),
+        inOn ? handled : handledBelow,
+      );
     }
   };
-  visit(spec.flow);
+  visit(flow);
 
   if (spec.players.min < 1 || spec.players.min > spec.players.max) {
     problems.push(
@@ -187,7 +296,7 @@ export function compile(
   const refs = Object.fromEntries(
     IMPL_CATEGORIES.map((c) => [c, new Map<string, string[]>()]),
   ) as Refs;
-  collectRefs(spec.flow, refs);
+  collectRefs(flow, refs);
   for (const [name, def] of Object.entries(spec.zones)) {
     if (typeof def.visibility === "object") {
       addRef(refs, "visibility", def.visibility.ref, `zone "${name}"`);
@@ -216,7 +325,7 @@ export function compile(
       `Invalid game "${spec.id}":\n  ${problems.join("\n  ")}`,
     );
   }
-  return { spec, impl, nodes, root: spec.flow.id };
+  return { spec, impl, flow, nodes, root: flow.id };
 }
 
 /** The zones a game has for a given seating. */

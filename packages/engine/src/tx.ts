@@ -1,4 +1,4 @@
-import { current, isDraft, isDraftable, type Patch } from "immer";
+import { current, isDraft, type Patch } from "immer";
 import { OpError } from "./errors.js";
 import { createDraft, finishDraft } from "./immer.js";
 import type { DeepReadonly, Json } from "./json.js";
@@ -116,6 +116,10 @@ function snapshot<T>(value: T): T {
   return value;
 }
 
+function startsWith(path: (string | number)[], prefix: (string | number)[]) {
+  return path.length >= prefix.length && prefix.every((p, i) => path[i] === p);
+}
+
 /** Resolves a position to an index in a zone of `length` items. */
 export function resolvePosition(at: Position, length: number): number {
   if (at === "top") return 0;
@@ -130,7 +134,10 @@ export function resolvePosition(at: Position, length: number): number {
 //
 // Entities, zones, meta and the RNG are copied on first write: a transaction
 // copies the records and objects it touches, never the whole state. Only
-// vars and locals go through immer, since only they need patches.
+// vars and locals go through immer, since only they need patches. They share
+// one draft tree, so values can move between them (a trap's reward from its
+// locals into the vars inventory): immer can't finalize a draft from another
+// tree.
 //
 // Q5 (apply throughput), measured in M3 on Blackjack: about 38µs per apply,
 // down from about 200µs when the whole state was an immer draft.
@@ -140,12 +147,12 @@ class Transaction implements Tx {
   /** Objects this transaction created or copied, so it may mutate them. */
   private readonly owned = new Set<object>();
   private readonly events: GameEvent[] = [];
-  private varsTouched = false;
-  /** Set when vars were assigned wholesale: the assigned value. */
-  private varsReplacement: { value: Json } | undefined;
-  private readonly localDrafts = new Map<
+  /** One immer draft over vars and flow (for locals), made on first use. */
+  private root: { vars: Json; flow: GameState["flow"] } | undefined;
+  /** The locals this transaction reached, by their path in state. */
+  private readonly localPaths = new Map<
     string,
-    { node: NodeId; path: (string | number)[]; draft: object }
+    { node: NodeId; path: (string | number)[] }
   >();
   private exitOutcome: string | undefined;
   private done = false;
@@ -170,46 +177,46 @@ class Transaction implements Tx {
     return this.w;
   }
 
+  private draft() {
+    if (!this.root) {
+      const base: object = { vars: this.w.vars, flow: this.w.flow };
+      this.root = createDraft(base) as {
+        vars: Json;
+        flow: GameState["flow"];
+      };
+      // So tx.state.vars reads the draft
+      this.w.vars = this.root.vars;
+    }
+    return this.root;
+  }
+
   get vars(): Json {
     this.check();
-    if (!this.varsTouched) {
-      this.varsTouched = true;
-      if (isDraftable(this.w.vars)) {
-        this.w.vars = createDraft(this.w.vars as object) as Json;
-      }
-    }
-    return this.w.vars;
+    return this.draft().vars;
   }
 
   set vars(value: Json) {
     this.check();
-    const plain = snapshot(value);
-    this.varsTouched = true;
-    this.varsReplacement = { value: plain };
-    // Later changes are drafted on top of the replacement, which stays as assigned
-    this.w.vars = isDraftable(plain)
-      ? (createDraft(plain as object) as Json)
-      : plain;
+    const root = this.draft();
+    root.vars = snapshot(value);
+    this.w.vars = root.vars;
   }
 
   local<L = Json>(nodeId?: NodeId): L {
     this.check();
     if (!this.opts.locals) throw new OpError("No locals are in scope here");
     const { node, path } = this.opts.locals(nodeId);
-    const key = path.join("\u0000");
-    const existing = this.localDrafts.get(key);
-    if (existing) return existing.draft as L;
-    let target: unknown = this.w;
+    if (path[0] !== "flow") throw new OpError(`Locals path must start at flow`);
+    this.localPaths.set(path.join("\u0000"), { node, path });
+    let target: unknown = this.draft();
     for (const k of path)
       target = (target as Record<string | number, unknown>)[k];
-    if (!isDraftable(target)) {
+    if (!isDraft(target)) {
       throw new OpError(
         `Locals of "${node}" must be an object or array to be changed through tx.local`,
       );
     }
-    const draft = createDraft(target as object);
-    this.localDrafts.set(key, { node, path, draft });
-    return draft as L;
+    return target as L;
   }
 
   create(
@@ -333,52 +340,45 @@ class Transaction implements Tx {
     const w = this.w;
     const input = w.meta.inputCount;
 
-    if (this.varsTouched) {
+    if (this.root) {
       let patches: Patch[] = [];
-      if (isDraft(w.vars)) {
-        w.vars = finishDraft(w.vars as object, (p) => {
-          patches = p;
-        }) as Json;
+      const done = finishDraft(this.root as object, (p) => {
+        patches = p;
+      }) as { vars: Json; flow: GameState["flow"] };
+      w.vars = done.vars;
+      w.flow = done.flow;
+
+      const varPatches: Patch[] = [];
+      const localPatches = new Map<NodeId, Patch[]>();
+      const locals = [...this.localPaths.values()];
+      for (const patch of patches) {
+        if (patch.path[0] === "vars") {
+          varPatches.push({ ...patch, path: patch.path.slice(1) });
+          continue;
+        }
+        const owner = locals.find((l) => startsWith(patch.path, l.path));
+        if (owner) {
+          const list = localPatches.get(owner.node) ?? [];
+          list.push({ ...patch, path: patch.path.slice(owner.path.length) });
+          localPatches.set(owner.node, list);
+        }
       }
-      if (this.varsReplacement) {
-        patches = [
-          { op: "replace", path: [], value: this.varsReplacement.value },
-          ...patches,
-        ];
-      }
-      if (patches.length) {
+      if (varPatches.length) {
         this.events.push({
           seq: w.meta.eventCount++,
           input,
           type: "vars",
-          patches,
+          patches: varPatches,
         });
       }
-    }
-
-    const updates: { path: (string | number)[]; value: Json }[] = [];
-    for (const { node, path, draft } of this.localDrafts.values()) {
-      let patches: Patch[] = [];
-      const value = finishDraft(draft, (p) => {
-        patches = p;
-      }) as Json;
-      if (!patches.length) continue;
-      updates.push({ path, value });
-      this.events.push({
-        seq: w.meta.eventCount++,
-        input,
-        type: "locals",
-        node,
-        patches,
-      });
-    }
-    if (updates.length) {
-      w.flow = structuredClone(w.flow);
-      for (const { path, value } of updates) {
-        let target = w as unknown as Record<string | number, unknown>;
-        for (const k of path.slice(0, -1))
-          target = target[k] as Record<string | number, unknown>;
-        target[path.at(-1)!] = value;
+      for (const [node, p] of localPatches) {
+        this.events.push({
+          seq: w.meta.eventCount++,
+          input,
+          type: "locals",
+          node,
+          patches: p,
+        });
       }
     }
 
