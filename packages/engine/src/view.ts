@@ -34,7 +34,7 @@ export interface HiddenEntity {
 }
 
 export type ViewEntity<T extends GameTypes = AnyTypes> =
-  | DeepReadonly<EntityOf<T>>
+  | VisibleEntity<T>
   | HiddenEntity;
 
 /** What one player (or a spectator) may see of a game. */
@@ -56,9 +56,14 @@ export interface PlayerView<T extends GameTypes = AnyTypes> {
   result?: Json;
 }
 
-export const isHidden = (
-  e: ViewEntity<never> | ViewEntity,
+export const isHidden = <T extends GameTypes = AnyTypes>(
+  e: ViewEntity<T>,
 ): e is HiddenEntity => "hidden" in e;
+
+/** A view entity the viewer can see. */
+export type VisibleEntity<T extends GameTypes = AnyTypes> = DeepReadonly<
+  EntityOf<T>
+>;
 
 /** Whether `viewer` can see an entity in `state`. `faceUp`, when set, overrides the zone. */
 export function canSee(

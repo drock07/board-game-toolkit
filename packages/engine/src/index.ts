@@ -102,4 +102,10 @@ export type {
   ZonesOf,
 } from "./types.js";
 export { canSee, isHidden, view, viewEvents } from "./view.js";
-export type { HiddenEntity, PlayerView, ViewEntity, Viewer } from "./view.js";
+export type {
+  HiddenEntity,
+  PlayerView,
+  ViewEntity,
+  Viewer,
+  VisibleEntity,
+} from "./view.js";

@@ -28,13 +28,22 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@drock07/board-game-toolkit-engine": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "catalog:",
+    "jsdom": "^26.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@drock07/board-game-toolkit-engine": "workspace:^"
+    "@drock07/board-game-toolkit-engine": "workspace:^",
+    "react": "^19.0.0"
   }
 }

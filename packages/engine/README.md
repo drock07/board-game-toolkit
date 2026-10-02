@@ -4,8 +4,8 @@ A pure, deterministic board game engine. Game state is plain JSON, rules code
 changes it only through a transaction (`tx`), and every change is recorded as
 an event that can be replayed.
 
-> Under construction: the React host and devtools arrive in later
-> milestones.
+> Under construction: devtools arrive in a later milestone. For React, see
+> [`@drock07/board-game-toolkit-react`](../react).
 
 ## Defining a game
 
