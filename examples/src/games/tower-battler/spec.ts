@@ -33,7 +33,12 @@ export const spec = {
           step("nextTurn", "startNextTurn"),
         ]),
         // Checked after every transaction, so the enemy can fall mid-turn
-        { exits: { won: "enemyDead", lost: "playerDead" } },
+        {
+          exits: {
+            won: { lte: [{ var: "vars.enemy.hp" }, 0] },
+            lost: { lte: [{ var: "vars.player.hp" }, 0] },
+          },
+        },
       ),
       step("settle", "announceResult"),
       pause("again", { label: "Play again" }),

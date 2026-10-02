@@ -204,7 +204,6 @@ export const impl = {
     tx.vars = { grid: [], player: freshPlayer(), log: [], result: null };
   },
   conditions: {
-    playerDead: (s) => s.vars.player.hp <= 0,
     bossDefeated: (s) => s.vars.grid[SIZE - 1]?.[SIZE - 1]?.monster?.hp === 0,
     monsterDead: (s) => roomAt(s).monster?.hp === 0,
     monsterHere: (s) => (roomAt(s).monster?.hp ?? 0) > 0,

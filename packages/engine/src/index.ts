@@ -22,6 +22,8 @@ export {
   OpError,
   UnhandledOutcomeError,
 } from "./errors.js";
+export { describeCond } from "./expr.js";
+export type { Expr, Operand } from "./expr.js";
 export {
   apply,
   defineGame,

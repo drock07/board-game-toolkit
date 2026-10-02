@@ -125,6 +125,33 @@ nest. Triggers fire by priority, then declaration order, then
 `spec.triggerOrder` (`"fifo"` by default). They never fire on vars, locals
 or shuffles; use a guard to react to vars.
 
+## Expressions
+
+Anywhere a condition goes (`exits`, `until`, `while`, `endWhen`, branch
+`when`, trigger `when`), you can write a JSON expression instead of naming an
+impl condition:
+
+```ts
+exits: {
+  won: { lte: [{ var: "vars.enemy.hp" }, 0] },
+  lost: { and: [{ ref: "playerDead" }, { not: { var: "scope.player" } }] },
+}
+```
+
+- `{ var: "vars.…" | "local.…" | "scope.…" }` reads a path; missing paths
+  are `null`. `local.` reads the nearest enclosing locals.
+- `{ count: "hand:$player" }` counts a zone; `$player` is `scope.player`.
+  (An `each`'s own `until` runs outside the player binding.)
+- `eq`, `ne` (JSON equality); `lt`, `lte`, `gt`, `gte`, `add`, `sub`
+  (numbers only); `and`, `or`, `not` (booleans only).
+- `{ ref: "name" }` calls an impl condition, and is type-checked like any
+  other ref.
+
+An object operand is always an expression; strings, numbers, booleans, null
+and arrays are literals. `defineGame` checks every expression's shape, path
+roots, declared vars and zone names. A condition must evaluate to `true` or
+`false`. `describeCond(cond)` prints one readably (`vars.enemy.hp <= 0`).
+
 ## State model
 
 - **Entities** (cards, tokens, dice) live in exactly one **zone**. Zone index 0

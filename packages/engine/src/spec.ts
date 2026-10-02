@@ -1,8 +1,9 @@
+import type { Expr } from "./expr.js";
 import type { Json } from "./json.js";
 import type { NodeId, PlayerId } from "./types.js";
 
-/** A condition: a ref to `impl.conditions`. (Expressions arrive in M8.) */
-export type Cond = string;
+/** A condition: the name of an `impl.conditions` entry, or an expression. */
+export type Cond = string | Expr;
 
 /**
  * Who may answer a prompt. "current" is the player bound by the nearest

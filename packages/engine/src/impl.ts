@@ -169,15 +169,33 @@ type Str<T> = T extends string ? T : never;
 type Tag<C extends ImplCategory, T> = `${C}:${Str<T>}`;
 type ValuesOf<T> = T extends object ? T[keyof T] : never;
 
+/**
+ * The condition names a `Cond` uses: a bare string is a name; inside an
+ * expression only `{ ref }` names one (other strings are literals or paths).
+ */
+type ExprRefs<E, D extends number = 8> = [D] extends [never]
+  ? never
+  : E extends { readonly ref: infer R }
+    ? R
+    : E extends { readonly var: unknown } | { readonly count: unknown }
+      ? never
+      : E extends readonly (infer X)[]
+        ? ExprRefs<X, Depth[D]>
+        : E extends object
+          ? ExprRefs<ValuesOf<E>, Depth[D]>
+          : never;
+type CondRefs<C> = C extends string ? C : ExprRefs<C>;
+type CondTag<C> = Tag<"conditions", CondRefs<C>>;
+
 type OwnRefs<N> =
   | (N extends { locals: infer L } ? Tag<"locals", L> : never)
-  | (N extends { exits: infer E } ? Tag<"conditions", ValuesOf<E>> : never)
-  | (N extends { until: infer U } ? Tag<"conditions", U> : never)
-  | (N extends { while: infer W } ? Tag<"conditions", W> : never)
-  | (N extends { endWhen: infer W } ? Tag<"conditions", W> : never)
+  | (N extends { exits: infer E } ? CondTag<ValuesOf<E>> : never)
+  | (N extends { until: infer U } ? CondTag<U> : never)
+  | (N extends { while: infer W } ? CondTag<W> : never)
+  | (N extends { endWhen: infer W } ? CondTag<W> : never)
   | (N extends { kind: "branch"; cases: readonly (infer C)[] }
       ? C extends { when: infer W }
-        ? Tag<"conditions", W>
+        ? CondTag<W>
         : never
       : never)
   | (N extends { kind: "step"; run: infer R } ? Tag<"steps", R> : never)
@@ -241,7 +259,7 @@ type NodeRefs<N, D extends number = 19> = [D] extends [never]
 type TriggerRefs<T> = T extends {
   flow: infer F;
 }
-  ? NodeRefs<F> | (T extends { when: infer W } ? Tag<"conditions", W> : never)
+  ? NodeRefs<F> | (T extends { when: infer W } ? CondTag<W> : never)
   : never;
 
 type ZoneRefs<Z> = Z extends { visibility: { ref: infer R } }

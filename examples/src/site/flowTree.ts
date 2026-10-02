@@ -1,10 +1,11 @@
-import type {
-  FlowNode,
-  Game,
-  GameEvent,
-  GameState,
-  Json,
-  NodeId,
+import {
+  describeCond,
+  type FlowNode,
+  type Game,
+  type GameEvent,
+  type GameState,
+  type Json,
+  type NodeId,
 } from "@drock07/board-game-toolkit-engine";
 
 export interface FlowRow {
@@ -46,7 +47,9 @@ function childrenOf(node: FlowNode): { node: FlowNode; via?: string }[] {
       out.push({ node: node.body });
       break;
     case "branch":
-      out.push(...node.cases.map((c) => ({ node: c.then, via: c.when })));
+      out.push(
+        ...node.cases.map((c) => ({ node: c.then, via: describeCond(c.when) })),
+      );
       if (node.else) out.push({ node: node.else, via: "else" });
       break;
     case "decision":

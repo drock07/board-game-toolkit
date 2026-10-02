@@ -42,7 +42,7 @@ export const spec = {
         "bankroll",
         [
           {
-            when: "broke",
+            when: { lte: [{ var: "vars.bankroll" }, 0] },
             then: seq("gameOver", [
               step("resetBankroll", "resetBankroll"),
               pause("over", { label: "Play again" }),

@@ -50,7 +50,10 @@ export const spec = {
         {
           // Outermost guards win: killing the boss also kills the room's
           // monster, and resolves as victory
-          exits: { defeat: "playerDead", victory: "bossDefeated" },
+          exits: {
+            defeat: { lte: [{ var: "vars.player.hp" }, 0] },
+            victory: "bossDefeated",
+          },
           on: {
             victory: seq("won", [
               step("recordVictory", "recordVictory"),

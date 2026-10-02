@@ -117,10 +117,6 @@ export const impl = {
     for (const card of DECK) tx.create("card", card, "draw");
     tx.vars = freshVars();
   },
-  conditions: {
-    enemyDead: (s) => s.vars.enemy.hp <= 0,
-    playerDead: (s) => s.vars.player.hp <= 0,
-  },
   steps: {
     buildDeckAndDraw(tx) {
       const { hand, discard } = tx.state.zones;

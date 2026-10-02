@@ -65,7 +65,6 @@ export const impl = {
     playerAt21: (s) => totalIn(s, "player") === 21,
     playerHasBlackjack: (s) => isNatural(cardsIn(s, "player")),
     playerBust: (s) => totalIn(s, "player") > 21,
-    broke: (s) => s.vars.bankroll <= 0,
   },
   steps: {
     newShoe(tx) {

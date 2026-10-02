@@ -5,6 +5,7 @@ import {
   GameDefinitionError,
   UnhandledOutcomeError,
 } from "./errors.js";
+import { evalCondExpr } from "./expr.js";
 import type { StateReader } from "./impl.js";
 import type { Json } from "./json.js";
 import { createReader } from "./reader.js";
@@ -230,9 +231,18 @@ export class Runtime {
   }
 
   private evalCond(cond: Cond, f: Fiber, idx: number, scope?: Scope): boolean {
-    const fn = this.game.impl.conditions?.[cond];
-    if (!fn) throw new GameDefinitionError(`Missing impl.conditions.${cond}`);
-    return fn(this.readerAt(f, idx), scope ?? this.scopeAt(f, idx));
+    const sc = scope ?? this.scopeAt(f, idx);
+    const named = (name: string) => {
+      const fn = this.game.impl.conditions?.[name];
+      if (!fn) throw new GameDefinitionError(`Missing impl.conditions.${name}`);
+      return fn(this.readerAt(f, idx), sc);
+    };
+    if (typeof cond === "string") return named(cond);
+    return evalCondExpr(cond, {
+      reader: this.readerAt(f, idx),
+      scope: sc,
+      cond: named,
+    });
   }
 
   ctx(f: Fiber, idx: number): KindCtx {

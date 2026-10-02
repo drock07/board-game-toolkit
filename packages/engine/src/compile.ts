@@ -1,6 +1,7 @@
 import { GameDefinitionError } from "./errors.js";
+import { checkExpr, condRefs } from "./expr.js";
 import { IMPL_CATEGORIES, type GameImpl, type ImplCategory } from "./impl.js";
-import type { FlowNode, GameSpec, TriggerDef, UseNode } from "./spec.js";
+import type { Cond, FlowNode, GameSpec, TriggerDef, UseNode } from "./spec.js";
 import type { NodeId, PlayerId, Zone } from "./types.js";
 
 export interface CompiledNode {
@@ -118,31 +119,41 @@ function addRef(refs: Refs, cat: ImplCategory, name: string, where: string) {
   refs[cat].set(name, list);
 }
 
-function collectRefs(node: FlowNode, refs: Refs) {
+/** Conditions found while collecting refs, to check once the spec is known. */
+type Conds = [Cond, string][];
+
+function addCond(refs: Refs, conds: Conds, c: Cond, where: string) {
+  conds.push([c, where]);
+  for (const name of condRefs(c)) addRef(refs, "conditions", name, where);
+}
+
+function collectRefs(node: FlowNode, refs: Refs, conds: Conds) {
   const at = `node "${node.id}"`;
+  const cond = (c: Cond, what: string) =>
+    addCond(refs, conds, c, `${at} ${what}`);
   if (node.locals) addRef(refs, "locals", node.locals, at);
-  for (const c of Object.values(node.exits ?? {}))
-    addRef(refs, "conditions", c, at);
+  for (const [outcome, c] of Object.entries(node.exits ?? {}))
+    cond(c, `exits.${outcome}`);
   switch (node.kind) {
     case "loop":
-      if (node.until) addRef(refs, "conditions", node.until, at);
-      if (node.while) addRef(refs, "conditions", node.while, at);
+      if (node.until) cond(node.until, "until");
+      if (node.while) cond(node.while, "while");
       break;
     case "each":
-      if (node.until) addRef(refs, "conditions", node.until, at);
+      if (node.until) cond(node.until, "until");
       if ("ref" in node.over) addRef(refs, "lists", node.over.ref, at);
       else if (typeof node.over.from === "object") {
         addRef(refs, "lists", node.over.from.ref, at);
       }
       break;
     case "branch":
-      for (const c of node.cases) addRef(refs, "conditions", c.when, at);
+      node.cases.forEach((c, i) => cond(c.when, `cases[${i}].when`));
       break;
     case "step":
       addRef(refs, "steps", node.run, at);
       break;
     case "decision":
-      if (node.endWhen) addRef(refs, "conditions", node.endWhen, at);
+      if (node.endWhen) cond(node.endWhen, "endWhen");
       for (const name of Object.keys(node.actions))
         addRef(refs, "actions", name, at);
       break;
@@ -157,7 +168,7 @@ function collectRefs(node: FlowNode, refs: Refs) {
   if ("actor" in node && typeof node.actor === "object") {
     addRef(refs, "lists", node.actor.ref, at);
   }
-  for (const child of childNodes(node)) collectRefs(child, refs);
+  for (const child of childNodes(node)) collectRefs(child, refs, conds);
 }
 
 /**
@@ -337,11 +348,13 @@ export function compile(
   const refs = Object.fromEntries(
     IMPL_CATEGORIES.map((c) => [c, new Map<string, string[]>()]),
   ) as Refs;
-  collectRefs(flow, refs);
+  const conds: Conds = [];
+  collectRefs(flow, refs, conds);
   for (const { def } of triggers) {
-    collectRefs(def.flow, refs);
-    if (def.when) addRef(refs, "conditions", def.when, `trigger "${def.id}"`);
+    collectRefs(def.flow, refs, conds);
+    if (def.when) addCond(refs, conds, def.when, `trigger "${def.id}" when`);
   }
+  for (const [c, where] of conds) problems.push(...checkExpr(c, where, spec));
   for (const [name, def] of Object.entries(spec.zones)) {
     if (typeof def.visibility === "object") {
       addRef(refs, "visibility", def.visibility.ref, `zone "${name}"`);
