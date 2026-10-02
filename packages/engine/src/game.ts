@@ -164,6 +164,21 @@ function openPrompts(state: GameState): Prompt[] {
     .flatMap((f) => (f.stack.at(-1)?.prompt ? [f.stack.at(-1)!.prompt!] : []));
 }
 
+/**
+ * Every legal input `player` could give now. Actions without `enumerate` are
+ * offered without args, so this can be partial for actions that take args.
+ */
+export function legalInputs<T extends GameTypes>(
+  game: Game<T>,
+  state: GameState<T>,
+  player: PlayerId,
+): Input[] {
+  if (state.status === "finished") return [];
+  return new Runtime(game, game.kinds, untyped(state), true).legalInputs(
+    player,
+  );
+}
+
 /** The prompts currently open. */
 export function prompts<T extends GameTypes>(
   _game: Game<T>,

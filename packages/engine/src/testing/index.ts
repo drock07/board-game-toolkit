@@ -14,6 +14,14 @@ export { createGameState } from "../state.js";
 export type { CreateStateOptions } from "../state.js";
 export { openTx, transact } from "../tx.js";
 export type { OpenTx, TxOptions, TxResult } from "../tx.js";
+export { fuzz, playBots } from "./fuzz.js";
+export type {
+  FuzzFailure,
+  FuzzOptions,
+  FuzzReport,
+  PlayBotsOptions,
+  PlayBotsResult,
+} from "./fuzz.js";
 
 /** JSON with object keys sorted, so equal states stringify equally. */
 export function stableStringify(value: unknown): string {

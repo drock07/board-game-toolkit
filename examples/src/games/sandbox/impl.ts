@@ -22,6 +22,8 @@ export const impl = {
       execute: (tx) => void tx.moveTop("deck", "hand"),
     },
     discard: {
+      enumerate: (s): DiscardArgs[] =>
+        s.zone("hand").items.map((card) => ({ card })),
       validate: (s, args: DiscardArgs) =>
         s.zone("hand").items.includes(args.card)
           ? true

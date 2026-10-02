@@ -5,17 +5,20 @@ import {
   type Next,
   type NodeKind,
 } from "./interpreter.js";
+import { jsonEqual, type Json } from "./json.js";
 import type {
   BranchNode,
+  ChooseNode,
   DecisionAction,
   DecisionNode,
+  EachNode,
   FlowNode,
   LoopNode,
   PauseNode,
   SeqNode,
   StepNode,
 } from "./spec.js";
-import type { Frame } from "./types.js";
+import type { Frame, Input, PlayerId } from "./types.js";
 
 const DONE: Next = { end: "done" };
 
@@ -128,6 +131,27 @@ const decision: NodeKind<DecisionNode> = {
     }
     return afterAction(ctx, node, action);
   },
+  legal(ctx, frame, node, player) {
+    const out: Input[] = [];
+    const scope = { ...ctx.scope, actor: player };
+    const reader = ctx.reader();
+    for (const name of Object.keys(node.actions)) {
+      const def = ctx.game.impl.actions?.[name];
+      if (!def) continue;
+      // Without `enumerate`, an action is offered with no args (see Q2)
+      const candidates: (Json | undefined)[] = def.enumerate
+        ? (def.enumerate(reader, scope) as Json[])
+        : [undefined];
+      for (const args of candidates) {
+        const valid = def.validate?.(reader, args ?? {}, scope) ?? true;
+        if (valid !== true) continue;
+        const input: Input = { prompt: frame.prompt!.id, player, action: name };
+        if (args !== undefined) input.args = args;
+        out.push(input);
+      }
+    }
+    return out;
+  },
 };
 
 const pause: NodeKind<PauseNode> = {
@@ -149,6 +173,166 @@ const pause: NodeKind<PauseNode> = {
     }
     return DONE;
   },
+  legal: (_ctx, frame, _node, player) => [
+    { prompt: frame.prompt!.id, player, continue: true },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// each
+
+type EachData = {
+  items: Json[];
+  index: number;
+  /** The first player of each pass, when iterating players. */
+  start?: PlayerId;
+};
+
+/** The items for one pass: players in seat order from `start`, or a list. */
+function eachItems(ctx: KindCtx, node: EachNode, start?: PlayerId): Json[] {
+  if ("ref" in node.over) return ctx.list(node.over.ref);
+  const seats = [...ctx.state.players];
+  const first = start ?? seats[0]!;
+  if (node.over.players === "counterclockwise") seats.reverse();
+  const at = Math.max(0, seats.indexOf(first));
+  return [...seats.slice(at), ...seats.slice(0, at)];
+}
+
+function pushItem(node: EachNode, items: Json[], index: number): Next {
+  const item = items[index]!;
+  const binding =
+    "players" in node.over ? { player: item as PlayerId } : { item };
+  return { push: node.body.id, binding };
+}
+
+const each: NodeKind<EachNode> = {
+  enter(ctx, frame, node) {
+    let start: PlayerId | undefined;
+    if ("players" in node.over) {
+      const from = node.over.from ?? "first";
+      if (from === "random") {
+        ctx.tx((tx) => {
+          start = tx.random.pick(tx.state.players);
+        });
+      } else if (typeof from === "object") {
+        const [first] = ctx.list(from.ref);
+        if (typeof first !== "string" || !ctx.state.players.includes(first)) {
+          throw new GameDefinitionError(
+            `"${node.id}" start list "${from.ref}" must return a player id first`,
+          );
+        }
+        start = first;
+      }
+    }
+    const data: EachData = { items: eachItems(ctx, node, start), index: 0 };
+    if (start !== undefined) data.start = start;
+    frame.data = data;
+    return data.items.length ? pushItem(node, data.items, 0) : DONE;
+  },
+  childEnded(ctx, frame, node) {
+    const data = frame.data as EachData;
+    data.index++;
+    if (node.until !== undefined && ctx.cond(node.until)) return DONE;
+    if (data.index >= data.items.length) {
+      if (!node.repeat) return DONE;
+      // Recomputed each pass, so eliminated players drop out
+      data.items = eachItems(ctx, node, data.start);
+      data.index = 0;
+      if (!data.items.length) return DONE;
+    }
+    return pushItem(node, data.items, data.index);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// choose
+
+/** Every subset of `options` (in option order) sized min..max, up to `limit`. */
+function subsets(
+  options: Json[],
+  min: number,
+  max: number,
+  limit = 1000,
+): Json[][] {
+  const out: Json[][] = [];
+  const pick = (from: number, chosen: Json[]) => {
+    if (out.length >= limit) return;
+    if (chosen.length >= min) out.push([...chosen]);
+    if (chosen.length === max) return;
+    for (let i = from; i < options.length; i++) {
+      chosen.push(options[i]!);
+      pick(i + 1, chosen);
+      chosen.pop();
+    }
+  };
+  pick(0, []);
+  return out;
+}
+
+const choose: NodeKind<ChooseNode> = {
+  enter: () => ({ block: true }),
+  childEnded: () => DONE,
+  prompt(ctx, _frame, node) {
+    const options =
+      typeof node.options === "string"
+        ? ctx.list(node.options)
+        : [...node.options];
+    const min = node.min ?? 1;
+    const max = node.max ?? 1;
+    if (options.length < min) {
+      throw new GameDefinitionError(
+        `"${node.id}" offers ${options.length} options but needs at least ${min}`,
+      );
+    }
+    return {
+      kind: "choose",
+      actors: ctx.actors(node.actor),
+      options,
+      min,
+      max,
+    };
+  },
+  input(ctx, frame, node, input) {
+    if (!("choose" in input) || !Array.isArray(input.choose)) {
+      return inputError(
+        "invalid_args",
+        `"${node.id}" expects { choose: [...] }`,
+      );
+    }
+    const prompt = frame.prompt!;
+    const selection = input.choose;
+    const { min = 1, max = 1, options = [] } = prompt;
+    if (selection.length < min || selection.length > max) {
+      return inputError(
+        "bad_selection",
+        min === max ? `Choose ${min}` : `Choose between ${min} and ${max}`,
+      );
+    }
+    const used = new Set<number>();
+    for (const item of selection) {
+      const i = options.findIndex((o, j) => !used.has(j) && jsonEqual(o, item));
+      if (i < 0) {
+        return inputError(
+          "bad_selection",
+          `${JSON.stringify(item)} isn't an option`,
+        );
+      }
+      used.add(i);
+    }
+    const fn = ctx.game.impl.choices?.[node.apply];
+    if (!fn)
+      throw new GameDefinitionError(`Missing impl.choices.${node.apply}`);
+    ctx.tx((tx) => fn(tx, selection), input.player);
+    return DONE;
+  },
+  legal(_ctx, frame, _node, player) {
+    const { options = [], min = 1, max = 1, id } = frame.prompt!;
+    return subsets(options, min, max).map((choose) => ({
+      prompt: id,
+      player,
+      choose,
+    }));
+  },
 };
 
 /** The built-in node kinds. */
@@ -159,4 +343,6 @@ export const builtinKinds = new Map<FlowNode["kind"], NodeKind<never>>([
   ["step", step],
   ["decision", decision],
   ["pause", pause],
+  ["each", each],
+  ["choose", choose],
 ] as [FlowNode["kind"], NodeKind<never>][]);

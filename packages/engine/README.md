@@ -4,8 +4,8 @@ A pure, deterministic board game engine. Game state is plain JSON, rules code
 changes it only through a transaction (`tx`), and every change is recorded as
 an event that can be replayed.
 
-> Under construction: `each`, `choose`, `parallel`, triggers and views arrive
-> in later milestones.
+> Under construction: `exit`/`use`, `parallel`, triggers and views arrive in
+> later milestones.
 
 ## Defining a game
 
@@ -120,3 +120,29 @@ hashed with cyrb128 and the generator is warmed up for 12 rounds.
 `tx.random` offers `int`, `float`, `pick`, `shuffle` and `roll(die)`; standard
 dice (`D4`–`D20`, `D100`, `Fudge`) ship as data. `Math.random` and `Date` are
 banned by lint in the engine and in game rules.
+
+## Legal inputs and bots
+
+`legalInputs(game, state, player)` lists every input a player could give now:
+each action's `enumerate` args that pass `validate` (an action without
+`enumerate` is offered with no args), every `choose` selection, and
+`continue` for pauses. Bots build on it:
+
+```ts
+const bot: Bot<Types> = (state, prompt, { player, legal, random }) =>
+  random.pick(legal);
+```
+
+`randomBot()` picks uniformly. Bots get their own RNG, so a game's
+determinism depends only on the inputs they produce.
+
+## Testing
+
+`@drock07/board-game-toolkit-engine/testing` has:
+
+- `fuzz(game, { seeds, maxInputs, players })`: plays random legal inputs and
+  checks invariants, that legal inputs are accepted, the replay property and
+  `replay` equality. It reports failures with their seeds, and warns about
+  actions without `enumerate` that were never legal.
+- `playBots(game, { players, seed, bots, maxInputs })`: plays synchronous bots.
+- `record`, `simulate`, `hashState` and `expectPrompt` for golden replays.

@@ -125,6 +125,11 @@ export const impl = {
   },
   actions: {
     placeBet: {
+      // Chip amounts plus all-in, not every amount (enumerate may be partial)
+      enumerate: (s): BetArgs[] =>
+        [...new Set([1, 5, 10, 25, 50, 100, s.vars.bankroll])].map(
+          (amount) => ({ amount }),
+        ),
       validate: (s, args: BetArgs) =>
         Number.isInteger(args.amount) &&
         args.amount > 0 &&

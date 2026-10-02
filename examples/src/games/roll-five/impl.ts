@@ -164,6 +164,7 @@ export const impl = {
       },
     },
     toggleHold: {
+      enumerate: (): HoldArgs[] => [0, 1, 2, 3, 4].map((index) => ({ index })),
       validate(s, args: HoldArgs) {
         const turn = s.local("turn");
         if (turn.rolls === 0) return "Roll first";
@@ -178,6 +179,8 @@ export const impl = {
       },
     },
     score: {
+      enumerate: (): ScoreArgs[] =>
+        CATEGORIES.map((category) => ({ category })),
       validate(s, args: ScoreArgs) {
         if (s.local("turn").rolls === 0) return "Roll first";
         if (!CATEGORIES.includes(args.category)) return "No such category";

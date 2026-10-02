@@ -82,6 +82,8 @@ export interface NodeKind<N extends FlowNode = FlowNode> {
   input?(ctx: KindCtx, frame: Frame, node: N, input: Input): Next | InputError;
   prompt?(ctx: KindCtx, frame: Frame, node: N): PromptSpec;
   cancel?(ctx: KindCtx, frame: Frame, node: N): void;
+  /** Every legal input `player` could give this frame's open prompt. May be partial. */
+  legal?(ctx: KindCtx, frame: Frame, node: N, player: PlayerId): Input[];
 }
 
 export type KindTable = ReadonlyMap<string, NodeKind<never>>;
@@ -103,12 +105,17 @@ export class Runtime {
   private pendingExit: string | undefined;
   private readonly trace: string[] = [];
 
+  /**
+   * `readOnly` skips copying the flow, for queries like `legalInputs` that
+   * never change it.
+   */
   constructor(
     readonly game: CompiledGame,
     readonly kinds: KindTable,
     state: GameState,
+    readOnly = false,
   ) {
-    this.state = this.adopt(state);
+    this.state = readOnly ? state : this.adopt(state);
   }
 
   private adopt(state: GameState): GameState {
@@ -281,8 +288,8 @@ export class Runtime {
         };
       };
     }
-    // The transaction drafts a copy of the flow; immer freezes what it touches
-    const base = { ...this.state, flow: structuredClone(this.state.flow) };
+    // Immer copies on write and doesn't freeze, so the live flow is safe to draft
+    const base = this.state;
     const { tx, commit } = openTx(base, opts);
     fn(tx);
     const res = commit();
@@ -577,17 +584,35 @@ export class Runtime {
     }
     this.state.meta.inputCount++;
     this.emitFlow("resolve", frame.node);
-    delete frame.prompt;
     fiber.status = "runnable";
+    // The prompt stays on the frame while the kind validates against it
     const res = kind.input(
       this.ctx(fiber, idx),
       frame,
       this.node(frame.node).node,
       input,
     );
+    delete frame.prompt;
     if (isInputError(res)) return res;
     this.guardsDirty = true;
     this.afterHandler(fiber, frame, res);
     return undefined;
+  }
+
+  /** Every legal input `player` could give right now, across open prompts. */
+  legalInputs(player: PlayerId): Input[] {
+    const out: Input[] = [];
+    const fibers = Object.values(this.state.flow.fibers).sort(fiberOrder);
+    for (const fiber of fibers) {
+      const frame = fiber.stack.at(-1);
+      if (fiber.status !== "blocked" || !frame?.prompt) continue;
+      if (!frame.prompt.actors.includes(player)) continue;
+      const kind = this.kind(frame.node);
+      const ctx = this.ctx(fiber, fiber.stack.length - 1);
+      out.push(
+        ...(kind.legal?.(ctx, frame, this.node(frame.node).node, player) ?? []),
+      );
+    }
+    return out;
   }
 }

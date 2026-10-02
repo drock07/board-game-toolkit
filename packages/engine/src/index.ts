@@ -1,3 +1,5 @@
+export { randomBot } from "./bots.js";
+export type { Bot, BotContext } from "./bots.js";
 export {
   branch,
   choose,
@@ -20,7 +22,14 @@ export {
   OpError,
   UnhandledOutcomeError,
 } from "./errors.js";
-export { apply, defineGame, init, prompts, replay } from "./game.js";
+export {
+  apply,
+  defineGame,
+  init,
+  legalInputs,
+  prompts,
+  replay,
+} from "./game.js";
 export type {
   ApplyError,
   ApplyResult,

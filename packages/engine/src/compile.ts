@@ -121,7 +121,7 @@ export function compile(
   const problems: string[] = [];
   const nodes = new Map<NodeId, CompiledNode>();
 
-  const visit = (node: FlowNode, parent?: NodeId) => {
+  const visit = (node: FlowNode, parent?: NodeId, underPlayers = false) => {
     if (nodes.has(node.id)) problems.push(`Duplicate node id "${node.id}"`);
     if (!kinds.has(node.kind)) {
       problems.push(`Node "${node.id}" has unsupported kind "${node.kind}"`);
@@ -146,7 +146,34 @@ export function compile(
         `Loop "${node.id}" can never end or wait for input: give it until, while, times or exits, or a body that prompts`,
       );
     }
-    for (const child of childNodes(node)) visit(child, node.id);
+    if ("actor" in node && node.actor === "current" && !underPlayers) {
+      problems.push(
+        `Node "${node.id}" uses actor "current" outside an each over players`,
+      );
+    }
+    if (node.kind === "choose") {
+      const { min = 1, max = 1 } = node;
+      if (
+        !Number.isInteger(min) ||
+        !Number.isInteger(max) ||
+        min < 0 ||
+        max < 1 ||
+        min > max
+      ) {
+        problems.push(
+          `Choose "${node.id}" needs whole numbers 0 <= min <= max, max >= 1`,
+        );
+      }
+    }
+    if (node.kind === "each" && node.mode === "parallel") {
+      problems.push(`Each "${node.id}": parallel mode is not supported yet`);
+    }
+    // An each over players binds `current` for its body, not its `on` flows
+    const binds = node.kind === "each" && "players" in node.over;
+    const onFlows = new Set(Object.values(node.on ?? {}));
+    for (const child of childNodes(node)) {
+      visit(child, node.id, underPlayers || (binds && !onFlows.has(child)));
+    }
   };
   visit(spec.flow);
 
