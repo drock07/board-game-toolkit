@@ -1,0 +1,97 @@
+---
+// The toolkit's moving parts, left to right: what you write, the engine's
+// pure functions, and the host that puts a game on screen.
+---
+
+<figure class="not-content bgt-arch" aria-label="How the toolkit's parts fit together">
+  <div class="col">
+    <p class="eyebrow">You write</p>
+    <div class="box">
+      <strong>spec</strong>
+      <span>JSON: zones, vars, the flow tree, triggers</span>
+    </div>
+    <div class="box">
+      <strong>impl</strong>
+      <span>Named functions: setup, conditions, steps, actions</span>
+    </div>
+  </div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="col">
+    <p class="eyebrow">Engine</p>
+    <div class="box accent">
+      <strong>defineGame</strong>
+      <span>Checks every name and flow rule, then compiles</span>
+    </div>
+    <div class="box accent">
+      <strong>apply(game, state, input)</strong>
+      <span>→ new state, events, open prompts. Pure and seeded.</span>
+    </div>
+  </div>
+  <div class="arrow" aria-hidden="true">→</div>
+  <div class="col">
+    <p class="eyebrow">Host</p>
+    <div class="box">
+      <strong>useGame / GameHost</strong>
+      <span>Each player's view, event playback, bots</span>
+    </div>
+    <div class="box">
+      <strong>Your UI</strong>
+      <span>Renders the view and submits legal inputs</span>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .bgt-arch {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-block: 1.5rem;
+  }
+  @media (min-width: 50rem) {
+    .bgt-arch {
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+    }
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--panel);
+  }
+  .box.accent {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+  }
+  .box strong {
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .box span {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .arrow {
+    justify-self: center;
+    color: var(--faint);
+    font-size: 1.25rem;
+    rotate: 90deg;
+  }
+  @media (min-width: 50rem) {
+    .arrow {
+      rotate: none;
+    }
+  }
+</style>

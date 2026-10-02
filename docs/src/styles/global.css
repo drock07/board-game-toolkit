@@ -92,3 +92,10 @@
 .sidebar-content a:not([aria-current="page"]):hover {
   background-color: color-mix(in srgb, var(--nav-active) 60%, transparent);
 }
+
+/* Preflight removes list markers; prose lists keep them (Steps draws its own) */
+.sl-markdown-content ul:not(:where(.not-content *, .sl-steps)),
+.sl-markdown-content ol:not(:where(.not-content *, .sl-steps)) {
+  list-style: revert;
+  padding-inline-start: 1.5rem;
+}

@@ -19,6 +19,7 @@ export const LINES = [
   [2, 4, 6],
 ] as const;
 
+// #region types
 export interface Vars {
   marks: Cell[];
   /** The winning player; null while playing or after a tie. */
@@ -32,6 +33,7 @@ export interface Vars {
 }
 
 export type Types = TypesFor<typeof spec, { vars: Vars }>;
+// #endregion types
 
 export type PlaceArgs = { index: number };
 
@@ -53,6 +55,7 @@ export const isFull = (marks: readonly Cell[]) =>
   marks.every((m) => m !== null);
 
 export const impl = {
+  // #region setup
   setup(tx) {
     tx.vars = {
       marks: Array<Cell>(9).fill(null),
@@ -63,12 +66,14 @@ export const impl = {
       ties: 0,
     };
   },
+  // #endregion setup
   // #region conditions
   conditions: {
     boardDecided: (s) =>
       winningLine(s.vars.marks) !== null || isFull(s.vars.marks),
   },
   // #endregion conditions
+  // #region steps
   steps: {
     clearBoard(tx) {
       tx.vars.marks = Array<Cell>(9).fill(null);
@@ -92,6 +97,7 @@ export const impl = {
       }
     },
   },
+  // #endregion steps
   // #region actions
   actions: {
     placeMark: {
