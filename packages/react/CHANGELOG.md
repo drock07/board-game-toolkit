@@ -1,5 +1,14 @@
 # @drock07/board-game-toolkit-react
 
+## 0.1.1
+
+### Patch Changes
+
+- [#52](https://github.com/drock07/board-game-toolkit/pull/52) [`e1b1cf7`](https://github.com/drock07/board-game-toolkit/commit/e1b1cf7f82780a307ab285d4a7cfb3c6948a5466) Thanks [@drock07](https://github.com/drock07)! - `useGame` renders on the server: it passes the host's snapshot as the server snapshot, so server rendering (Next.js, Astro, `renderToString`) shows the opening state instead of throwing.
+
+- Updated dependencies []:
+  - @drock07/board-game-toolkit-engine@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
