@@ -1,0 +1,115 @@
+---
+// The landing hero, after the examples site's header: a left-aligned title,
+// the tagline, the actions and the install command. Reads the page's `hero`.
+const { hero } = Astro.locals.starlightRoute.entry.data;
+const { title = "", tagline, actions = [] } = hero ?? {};
+---
+
+<header class="not-content bgt-hero">
+  <p class="eyebrow">TypeScript · engine + React host</p>
+  <h1 id="_top" set:html={title} />
+  {tagline && <p class="tagline" set:html={tagline} />}
+  <div class="actions">
+    {
+      actions.map(({ text, link, variant, attrs }) => (
+        <a href={link} class:list={["action", variant]} {...attrs}>
+          {text}
+          {variant === "primary" && <span aria-hidden="true">→</span>}
+        </a>
+      ))
+    }
+  </div>
+  <div class="install">
+    <span class="prompt" aria-hidden="true">$</span>
+    <code
+      >pnpm add @drock07/board-game-toolkit-engine
+      @drock07/board-game-toolkit-react</code
+    >
+  </div>
+</header>
+
+<style>
+  .bgt-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 46rem;
+    padding-block: clamp(2rem, 6vmin, 4.5rem) 2.5rem;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(2.25rem, 1rem + 4vw, 3.75rem);
+    line-height: 1.05;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+  }
+  .tagline {
+    margin: 0;
+    font-size: clamp(1.0625rem, 0.9rem + 0.6vw, 1.25rem);
+    line-height: 1.55;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 0.25rem;
+  }
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding-inline: 1.25rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 0.5rem;
+    background: var(--panel);
+    color: var(--ink);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .action:hover {
+    background: var(--well);
+  }
+  .action.primary {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .action.primary:hover {
+    opacity: 0.9;
+  }
+  .action.minimal {
+    border-color: transparent;
+    background: transparent;
+    color: var(--accent);
+  }
+  .action:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .install {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: var(--code);
+    color: var(--on-code);
+    font-family: var(--sl-font-mono);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+  .install code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+  .install .prompt {
+    color: var(--label);
+  }
+</style>

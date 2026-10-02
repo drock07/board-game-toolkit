@@ -1,0 +1,105 @@
+---
+title: Views and hidden information
+description: How zone, entity and var visibility decide what each player sees, and how views and events hide the rest without leaking it.
+sidebar:
+  label: Views
+  order: 7
+---
+
+import Source from "../../../components/Source.astro";
+
+The state holds everything: every card in every hand. A **view** is what one
+player may see of it. Render your UI from views, give bots views, and send
+each client only their view, and hidden information stays hidden.
+
+```ts
+const mine = view(game, state, "p1"); // or "spectator"
+```
+
+A spectator sees only what's public.
+
+## Who can see an entity
+
+An entity's visibility comes from its zone, unless the entity overrides it:
+
+| Zone `visibility` | Who sees its entities                                   |
+| ----------------- | ------------------------------------------------------- |
+| `"public"`        | Everyone.                                               |
+| `"hidden"`        | No one: a face-down deck.                               |
+| `"owner"`         | The zone's owner: a per-player hand.                    |
+| `"top"`           | Everyone sees the top entity; the rest are hidden.      |
+| `{ ref: "name" }` | Whoever `impl.visibility.name(s, entity, viewer)` says. |
+
+An entity's own **`faceUp`** wins over its zone: `faceUp: true` shows it to
+everyone, `faceUp: false` hides it from everyone. Blackjack deals the dealer's
+hole card into a public zone with `faceUp: false`, then flips it later. Set
+`faceUp` with `tx.flip`, or with the `faceUp` option on `create`, `move` and
+`moveTop`. A move without the option clears it, so the zone decides again.
+
+`canSee(game, state, id, viewer)` answers the question for one entity.
+
+## What a hidden entity looks like
+
+In a view, a hidden entity is replaced by a placeholder whose id is its
+**position**, not its identity:
+
+<Source file="snippets/concepts.test.ts" region="view" title={false} />
+
+Positional ids are what make shuffles safe. If hidden cards kept their real
+ids, you could watch `card#31` go into the deck, see the shuffle, and still
+know where it ended up. With `?deck#0`, `?deck#1`, …, a shuffle tells you
+nothing.
+
+Set `revealType: true` on a zone to include the entity's `type` in its
+placeholders, for when the backs differ (a deck of monsters and a deck of
+treasure, say).
+
+## Vars
+
+Vars are public unless their declaration says otherwise:
+
+```ts
+vars: {
+  coins: {},                       // public
+  bids: { visibility: "owner" },   // a Record<PlayerId, …>; each sees their own key
+  secretBoss: { visibility: "hidden" }, // in no view
+},
+```
+
+`"owner"` vars must be records keyed by player id. Sealed Bids keeps every
+bid in one, so each player's view holds only their own bid until the round
+resolves.
+
+## What else a view holds
+
+| Field                                           | Contents                                                                                                                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `viewer`, `players`, `meta`, `status`, `result` | As in the state.                                                                                                                                         |
+| `entities`, `zones`                             | Visible entities by id, hidden ones by positional id.                                                                                                    |
+| `vars`                                          | Filtered by var visibility.                                                                                                                              |
+| `prompts`                                       | Every open prompt. Prompts for other players keep only `id`, `node`, `kind` and `actors`, so you can show "waiting for p2" without seeing their options. |
+| `locals`                                        | Every running node's locals, by node id. Locals are public.                                                                                              |
+
+## Events per player
+
+Events reveal things too: a `moved` event names the card that moved.
+`viewEvents(game, before, events, viewer)` filters a list of events for one
+viewer:
+
+- An entity id stays real if the viewer could see the entity **before or
+  after** the event, and becomes positional otherwise. Drawing into your own
+  hand shows you the real card; watching someone else draw shows `?deck#0`
+  moving to `hand:p2`.
+- `custom` events with a `visibleTo` list reach only those players.
+- `vars` patches respect var visibility.
+
+<Source file="snippets/concepts.test.ts" region="viewEvents" title={false} />
+
+The React host does this for you, so `useGameEvent` handlers only ever see the
+viewer's events.
+
+## Checked by the fuzzer
+
+`fuzz` checks every player's and a spectator's view and events, after every
+input, and fails if any of them contains the real id of an entity they can't
+see. See [Testing your game](/board-game-toolkit/guides/testing/).

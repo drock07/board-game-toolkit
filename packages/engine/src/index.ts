@@ -1,3 +1,9 @@
+/**
+ * The engine: define a game from a spec and an impl, run it with `init` and
+ * `apply`, and build each player's view.
+ *
+ * @module @drock07/board-game-toolkit-engine
+ */
 export { randomBot } from "./bots.js";
 export type { Bot, BotContext } from "./bots.js";
 export {

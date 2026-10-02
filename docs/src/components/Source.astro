@@ -1,0 +1,26 @@
+---
+import { Code } from "@astrojs/starlight/components";
+import { readSource } from "../lib/source";
+
+interface Props {
+  /** A path under `examples/src`. */
+  file: string;
+  /** A `// #region <name>` in the file. */
+  region?: string;
+  /** Defaults to the file name; `false` hides it. */
+  title?: string | false;
+  /** Line ranges or strings to highlight, as Expressive Code's `mark`. */
+  mark?: string | string[];
+}
+
+const { file, region, title, mark } = Astro.props;
+const lang = file.endsWith(".tsx") ? "tsx" : "ts";
+const code = readSource(file, region);
+---
+
+<Code
+  code={code}
+  lang={lang}
+  title={title === false ? undefined : (title ?? file.split("/").pop())}
+  mark={mark}
+/>

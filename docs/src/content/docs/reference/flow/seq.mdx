@@ -1,0 +1,33 @@
+---
+title: seq
+description: "Runs its children in order."
+sidebar:
+  order: 1
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+seq(id, children, opts?)
+// { kind: "seq", id, children: [...] }
+```
+
+Runs each child in turn. When the last one ends, the `seq` ends. An empty
+`seq` ends at once.
+
+A `seq` is the usual place to hang `exits` that cover several nodes, like
+Blackjack's `play` seq, which ends the moment the player busts no matter which
+child is running.
+
+| Option     | Type         | Meaning                     |
+| ---------- | ------------ | --------------------------- |
+| `children` | `FlowNode[]` | The nodes to run, in order. |
+
+Plus the [common options](/board-game-toolkit/reference/flow/overview/#options-every-node-takes).
+
+## Demo
+
+A turn in three parts. Only `act` waits for you; `draw` and `cleanUp` run
+straight through.
+
+<Demo name="seq" />

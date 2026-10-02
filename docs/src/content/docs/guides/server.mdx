@@ -1,0 +1,67 @@
+---
+title: Running on a server
+description: The pattern for an authoritative multiplayer server, with the engine on the server and each client getting only its own view.
+sidebar:
+  order: 11
+---
+
+import Source from "../../../components/Source.astro";
+
+:::note[A pattern, not a package]
+The toolkit doesn't include networking yet. This page shows how the engine's
+pieces fit an authoritative server, with a sketch you can adapt to your
+transport. It will be updated when there's built-in support.
+:::
+
+The engine is pure and has no UI, so it runs on a server unchanged. The
+server is the only one with the full state; each client gets its player's
+view.
+
+## The shape
+
+1. The server creates the game with `init`, and keeps the state.
+2. A client connects as a player and receives `view(game, state, player)`.
+3. The client sends an input.
+4. The server checks the input came from that player, and runs `apply`.
+   - If it's rejected, the server sends back `error.message`.
+   - If it's accepted, the server stores the new state and sends **each**
+     player their new view, `viewEvents(game, before, events, player)`, and
+     their `legalInputs`.
+5. Clients render the view and animate the events.
+
+## A sketch
+
+<Source file="snippets/server.ts" region="room" title="room.ts" />
+
+And a test of it, standing in for two connected clients:
+
+<Source file="snippets/guides.test.ts" region="room" title={false} />
+
+## Things to get right
+
+- **Authenticate the player.** Take the player id from the connection, never
+  from the message. The sketch rejects an input whose `player` isn't the
+  sender.
+- **Never send the state.** Send views and viewed events only. The full state
+  includes every hand and the RNG, from which a client could predict every
+  future shuffle.
+- **Keep the seed secret.** For the same reason, the seed stays on the server
+  until the game is over.
+- **Persist inputs.** The seed and the list of accepted inputs are a complete,
+  compact record of the game. Store them to survive restarts; `replay`
+  rebuilds the state.
+- **Run bots on the server.** A `Bot` is a plain function: call it with the
+  bot player's view, the prompt, and `legalInputs` when one of its prompts
+  opens, then apply its input like a client's.
+- **Reconnects** are just sending the current view again.
+
+## On the client
+
+Clients don't run the engine, so they don't use `useGame`. Render from the
+latest `PlayerView` you received, and send one of the `legal` inputs that came
+with it. To animate, play the received events in order (a card sliding, a die
+rolling) before showing the new view.
+
+Listing legal moves needs the full state, so the sketch sends each player
+their `legal` inputs with every update. Use them to enable buttons and
+highlight playable cards; the server still checks every input it receives.

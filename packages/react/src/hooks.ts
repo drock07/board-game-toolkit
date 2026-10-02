@@ -43,7 +43,12 @@ export function useGame<T extends GameTypes>(
   useEffect(() => {
     if (viewer !== undefined) host.setViewer(viewer);
   }, [host, viewer]);
-  const snapshot = useSyncExternalStore(host.subscribe, host.getSnapshot);
+  // The same snapshot on the server, so server rendering shows the opening state
+  const snapshot = useSyncExternalStore(
+    host.subscribe,
+    host.getSnapshot,
+    host.getSnapshot,
+  );
   return useMemo(
     () => ({
       ...snapshot,

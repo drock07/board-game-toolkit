@@ -1,0 +1,68 @@
+---
+title: Card effects
+description: Describe what cards do as data, resolve them in one transaction, and let the flow react mid-turn.
+sidebar:
+  order: 6
+---
+
+import Source from "../../../components/Source.astro";
+
+Deck-builders and card battlers have many cards that do a few kinds of thing:
+deal damage, gain block, draw. [TowerBattler](/board-game-toolkit/examples/tower-battler/)
+keeps the effects as data on each card.
+
+## Effects are props
+
+Each card's props list its effects:
+
+```ts
+type Effect =
+  | { type: "dealDamage"; amount: number }
+  | { type: "gainBlock"; amount: number }
+  | { type: "draw"; count: number };
+
+interface Card {
+  name: string;
+  cost: number;
+  description: string;
+  effects: Effect[];
+}
+```
+
+Because props are JSON, the card list can come from a file, and new cards need
+no new code as long as they combine existing effects.
+
+## Resolve them in one transaction
+
+Playing a card resolves every effect inside the action's transaction:
+
+<Source file="games/tower-battler/impl.ts" region="playCard" />
+
+Each change becomes an event, in order: the card moving to the discard pile,
+vars patches for damage and block, and moves for drawn cards. The UI plays
+them back in that order. See [Animating events](/board-game-toolkit/guides/animating-events/).
+
+## Let the flow react
+
+The rounds loop has guards on both health totals:
+
+<Source file="games/tower-battler/spec.ts" />
+
+Guards are checked after every transaction. A card that brings the enemy to
+0 ends the fight right there, in the middle of the player's turn, without
+the action needing to know about winning. See
+[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+
+## Tell the UI what happened
+
+Some things deserve an animation but aren't a state change, or are a summary
+of several. `tx.emit` adds a custom event:
+
+<Source file="games/tower-battler/impl.ts" region="enemyAttack" />
+
+## Effects that need a choice
+
+If an effect needs the player to pick something ("discard a card", "choose a
+target"), give the action a `then` flow with a `choose`, as Crazy Eights does
+for the wild color. Store the pending effect in locals or vars so the choice
+knows what it's for.

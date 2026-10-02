@@ -1,0 +1,125 @@
+---
+title: Cards and hidden hands
+description: Model a deck, hands and a discard pile, keep hands secret, and render each player's view.
+sidebar:
+  order: 1
+---
+
+import Source from "../../../components/Source.astro";
+
+This guide walks through the card setup in
+[Crazy Eights](/board-game-toolkit/examples/crazy-eights/): a hidden deck, a hand per
+player that only its owner sees, and a discard pile showing its top card.
+
+## 1. Declare the zones
+
+<Source file="games/crazy-eights/spec.ts" title="spec.ts" />
+
+The three zones cover the usual cases:
+
+- `deck: { visibility: "hidden" }`: no one sees any card.
+- `hand: { perPlayer: true, visibility: "owner" }`: one hand per player,
+  `hand:p1`, `hand:p2`, …, each seen only by its owner.
+- `discard: { visibility: "top" }`: everyone sees the top card.
+
+## 2. Declare the card type
+
+Each card is an entity with typed props. Name its type in `TypesFor`:
+
+```ts
+export interface Card {
+  color: Color;
+  value: number;
+}
+
+export type Types = TypesFor<
+  typeof spec,
+  { vars: Vars; entities: { card: Card } }
+>;
+```
+
+## 3. Create and deal
+
+Create the cards in `setup`, then deal in a step, so every new game reshuffles:
+
+```ts
+setup(tx) {
+  for (const color of COLORS) {
+    for (let value = 1; value <= 8; value++) {
+      tx.create("card", { color, value }, "deck");
+    }
+  }
+},
+steps: {
+  dealSeven(tx) {
+    tx.shuffle("deck");
+    for (let round = 0; round < 7; round++) {
+      for (const p of tx.state.players) tx.moveTop("deck", `hand:${p}`);
+    }
+    tx.moveTop("deck", "discard");
+  },
+},
+```
+
+`moveTop` takes from index 0, the top. `create` puts new entities at the
+bottom, so the deck reads top-down in creation order until it's shuffled.
+
+## 4. Play a card
+
+An action whose args name a card. `enumerate` lists the playable ones, which
+is how the UI knows which cards to enable and how bots and the fuzzer find
+moves:
+
+```ts
+playCard: {
+  enumerate: (s, scope): PlayArgs[] =>
+    playable(s, scope.actor!).map((card) => ({ card })),
+  validate: (s, { card }: PlayArgs, scope) =>
+    playable(s, scope.actor!).includes(card) ? true : "You can't play that",
+  execute: (tx, { card }: PlayArgs) => tx.move(card, "discard"),
+},
+```
+
+Always check in `validate` that the card is in the actor's hand: an input
+naming someone else's card must be rejected.
+
+## 5. Render a view
+
+Render from the viewer's **view**, never the full state. In a view, cards you
+can't see are placeholders with positional ids:
+
+```tsx
+const g = useGame(crazyEights, { players: ["p1", ...] });
+const { view } = g;
+
+// Any hand: real cards where the viewer can see them, placeholders elsewhere
+const cardsIn = (zone: string) =>
+  view.zones[zone]!.items.map((id) => view.entities[id]!);
+
+return cardsIn(`hand:${g.viewer}`).map((card) =>
+  isHidden(card) ? (
+    <CardBack key={card.id} />
+  ) : (
+    <CardFace key={card.id} color={card.props.color} value={card.props.value} />
+  ),
+);
+```
+
+`isHidden(entity)` narrows an entity to the placeholder. A placeholder has
+`id`, `hidden: true` and `zone`, plus `type` when the zone sets `revealType`.
+
+## Face-down cards in public zones
+
+Sometimes one card in a public zone is hidden, like Blackjack's hole card.
+Set `faceUp: false` when it moves, and `tx.flip(id, true)` to reveal it:
+
+<Source file="games/blackjack/impl.ts" region="deal" />
+
+## Custom visibility
+
+For rules like "you can see cards in adjacent rooms", give the zone
+`visibility: { ref: "inSight" }` and write
+`impl.visibility.inSight(s, entity, viewer)`.
+
+See [Views and hidden information](/board-game-toolkit/concepts/views/) for the details,
+including how events are filtered.

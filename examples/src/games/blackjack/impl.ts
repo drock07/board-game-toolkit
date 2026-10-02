@@ -74,12 +74,14 @@ export const impl = {
       tx.vars.bet = 0;
       tx.vars.result = null;
     },
+    // #region deal
     dealInitial(tx) {
       tx.moveTop("shoe", "player", 1, { at: "bottom" });
       tx.moveTop("shoe", "dealer", 1, { at: "bottom" });
       tx.moveTop("shoe", "player", 1, { at: "bottom" });
       tx.moveTop("shoe", "dealer", 1, { at: "bottom", faceUp: false });
     },
+    // #endregion deal
     dealerDraws(tx) {
       revealHoleCard(tx);
       while (handTotal(cardsIn(tx, "dealer")) < 17) {
@@ -149,9 +151,11 @@ export const impl = {
   },
 } satisfies GameImpl<Types>;
 
+// #region reveal
 /** Turns the dealer's face-down card up, if it still is. */
 function revealHoleCard(tx: Tx<Types>) {
   for (const id of tx.state.zones.dealer.items) {
     if (tx.state.entities[id]!.faceUp === false) tx.flip(id, true);
   }
 }
+// #endregion reveal

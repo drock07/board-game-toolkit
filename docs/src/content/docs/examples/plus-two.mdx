@@ -1,0 +1,41 @@
+---
+title: Plus Two
+description: "+2 cards stack across players. Shows a trigger interrupting the turn and a race between responses."
+tableOfContents: false
+sidebar:
+  order: 10
+---
+
+import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
+
+A small Uno-style game whose +2 cards stack. Play a +2 and anyone else may
+stack another on it, passing the growing penalty on, or the victim takes it.
+
+<Example slug="plus-two" />
+
+## How it works
+
+**A trigger opens the response window.** The `plusTwo` trigger watches for a
+card moving from a hand to the discard pile. When its `when` condition holds,
+it interrupts whatever made the move, even another window, and runs its flow.
+See [Triggers](/board-game-toolkit/reference/spec/triggers/) and
+[Reactions and interrupts](/board-game-toolkit/guides/reactions/).
+
+**The first answer wins.** The window is a `parallel` with `join: "race"`: the
+other players get a `stack` prompt and the victim gets a `takePenalty` prompt,
+all at once. The first answer ends the race and cancels the other branch. See
+[`parallel`](/board-game-toolkit/reference/flow/parallel/).
+
+<Source file="games/plus-two/spec.ts" />
+
+**The window reads its event.** In a trigger, `scope.event` is the event that
+fired it. The window's locals work out who stacked and who's next, and the
+`responders` and `victim` lists use them to pick the actors:
+
+<Source file="games/plus-two/impl.ts" region="window" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/plus-two`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/plus-two).

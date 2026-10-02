@@ -1,0 +1,32 @@
+---
+title: branch
+description: "Runs the first case whose condition holds, or an else flow."
+sidebar:
+  order: 4
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+branch(id, [{ when, then }, ...], otherwise?, opts?)
+// { kind: "branch", id, cases: [{ when, then }], else? }
+```
+
+Checks each case's `when` in order and runs the first one that holds. If none
+do, it runs `else`, or ends at once if there's no `else`. The `branch` ends
+when the chosen flow does.
+
+| Option  | Type                               | Meaning                                                  |
+| ------- | ---------------------------------- | -------------------------------------------------------- |
+| `cases` | `{ when: Cond; then: FlowNode }[]` | Checked in order; the first match runs.                  |
+| `else`  | `FlowNode`                         | Runs when no case matches. The builder's third argument. |
+
+`when` can be a named condition or an inline
+[expression](/board-game-toolkit/reference/spec/expressions/), as the demo shows.
+
+## Demo
+
+Roll a die: a six hits the jackpot step, other even rolls and odd rolls pause
+with different labels.
+
+<Demo name="branch" />

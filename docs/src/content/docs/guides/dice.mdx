@@ -1,0 +1,57 @@
+---
+title: Dice and randomness
+description: Roll dice, hold some, and keep every roll replayable with the seeded RNG.
+sidebar:
+  order: 2
+---
+
+import Source from "../../../components/Source.astro";
+
+[Roll Five](/board-game-toolkit/examples/roll-five/) is a five-dice game: roll up to three
+times a turn, holding dice between rolls, then score. This guide covers its
+dice.
+
+## Roll with tx.random
+
+All randomness goes through `tx.random`, which reads and advances the RNG
+stored in the state. The same seed and inputs always roll the same numbers.
+
+<Source file="games/roll-five/impl.ts" region="roll" />
+
+`tx.random.roll(die)` picks one of a die's faces. The engine exports
+`D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` and `Fudge`, and a die is just
+`{ faces: [...] }`:
+
+```ts
+const ACTION_DIE = { faces: ["attack", "attack", "defend", "special"] };
+tx.random.roll(ACTION_DIE);
+```
+
+Never use `Math.random()` in rules: it breaks replays, saves and tests. See
+[Determinism](/board-game-toolkit/concepts/determinism/).
+
+## Keep the dice in locals
+
+The dice belong to the current turn, so they live in the turn decision's
+locals, created fresh each time the node is entered:
+
+<Source file="games/roll-five/spec.ts" />
+
+<Source file="games/roll-five/impl.ts" region="locals" />
+
+## Rolling, holding, scoring
+
+`roll` and `toggleHold` have `ends: false`, so the decision stays open. `score`
+ends it, and the `rounds` loop moves on. Validators enforce the limits:
+"No rolls left", "Roll first".
+
+## Dice as entities?
+
+Use vars or locals for dice whose values matter only for now. Use entities if
+dice move between places (a pool, a player's tray) or can be hidden; their
+face goes in props, and a roll is an `execute` that writes the new face.
+
+## Animate rolls
+
+The roll's result is in the `locals` event as patches, so a UI can tumble the
+dice before showing it. See [Animating events](/board-game-toolkit/guides/animating-events/).

@@ -1,0 +1,20 @@
+---
+// An example's flow, drawn by FlowGraph at build time.
+import { FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
+import { games } from "board-game-toolkit-examples/registry";
+
+interface Props {
+  slug: string;
+  caption?: string;
+}
+const { slug, caption } = Astro.props;
+const game = games[slug];
+if (!game) throw new Error(`No example game "${slug}"`);
+---
+
+<figure class="not-content my-6 flex flex-col gap-2">
+  <div class="overflow-x-auto rounded-[10px] border border-line bg-panel p-4">
+    <FlowGraph game={game} />
+  </div>
+  {caption && <figcaption class="text-sm text-subtle">{caption}</figcaption>}
+</figure>

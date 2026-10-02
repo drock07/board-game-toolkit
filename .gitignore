@@ -4,3 +4,5 @@ dist
 
 *.tsbuildinfo
 *.log
+.astro
+docs/src/content/docs/api

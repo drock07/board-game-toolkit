@@ -1,0 +1,159 @@
+---
+title: Quickstart
+description: Build Tic-Tac-Toe step by step, from its spec to a React board with a bot and a fuzz test.
+sidebar:
+  order: 3
+---
+
+import { Steps } from "@astrojs/starlight/components";
+import Source from "../../../components/Source.astro";
+
+This page builds Tic-Tac-Toe: two players, a 3×3 board, turns that alternate
+until someone makes a line. Every code sample here is from the
+[Tic-Tac-Toe example](/board-game-toolkit/examples/tic-tac-toe/), which you can play, and
+from tests that run in CI, so they're known to work.
+
+You'll write four files:
+
+```
+tic-tac-toe/
+  spec.ts    the game's structure, as data
+  impl.ts    the rules, as named functions
+  index.ts   the two joined into a game
+  Board.tsx  a React UI
+```
+
+Install the packages first; see [Installation](/board-game-toolkit/start/installation/).
+
+## 1. Describe the game
+
+The spec is a plain object. Builders like `loop`, `seq` and `decision` return
+plain objects too: `step("clear", "clearBoard")` is just
+`{ kind: "step", id: "clear", run: "clearBoard" }`.
+
+<Source file="games/tic-tac-toe/spec.ts" region="spec" />
+
+Reading the flow from the outside in:
+
+- **`loop("session", …)`**: play games forever. A flow must either loop or end
+  the game with `tx.end()`, so it always has something to do.
+- **`seq("game", […])`**: one game is these four children, in order.
+- **`step("clear", "clearBoard")`**: run the rule named `clearBoard`. It
+  doesn't wait for anyone.
+- **`each("turns", { players: "clockwise", from: "random" }, …)`**: run the
+  body once per player, in seat order, starting from a random seat.
+  `repeat: true` goes around again; `until: "boardDecided"` stops it once that
+  condition holds.
+- **`decision("place", { actor: "current" }, { placeMark: {} })`**: wait for
+  the current player to choose an action. There's one action, `placeMark`.
+- **`pause("again", …)`**: wait for anyone to press "Play again".
+
+Every string after a node's id, like `"clearBoard"`, `"boardDecided"` and
+`"placeMark"`, names a function you'll write in the impl. The `as const`
+matters: it keeps those names as literal types, so TypeScript can check that
+each one exists.
+
+There are no zones: the board is nine cells in a var. Zones are for things
+that move between places and can be hidden, like cards.
+
+## 2. Declare the types
+
+Vars are the game's JSON data. Declare their shape, then build the game's type
+bundle with `TypesFor`, which also reads the zone names from the spec:
+
+<Source file="games/tic-tac-toe/impl.ts" region="types" />
+
+## 3. Write the rules
+
+The impl is an object of named functions, grouped by kind. It's typed with
+`satisfies GameImpl<Types>`, which types every handler's arguments while
+keeping the names literal for the check against the spec.
+
+<Steps>
+
+1. **`setup`** creates the starting state. It runs once, in a transaction
+   (`tx`), before the flow starts.
+
+   <Source file="games/tic-tac-toe/impl.ts" region="setup" />
+
+2. **Conditions** answer yes-or-no questions about the state. They get a
+   read-only `StateReader`, never a transaction, so they can't change
+   anything.
+
+   <Source file="games/tic-tac-toe/impl.ts" region="conditions" />
+
+3. **Steps** change state when the flow reaches them. `tx.vars` is a draft you
+   can mutate; the engine records each change as an event.
+
+   <Source file="games/tic-tac-toe/impl.ts" region="steps" />
+
+4. **Actions** are what players choose in a decision. `validate` returns
+   `true` or a reason the move isn't allowed, `execute` makes the move, and
+   `enumerate` lists every legal argument, which bots, the UI and the fuzzer
+   use. `tx.scope.actor` is the player who chose it.
+
+   <Source file="games/tic-tac-toe/impl.ts" region="actions" />
+
+</Steps>
+
+## 4. Define the game
+
+`defineGame` joins the two halves. It checks that every name the spec uses
+exists in the impl and that every impl entry is used. Both are type errors in
+your editor, and checked again when it runs.
+
+<Source file="games/tic-tac-toe/index.ts" region="define" />
+
+Try misspelling `"boardDecided"` in the spec: the `impl` argument turns red,
+and the error names the missing condition.
+
+## 5. Play it without a UI
+
+A game is just functions, so you can play it from a test or a script. `init`
+starts a game from a seed; `apply` answers a prompt.
+
+<Source
+  file="snippets/quickstart.test.ts"
+  region="play"
+  title="quickstart.test.ts"
+/>
+
+The engine can also list every legal input, using each action's `enumerate`:
+
+<Source file="snippets/quickstart.test.ts" region="legal" title={false} />
+
+## 6. Add a React board
+
+`useGame` hosts the game in a component. It gives you the viewer's `view` of
+the state, their `legal` inputs, and `submit`. Seats with a `controller` are
+bots: here, the example's minimax bot.
+
+<Source file="snippets/MinimalBoard.tsx" region="board" title="Board.tsx" />
+
+That's a playable game. The bot answers its own prompts after a short delay,
+and `view.vars.marks` updates as each move plays back. To animate moves, see
+[Animating events](/board-game-toolkit/guides/animating-events/); to write your own bot, see
+[Writing a bot](/board-game-toolkit/guides/bots/).
+
+## 7. Test it
+
+Because the rules are pure, you can play whole games in a test. `playBots`
+plays with bots; `randomBot()` picks uniformly among the legal inputs.
+
+<Source file="snippets/quickstart.test.ts" region="bots" title={false} />
+
+`fuzz` goes further: it plays many random games and checks, after every
+input, that the state is consistent, that replaying the events rebuilds it,
+and that no player's view leaks a hidden entity.
+
+<Source file="snippets/quickstart.test.ts" region="fuzz" title={false} />
+
+See [Testing your game](/board-game-toolkit/guides/testing/) for golden replays and more.
+
+## Next steps
+
+- [Spec and impl](/board-game-toolkit/concepts/spec-and-impl/) and [Flow](/board-game-toolkit/concepts/flow/)
+  explain the model behind what you just wrote.
+- [Hidden information](/board-game-toolkit/guides/hidden-information/) adds cards and hands.
+- The [flow node reference](/board-game-toolkit/reference/flow/overview/) lists every kind
+  of node and its options.

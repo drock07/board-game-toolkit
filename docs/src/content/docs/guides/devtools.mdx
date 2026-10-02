@@ -1,0 +1,85 @@
+---
+title: Devtools
+description: Embed the live flow graph and fiber inspector in your game while you build it, and theme them to match.
+sidebar:
+  order: 12
+---
+
+import FlowFigure from "../../../components/FlowFigure.astro";
+
+`@drock07/board-game-toolkit-react/devtools` has two components for seeing
+what a running game's flow is doing. Every [example](/board-game-toolkit/examples/)
+page has them under **Devtools**.
+
+## FlowGraph
+
+Draws a game's flow as nested boxes. Sequences run left to right; branch
+cases, parallel lanes, actions' `then` flows and `on` flows stack; loops are
+marked ↻; triggers are drawn below the main flow. Each box lists its guards,
+conditions (via `describeCond`), actors and the rules it names.
+
+<FlowFigure
+  slug="dungeon-crawl"
+  caption="Dungeon Crawl's flow, with its subflows expanded and guards listed."
+/>
+
+Pass a flow state to highlight it live: running nodes are outlined, and nodes
+waiting for input are filled.
+
+```tsx
+import { FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
+
+function Debug() {
+  const g = useGame(game, { players: ["p1", "p2"] });
+  return <FlowGraph game={game} flow={g.state.flow} />;
+}
+```
+
+Without `flow`, it draws the spec alone, as in the
+[Flow Gallery](/board-game-toolkit/examples/flow-gallery/). It renders on the
+server too.
+
+## FiberInspector
+
+Lists the live fibers and their frame stacks: each frame's node, phase,
+binding, locals and open prompt. It's the place to look when a flow isn't
+doing what you expect, or to understand parallel flows and interrupts.
+
+```tsx
+import { FiberInspector } from "@drock07/board-game-toolkit-react/devtools";
+
+<FiberInspector flow={g.state.flow} />;
+```
+
+Use `g.state` (the committed state), not `g.view`: views leave out the flow's
+internals.
+
+## Theming
+
+Both components use inline styles, so they need no stylesheet. Their colors
+and fonts come from CSS variables, with defaults for a light page:
+
+| Variable                                  | Used for                  |
+| ----------------------------------------- | ------------------------- |
+| `--bgt-dt-bg`                             | Box backgrounds           |
+| `--bgt-dt-surface`                        | Nested surfaces           |
+| `--bgt-dt-fg`                             | Text                      |
+| `--bgt-dt-muted`, `--bgt-dt-faint`        | Secondary text            |
+| `--bgt-dt-line`                           | Borders                   |
+| `--bgt-dt-accent`, `--bgt-dt-accent-soft` | Running and waiting nodes |
+| `--bgt-dt-good`, `--bgt-dt-bad`           | Status colors             |
+| `--bgt-dt-sans`, `--bgt-dt-mono`          | Fonts                     |
+
+Set them on any ancestor, for example to follow a dark theme:
+
+```css
+.dark {
+  --bgt-dt-bg: #1c1c1f;
+  --bgt-dt-fg: #ededef;
+  --bgt-dt-line: #2a2a2e;
+}
+```
+
+The helpers behind `FlowGraph` are exported too: `flowActivity(flow)` returns
+which nodes are running and waiting, and `nodeDetails(node)` the one-line facts
+a box shows.

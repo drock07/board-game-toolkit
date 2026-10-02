@@ -125,6 +125,7 @@ export const impl = {
       tx.vars = freshVars();
       drawCards(tx, 5);
     },
+    // #region enemyAttack
     enemyAttack(tx) {
       tx.move(tx.state.zones.hand.items, "discard");
       const { player, enemy } = tx.vars;
@@ -133,6 +134,7 @@ export const impl = {
       player.block = 0;
       tx.emit("enemyAttacked", { damage: enemy.intent - blocked, blocked });
     },
+    // #endregion enemyAttack
     startNextTurn(tx) {
       tx.vars.turn++;
       tx.vars.player.energy = tx.vars.player.maxEnergy;
@@ -145,6 +147,7 @@ export const impl = {
     },
   },
   actions: {
+    // #region playCard
     playCard: {
       enumerate: (s): PlayArgs[] =>
         s.zone("hand").items.map((card) => ({ card })),
@@ -162,6 +165,7 @@ export const impl = {
         for (const effect of card.effects) resolve(tx, effect);
       },
     },
+    // #endregion playCard
     endTurn: { execute: () => {} },
   },
 } satisfies GameImpl<Types>;

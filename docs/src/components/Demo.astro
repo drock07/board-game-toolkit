@@ -1,0 +1,30 @@
+---
+// A reference page's live demo and its source.
+import { TabItem, Tabs } from "@astrojs/starlight/components";
+import Playground from "./Playground";
+import Source from "./Source.astro";
+
+interface Props {
+  /** The demo's name: a file in examples/src/demos. */
+  name: string;
+}
+const { name } = Astro.props;
+const file = `demos/${name}.ts`;
+---
+
+<div class="not-content my-6">
+  <Playground demo={name} client:only="react" />
+  <p class="mt-2 text-sm text-subtle">
+    Answer prompts for every seat. Outlined nodes are running; filled ones are
+    waiting for input.
+  </p>
+</div>
+
+<Tabs>
+  <TabItem label="spec">
+    <Source file={file} region="spec" title={`${name}.ts`} />
+  </TabItem>
+  <TabItem label="impl">
+    <Source file={file} region="impl" title={`${name}.ts`} />
+  </TabItem>
+</Tabs>

@@ -1,0 +1,40 @@
+---
+title: Specs as JSON
+description: Save a spec to JSON with toJSON, and load and check it with fromJSON.
+sidebar:
+  order: 4
+---
+
+import Source from "../../../../components/Source.astro";
+
+A spec is plain data, so it can live in a `.json` file: written by a tool,
+edited by a designer, or stored per game variant. `toJSON` and `fromJSON`
+wrap it with a format marker and check its shape on the way back in.
+
+<Source file="snippets/spec.test.ts" region="json" title={false} />
+
+The document looks like this:
+
+```json
+{
+  "format": "board-game-toolkit/spec",
+  "formatVersion": 1,
+  "spec": { "id": "tic-tac-toe", "version": 1, ... }
+}
+```
+
+`fromJSON` throws a `GameDefinitionError` if the text isn't JSON, isn't a spec
+document, has a `formatVersion` it doesn't read, or has a spec of the wrong
+shape. It lists every shape problem with its path:
+
+<Source file="snippets/spec.test.ts" region="jsonError" title={false} />
+
+`fromJSON` checks shape only. `defineGame` still checks names against the impl
+and the flow rules, as for any spec.
+
+## Types
+
+A spec loaded at run time has no literal types, so the compile-time name check
+can't help; `defineGame`'s run-time check still does. To keep type checking
+while you develop, write the spec in TypeScript and generate the JSON from it
+with `toJSON`.

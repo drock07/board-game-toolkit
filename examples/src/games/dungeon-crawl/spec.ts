@@ -13,7 +13,7 @@ export const spec = {
   id: "dungeon-crawl",
   version: 1,
   players: { min: 1, max: 1 },
-  // The dungeon is a grid in vars (see open question Q1)
+  // The dungeon is a grid in vars, so there are no zones
   zones: {},
   vars: { grid: {}, player: {}, log: {}, result: {} },
   flow: loop(

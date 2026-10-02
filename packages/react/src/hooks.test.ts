@@ -7,6 +7,8 @@ import {
   type GameSpec,
 } from "@drock07/board-game-toolkit-engine";
 import { act, renderHook } from "@testing-library/react";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { useGame, useGameEvent } from "./hooks.js";
 
@@ -44,4 +46,12 @@ test("useGame renders the view and plays events through useGameEvent", async () 
   expect(result.current.view.zones.pile!.items).toHaveLength(1);
   expect(result.current.playing).toBe(false);
   expect(result.current.log.map((e) => e.type)).toContain("created");
+});
+
+test("useGame renders on the server", () => {
+  function Count() {
+    const { view } = useGame(game, { players: ["p1"], seed: "s" });
+    return createElement("span", null, view.zones.pile?.items.length);
+  }
+  expect(renderToStaticMarkup(createElement(Count))).toBe("<span>0</span>");
 });

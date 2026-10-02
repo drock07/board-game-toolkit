@@ -1,0 +1,101 @@
+/* Tailwind for the docs and the example UIs, under Starlight's own styles.
+   Preflight sits in the lowest layer: Starlight overrides it on its own
+   elements, and the example UIs get the reset they were built against. */
+@layer base, starlight, theme, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "board-game-toolkit-examples/styles.css";
+
+@source "../";
+
+/* Starlight's theme, from the site's tokens. The tokens already switch with
+   `data-theme`, so one mapping serves both modes. Starlight's "white" is the
+   strongest text and "black" the page, in either mode. */
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  --sl-font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --sl-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --sl-color-white: var(--ink);
+  --sl-color-gray-1: var(--ink-2);
+  --sl-color-gray-2: var(--muted);
+  --sl-color-gray-3: var(--subtle);
+  --sl-color-gray-4: var(--faint);
+  --sl-color-gray-5: var(--line-strong);
+  --sl-color-gray-6: var(--line);
+  --sl-color-gray-7: var(--well);
+  --sl-color-black: var(--page);
+
+  --sl-color-accent-low: var(--accent-soft);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent-hover);
+
+  --sl-color-text: var(--ink-2);
+  --sl-color-text-accent: var(--accent);
+  --sl-color-text-invert: var(--on-primary);
+  --sl-color-bg: var(--page);
+  --sl-color-bg-nav: var(--chrome);
+  --sl-color-bg-sidebar: var(--chrome);
+  --sl-color-bg-inline-code: var(--well);
+  --sl-color-bg-accent: var(--accent);
+  --sl-color-hairline-light: var(--line);
+  --sl-color-hairline: var(--line);
+  --sl-color-hairline-shade: var(--line);
+}
+
+/* Prose links; components inside .not-content style their own */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--accent);
+}
+
+/* The small uppercase label from the mockups, for Starlight's group names */
+.sidebar-content summary .large {
+  font-family: var(--sl-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+/* Pages with a live game or a wide figure use the full content width, and
+   keep their prose and code at a readable measure */
+@media (min-width: 72rem) {
+  :root:has(.bgt-wide) {
+    --sl-content-width: 100%;
+  }
+  .sl-markdown-content:has(.bgt-wide) > :not(.bgt-wide) {
+    max-width: 52rem;
+  }
+}
+
+/* Header and sidebar, after the mockups: a quiet title and a neutral active item */
+.site-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.site-title img {
+  height: 1.75rem;
+}
+.sidebar-content a[aria-current="page"],
+.sidebar-content a[aria-current="page"]:hover,
+.sidebar-content a[aria-current="page"]:focus {
+  color: var(--ink);
+  background-color: var(--nav-active);
+  font-weight: 500;
+}
+.sidebar-content a:not([aria-current="page"]):hover {
+  background-color: color-mix(in srgb, var(--nav-active) 60%, transparent);
+}
+
+/* Preflight removes list markers; prose lists keep them (Steps draws its own) */
+.sl-markdown-content ul:not(:where(.not-content *, .sl-steps)),
+.sl-markdown-content ol:not(:where(.not-content *, .sl-steps)) {
+  list-style: revert;
+  padding-inline-start: 1.5rem;
+}

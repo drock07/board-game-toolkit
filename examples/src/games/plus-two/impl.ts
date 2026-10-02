@@ -91,6 +91,7 @@ export const impl = {
     }
     tx.vars = { penalty: 0, victim: null, winner: null };
   },
+  // #region window
   conditions: {
     someHandEmpty: (s) => s.players.some((p) => s.count(handOf(p)) === 0),
     plusTwoPlayed: (s, scope) =>
@@ -110,6 +111,7 @@ export const impl = {
     responders: (s) => s.players.filter((p) => p !== s.local("window").stacker),
     victim: (s) => [s.local("window").victim],
   },
+  // #endregion window
   steps: {
     deal(tx) {
       const { players, zones } = tx.state;

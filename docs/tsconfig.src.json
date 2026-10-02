@@ -1,0 +1,5 @@
+{
+  "//": "For `tsc`: the React and TypeScript sources. `astro check` covers .astro files with tsconfig.json; this one leaves out astro.config.mjs, whose plugins ship TypeScript sources that don't check standalone.",
+  "extends": "./tsconfig.json",
+  "include": [".astro/types.d.ts", "src/**/*.ts", "src/**/*.tsx"]
+}

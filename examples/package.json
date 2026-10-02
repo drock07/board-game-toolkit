@@ -2,11 +2,20 @@
   "name": "board-game-toolkit-examples",
   "private": true,
   "version": "0.0.0",
+  "description": "Example games for the docs site: specs, rules, UIs and tests",
   "type": "module",
+  "exports": {
+    "./styles.css": "./src/styles.css",
+    "./catalog": "./src/catalog.ts",
+    "./registry": "./src/games/registry.ts",
+    "./games/*": "./src/games/*/index.ts",
+    "./games/*/Table": "./src/games/*/Table.tsx",
+    "./site/*": "./src/site/*.tsx",
+    "./ui/*": "./src/ui/*.tsx",
+    "./demos": "./src/demos/index.ts",
+    "./site/flowTree": "./src/site/flowTree.ts"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
@@ -14,22 +23,16 @@
   "dependencies": {
     "@drock07/board-game-toolkit-engine": "workspace:*",
     "@drock07/board-game-toolkit-react": "workspace:*",
-    "@fontsource/ibm-plex-mono": "^5.3.0",
-    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
     "clsx": "^2.1.1",
     "motion": "^12.36.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router": "^7.0.0"
+    "react": "^19.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
     "@types/react": "catalog:",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "tailwindcss": "^4.0.0",
+    "react-dom": "^19.0.0",
     "typescript": "catalog:",
     "vite": "^6.0.0",
     "vitest": "catalog:"

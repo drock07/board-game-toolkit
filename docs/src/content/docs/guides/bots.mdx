@@ -1,0 +1,83 @@
+---
+title: Writing a bot
+description: Bots are functions from a player's view to one of their legal inputs. Write one, seat it, and test with it.
+sidebar:
+  order: 7
+---
+
+import Source from "../../../components/Source.astro";
+
+A bot answers prompts for a player. It's a function:
+
+```ts
+type Bot<T> = (
+  view: PlayerView<T>, // what its player may see, nothing more
+  prompt: Prompt, // the prompt to answer
+  ctx: { player; legal; random },
+) => Input | Promise<Input>;
+```
+
+- `view` is the player's [view](/board-game-toolkit/concepts/views/): a bot can't peek at
+  other hands any more than a person can.
+- `ctx.legal` lists the player's legal inputs for this prompt. Return one of
+  them.
+- `ctx.random` is the bot's own seeded RNG, separate from the game's. Use it
+  for tie-breaks so bot games are reproducible.
+
+## The simplest bot
+
+`randomBot()` picks uniformly among the legal inputs. It's a good opponent for
+testing and a decent placeholder.
+
+## A heuristic bot
+
+Prefer some moves, fall back to random:
+
+<Source file="snippets/guides.test.ts" region="centerBot" title={false} />
+
+Bots read the prompt's `node` to know what's being asked, since one bot
+usually handles every prompt in a game: the turn decision, a color choice,
+the "Play again" pause.
+
+For stronger play, search: [Tic-Tac-Toe's minimax bot](/board-game-toolkit/examples/tic-tac-toe/)
+scores every legal move. For games with hidden information, a bot only knows
+its view, so it has to reason about what it can't see, or play by rules of
+thumb, like [Crazy Eights' bot](/board-game-toolkit/examples/crazy-eights/).
+
+## Seat a bot
+
+Give a seat a `controller`:
+
+```tsx
+const g = useGame(crazyEights, {
+  players: [
+    "p1", // a human
+    { id: "p2", controller: simpleBot },
+    { id: "p3", controller: randomBot() },
+  ],
+  botDelay: 500, // ms before a bot answers, so people can follow
+});
+```
+
+The host runs a bot when one of its prompts is open and event playback has
+finished. People set the pace: a `pause` that a human seat can answer is left
+to the human, even if a bot could answer it too. The engine checks the bot's input like anyone else's; if it's
+rejected, the host logs the error.
+
+A bot may return a promise, for example to run a search in a Web Worker.
+
+## Test with bots
+
+`playBots` from `/testing` plays a whole game synchronously:
+
+<Source file="snippets/guides.test.ts" region="playBots" title={false} />
+
+It stops when no bot can act, the game ends, or `maxInputs` is reached, and
+returns every result and input. Pass one bot for everyone or a bot per player.
+
+## Legal inputs need enumerate
+
+`ctx.legal` comes from each action's `enumerate`. An action that takes args
+but has no `enumerate` is offered once, with no args, which its `validate`
+will usually reject, so bots never play it. If a bot ignores an action, check
+for a missing `enumerate`; `fuzz` warns about it too.

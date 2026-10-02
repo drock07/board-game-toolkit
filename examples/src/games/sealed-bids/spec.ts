@@ -16,7 +16,7 @@ export const spec = {
   zones: {},
   vars: {
     coins: {},
-    // Hidden from other players once views land (M6)
+    // Each player sees only their own bid
     bids: { visibility: "owner" },
     items: {},
     lot: {},

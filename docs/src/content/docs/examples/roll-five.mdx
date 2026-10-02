@@ -1,0 +1,42 @@
+---
+title: Roll Five
+description: "Thirteen rounds of rolling and holding five dice. Shows locals that reset each round and a decision that stays open."
+tableOfContents: false
+sidebar:
+  order: 5
+---
+
+import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
+
+Roll five dice up to three times a turn, holding the ones you like, then score
+them in one of thirteen categories.
+
+<Example slug="roll-five" />
+
+## How it works
+
+**The rounds are a `loop` with `times: 13`.** Each round is one decision with
+three actions. `roll` and `toggleHold` set `ends: false`; `score` ends the
+turn.
+
+<Source file="games/roll-five/spec.ts" />
+
+**The dice live in the decision's locals.** `locals: "freshDice"` names a
+function that builds the node's state each time the node is entered, so every
+round starts with fresh dice and nothing needs resetting. Actions read and
+write them with `tx.local("turn")`. See
+[State: entities, zones and vars](/board-game-toolkit/concepts/state/).
+
+<Source file="games/roll-five/impl.ts" region="locals" />
+
+**The dice come from the seeded RNG.** `tx.random.roll(D6)` draws from the
+RNG stored in state, so replaying the same seed and inputs rolls the same
+numbers. See [Determinism and replays](/board-game-toolkit/concepts/determinism/).
+
+<Source file="games/roll-five/impl.ts" region="roll" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/roll-five`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/roll-five).

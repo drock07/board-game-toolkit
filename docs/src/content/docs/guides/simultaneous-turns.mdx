@@ -1,0 +1,58 @@
+---
+title: Simultaneous turns
+description: Let every player choose at once, keep their choices secret, and resolve the round when all are in.
+sidebar:
+  order: 3
+---
+
+import Source from "../../../components/Source.astro";
+
+Sealed bids, drafting, rock-paper-scissors, programming moves: some rounds
+have everyone choose at the same time. [Sealed Bids](/board-game-toolkit/examples/sealed-bids/)
+shows the pattern.
+
+## A parallel each
+
+<Source file="games/sealed-bids/spec.ts" />
+
+`each(…, { mode: "parallel" })` runs its body for every player at once, each on
+its own fiber. After `offer`, every player has an open `bid` prompt. They can
+answer in any order; the `each` ends when all have, and `resolve` runs.
+
+`init` and `apply` return all the open prompts. With the React host, each
+player's `prompts` and `legal` hold only their own, so a hot-seat UI can
+switch viewers, and a networked UI shows each player their own.
+
+## Keep choices secret
+
+If the choices are stored in a public var, everyone sees everyone's bid as soon
+as it's made. Declare the var with `visibility: "owner"` and keep it a record
+keyed by player:
+
+```ts
+vars: {
+  bids: { visibility: "owner" },
+},
+```
+
+Each player's view then holds only their own entry, and `vars` events sent to
+other players drop the patch. The round's `resolve` step reads all the bids
+from the full state.
+
+## Know who's acting
+
+In a parallel each, several players use the same action. The rules tell them
+apart with `scope.actor` in `validate` and `tx.scope.actor` in `execute`:
+
+<Source file="games/sealed-bids/impl.ts" region="placeBid" />
+
+## Variations
+
+- **Different choices per player**: use [`parallel`](/board-game-toolkit/reference/flow/parallel/)
+  with a branch per role instead of a parallel `each`.
+- **First answer wins**: `parallel` with `join: "race"`.
+- **A subset of players**: a parallel `each` over `{ ref: "listName" }`,
+  with a decision whose actor reads `scope.item`. Note that `"current"` only
+  works in an `each` over players.
+- **Reveal together**: keep choices in an `"owner"` var, then copy them to a
+  public var in the resolve step.

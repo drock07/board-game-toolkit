@@ -1,0 +1,101 @@
+---
+title: Introduction
+description: What Board Game Toolkit is, how its parts fit together, and when it's a good fit.
+sidebar:
+  order: 1
+---
+
+import { LinkCard, CardGrid } from "@astrojs/starlight/components";
+import Architecture from "../../../components/Architecture.astro";
+
+Board Game Toolkit is a TypeScript library for building turn-based games:
+card games, dice games, board games, and anything else where players take
+turns, make choices and hide information from each other.
+
+It splits a game into two parts:
+
+- A **spec**: plain JSON that describes the game's structure. Its zones (a
+  deck, a hand per player, a discard pile), its vars, and a **flow**: a tree of
+  nodes for rounds, turns, decisions and the order they happen in.
+- An **impl**: small, named TypeScript functions for the rules. The spec refers
+  to them by name: a step called `"dealSeven"`, a condition called
+  `"someHandEmpty"`, an action called `"playCard"`.
+
+A pure, deterministic engine runs the two together. A host, such as the React
+hook `useGame`, puts the game on screen.
+
+<Architecture />
+
+## The core idea
+
+The engine's main function is
+
+```ts
+apply(game, state, input) → { state, events, prompts }
+```
+
+`state` is plain JSON. The engine never changes it in place. An `input` is a
+player answering a **prompt**: "p2 plays the red 7". The result is the new
+state, the **events** that got there ("card#14 moved from hand:p2 to
+discard"), and the prompts now waiting for a player.
+
+Because the state is JSON and the random number generator lives inside it, a
+game is fully determined by its seed and its inputs. That gives you saves,
+replays, undo and reproducible bug reports for free. And because each player
+gets a **view** that leaves out what they can't see, the same model works for a
+hot-seat game, a bot, or a server sending each client only their own hand.
+
+## What's in the box
+
+| Package                              | What it does                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `@drock07/board-game-toolkit-engine` | The state model, the flow interpreter, views, the seeded RNG, and `/testing` helpers: replays, bots and fuzzing.    |
+| `@drock07/board-game-toolkit-react`  | `useGame` and `useGameEvent` for React, the framework-free `GameHost`, and `/devtools`: a live flow graph and more. |
+
+The engine has one dependency (immer) and no UI. Use it on its own in Node, on
+a server, or with another UI framework.
+
+## Is it a good fit?
+
+It's built for games where:
+
+- **Turns and phases have structure.** Rounds of turns, a decision that loops
+  until you stand, everyone choosing at once, a reaction that interrupts the
+  current player.
+- **Information is hidden.** Hands, face-down cards, secret bids.
+- **You want to test the rules.** Rules are pure functions of state, so
+  they're easy to unit test, replay and fuzz.
+
+It's not a rendering or physics engine: you bring the UI. Real-time games
+don't fit the input-by-input model, and networking isn't included yet (see
+[Running on a server](/board-game-toolkit/guides/server/) for the pattern).
+
+:::note[Pre-1.0]
+The engine was recently rewritten and is still in 0.x. Expect breaking changes
+between minor versions until 1.0.
+:::
+
+## Where to next
+
+<CardGrid>
+  <LinkCard
+    title="Quickstart"
+    href="/board-game-toolkit/start/quickstart/"
+    description="Build Tic-Tac-Toe, from spec to a React board with a bot."
+  />
+  <LinkCard
+    title="Examples"
+    href="/board-game-toolkit/examples/"
+    description="Nine playable games, each with its spec and rules explained."
+  />
+  <LinkCard
+    title="Spec and impl"
+    href="/board-game-toolkit/concepts/spec-and-impl/"
+    description="How the two halves of a game connect, and why."
+  />
+  <LinkCard
+    title="Flow"
+    href="/board-game-toolkit/concepts/flow/"
+    description="How the engine runs the flow tree and waits for players."
+  />
+</CardGrid>

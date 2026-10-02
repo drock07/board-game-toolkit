@@ -1,3 +1,8 @@
+/**
+ * Test tools: replays, golden recordings, bots in tests, and fuzzing.
+ *
+ * @module @drock07/board-game-toolkit-engine/testing
+ */
 import {
   apply,
   init,

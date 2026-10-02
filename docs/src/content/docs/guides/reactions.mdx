@@ -1,0 +1,57 @@
+---
+title: Reactions and interrupts
+description: Let players respond to what just happened, mid-turn, with triggers and response windows.
+sidebar:
+  order: 4
+---
+
+import Source from "../../../components/Source.astro";
+
+"When a player plays a +2, anyone may stack another +2 on it." "When a monster
+enters your space, you may attack." Reactions interrupt whatever is going on,
+then hand control back. In the toolkit, that's a **trigger**, often with a
+**race** for who responds.
+
+[Plus Two](/board-game-toolkit/examples/plus-two/) builds a stacking response window.
+
+## The trigger
+
+<Source file="games/plus-two/spec.ts" />
+
+- `on` watches for a card moving from any hand to the discard pile.
+- `when: "plusTwoPlayed"` narrows it to +2 cards. Inside it,
+  `scope.event` is the move.
+- `flow` runs as an **interrupt** on top of whatever made the move: the turn
+  decision, or another window.
+
+## The window
+
+The window's locals work out, from the event, who stacked and who's next. Its
+lists give the actors for each side of the race:
+
+<Source file="games/plus-two/impl.ts" region="window" />
+
+The `parallel` with `join: "race"` gives every other player a `stack` prompt
+and the victim a `takePenalty` prompt at once. Whoever answers first ends the
+race; the other branch is cancelled.
+
+## Nesting
+
+Stacking moves a +2 from a hand to the discard pile, which fires the trigger
+again, inside the current window. The new window interrupts the old one,
+whose `accept` is then rejected ("The penalty has moved on") because its
+victim no longer matches. When the innermost window resolves, the outer ones
+unwind in turn, and the original turn carries on.
+
+## Tips
+
+- Keep `when` conditions cheap and specific: they run for every matching event.
+- Use `priority` when several triggers can fire from one event, and
+  `triggerOrder` to choose FIFO or LIFO for events from the same step.
+- A trigger flow can raise an outcome that unwinds through the interrupted
+  flow, ending a turn early, for example.
+- Watch flow events, `{ type: "flow", kind: "enter", node: "turn" }`, for
+  "at the start of your turn" abilities.
+
+See [Triggers](/board-game-toolkit/reference/spec/triggers/) for the full reference and a
+live demo.

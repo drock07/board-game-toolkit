@@ -1,0 +1,46 @@
+---
+title: Card Pool Sandbox
+description: "Zones, visibility and ops: draw, discard and shuffle a deck with one decision that never ends."
+tableOfContents: false
+sidebar:
+  order: 2
+---
+
+import Example from "../../../components/Example.astro";
+import Source from "../../../components/Source.astro";
+
+The smallest example: a deck, a hand and a discard pile, and three things you
+can do with them. There's no winning, so it's a good place to watch how state,
+views and events work before any real rules get in the way.
+
+<Example slug="sandbox" />
+
+## How it works
+
+**Cards are entities in zones.** `setup` creates 52 cards in the `deck` zone
+and shuffles it. Every entity is in exactly one zone, and the only way to move
+it is an op on a transaction: `moveTop`, `move` or `shuffle` here. See
+[State: entities, zones and vars](/board-game-toolkit/concepts/state/).
+
+**The deck is hidden.** Its zone has `visibility: "hidden"`, so your view
+shows its cards as opaque, positional ids like `?deck#0`. Shuffling reveals
+nothing, and a drawn card shows its face only once it lands in the public hand.
+See [Views and hidden information](/board-game-toolkit/concepts/views/).
+
+**The flow is one decision that never ends.** Each action sets
+`ends: false`, so after any of them the decision prompts again. Each action is
+a transaction, and each op inside it becomes an event that the page plays back.
+See [`decision`](/board-game-toolkit/reference/flow/decision/).
+
+<Source file="games/sandbox/spec.ts" />
+
+The whole rules file is three actions. Each has a `validate` that explains why
+it can't run, and `discard` has an `enumerate` that lists its legal arguments,
+so the host can tell which cards are playable:
+
+<Source file="games/sandbox/impl.ts" />
+
+## Source
+
+The full example, including its UI and tests, is in
+[`examples/src/games/sandbox`](https://github.com/drock07/board-game-toolkit/tree/main/examples/src/games/sandbox).

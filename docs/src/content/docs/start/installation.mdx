@@ -1,0 +1,122 @@
+---
+title: Installation
+description: Install the engine and React packages from GitHub Packages, and set up TypeScript.
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+## Requirements
+
+- **Node.js 22** or newer.
+- **ESM.** The packages are ES modules only.
+- **React 19**, if you use the React package.
+- **TypeScript 5** is recommended, with `strict` on. The type checks that catch
+  a misspelled rule or zone name rely on it.
+
+## Point npm at GitHub Packages
+
+The packages are published to GitHub Packages, not the npm registry. Add an
+`.npmrc` next to your `package.json` that sends the `@drock07` scope there:
+
+```ini title=".npmrc"
+@drock07:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+GitHub Packages needs a token even for public packages. Create a
+[personal access token](https://github.com/settings/tokens) with the
+`read:packages` scope and export it as `GITHUB_TOKEN` in your shell. In GitHub
+Actions, the built-in `GITHUB_TOKEN` works.
+
+## Install
+
+For a React app, install the React package. It depends on the engine and
+installs it for you; the two are always released together.
+
+<Tabs syncKey="pkg">
+<TabItem label="pnpm">
+
+```sh
+pnpm add @drock07/board-game-toolkit-engine @drock07/board-game-toolkit-react
+```
+
+</TabItem>
+<TabItem label="npm">
+
+```sh
+npm install @drock07/board-game-toolkit-engine @drock07/board-game-toolkit-react
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```sh
+yarn add @drock07/board-game-toolkit-engine @drock07/board-game-toolkit-react
+```
+
+</TabItem>
+</Tabs>
+
+Listing the engine as well lets you import from it directly, which you will:
+the builders, `defineGame` and the types all come from the engine.
+
+For rules, a server or tests without a UI, the engine alone is enough:
+
+<Tabs syncKey="pkg">
+<TabItem label="pnpm">
+
+```sh
+pnpm add @drock07/board-game-toolkit-engine
+```
+
+</TabItem>
+<TabItem label="npm">
+
+```sh
+npm install @drock07/board-game-toolkit-engine
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```sh
+yarn add @drock07/board-game-toolkit-engine
+```
+
+</TabItem>
+</Tabs>
+
+## Entry points
+
+| Import                                       | Contents                                                                    |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| `@drock07/board-game-toolkit-engine`         | `defineGame`, `init`, `apply`, flow builders, views, dice, types.           |
+| `@drock07/board-game-toolkit-engine/testing` | `fuzz`, `playBots`, `simulate`, `record`, `hashState` and other test tools. |
+| `@drock07/board-game-toolkit-react`          | `useGame`, `useGameEvent`, `GameHost`.                                      |
+| `@drock07/board-game-toolkit-react/devtools` | `FlowGraph` and `FiberInspector`.                                           |
+
+The [Engine API](/board-game-toolkit/api/engine/readme/) and
+[React API](/board-game-toolkit/api/react/readme/) references list everything
+each entry point exports.
+
+## TypeScript settings
+
+Any `strict` configuration works. These are the settings the toolkit's own
+examples use:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true
+  }
+}
+```
+
+Next, the [Quickstart](/board-game-toolkit/start/quickstart/) builds a whole game.

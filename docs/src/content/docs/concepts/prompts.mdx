@@ -1,0 +1,114 @@
+---
+title: Prompts and inputs
+description: How the engine asks players for decisions, what an input looks like, how inputs are validated, and how legal moves are listed.
+sidebar:
+  order: 5
+---
+
+import Source from "../../../components/Source.astro";
+
+The game moves forward only when a player answers a **prompt**. A prompt is
+opened by a `decision`, `choose` or `pause` node, and an **input** answers it.
+
+## Prompts
+
+`init` and `apply` return the open prompts:
+
+```ts
+{
+  id: "q7",            // unique for the life of the game
+  node: "turn",        // the node that opened it
+  kind: "decision",    // "decision" | "choose" | "pause"
+  actors: ["p2"],      // who may answer
+  actions: [           // decision: the action names, and whether each ends it
+    { name: "playCard", ends: true },
+    { name: "drawCard", ends: true },
+    { name: "pass", ends: true },
+  ],
+}
+```
+
+A `choose` prompt has `options`, `min` and `max` instead of `actions`; a
+`pause` prompt may have a `label`. `prompts(game, state)` lists them from any
+state.
+
+### Actors
+
+A node's `actor` decides who gets the prompt:
+
+| `actor`                 | Means                                                |
+| ----------------------- | ---------------------------------------------------- |
+| `"current"`             | The player bound by the nearest `each` over players. |
+| `"any"`                 | Every player. The default for `pause`.               |
+| `"p1"`                  | That player.                                         |
+| `{ ref: "responders" }` | The players an `impl.lists` entry returns.           |
+
+When several players are actors, the first to answer resolves the prompt.
+
+## Inputs
+
+An input names the prompt, the player answering, and their answer. Its shape
+depends on the prompt's kind:
+
+```ts
+// decision
+{ prompt: "q7", player: "p2", action: "playCard", args: { card: "card#31" } }
+// choose
+{ prompt: "q8", player: "p2", choose: ["blue"] }
+// pause
+{ prompt: "q9", player: "p1", continue: true }
+```
+
+`apply(game, state, input)` returns `{ ok: true, state, events, prompts }`, or
+`{ ok: false, error }` with the state untouched. A bad input is an ordinary
+result, not an exception, so a UI or server can show the message:
+
+| `error.code`        | When                                                                   |
+| ------------------- | ---------------------------------------------------------------------- |
+| `stale_prompt`      | The prompt isn't open, for example because it was already answered.    |
+| `not_actor`         | The player isn't one of the prompt's actors.                           |
+| `unknown_action`    | The decision has no action by that name.                               |
+| `invalid_args`      | The input has the wrong shape for the prompt.                          |
+| `validation_failed` | The action's `validate` returned a reason. `message` is that reason.   |
+| `bad_selection`     | A `choose` answer has the wrong count or an option that isn't offered. |
+| `game_finished`     | The game has ended.                                                    |
+
+## Validating actions
+
+An action's `validate(s, args, scope)` returns `true`, or a string explaining
+why the move isn't allowed: "Not enough energy", "Pick an empty cell".
+`scope.actor` is the player trying it. Then `execute(tx, args)` makes the move,
+with the actor in `tx.scope.actor`.
+
+<Source file="games/sealed-bids/impl.ts" region="placeBid" />
+
+Validate everything about `args`: the input may come from a bot, a fuzzer, or a
+client you don't control.
+
+## Listing legal moves
+
+`legalInputs(game, state, player)` lists every input a player could give right
+now. For decisions it calls each action's `enumerate(s, scope)` for candidate
+args, keeps the ones `validate` accepts, and builds an input for each. Actions
+without `enumerate` are offered once, with no args.
+
+<Source file="snippets/quickstart.test.ts" region="legal" title={false} />
+
+Legal inputs drive a lot:
+
+- **UIs**: a card is clickable if a legal input names it. The React host gives
+  you the viewer's list as `legal`.
+- **Bots**: a bot picks one of its legal inputs. See
+  [Writing a bot](/board-game-toolkit/guides/bots/).
+- **Fuzzing**: the fuzzer plays random legal inputs. It warns about actions
+  that take args but were never legal, which usually means a missing
+  `enumerate`.
+
+## Decisions that stay open
+
+By default a decision ends after one action. An action with `ends: false`
+keeps it open, so the player can act again: hit, hit, stand. The decision's
+`endWhen` condition, checked whenever it would prompt again, closes it
+automatically, for example when the player reaches 21. An action's `then` flow
+runs after it executes, before the decision ends or prompts again: Crazy
+Eights uses one to ask for a color after an eight.

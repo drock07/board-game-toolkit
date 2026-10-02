@@ -1,0 +1,286 @@
+---
+// Which example shows which feature. Spec features are read from the
+// compiled games, and rules and UI features from their source, so the table
+// can't fall out of date.
+import type { FlowNode, Game } from "@drock07/board-game-toolkit-engine";
+import { catalog } from "board-game-toolkit-examples/catalog";
+import { games } from "board-game-toolkit-examples/registry";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { href } from "../lib/links";
+import { examplesRoot } from "../lib/source";
+
+interface Ctx {
+  game: Game;
+  nodes: FlowNode[];
+  /** The game folder's source, concatenated. */
+  source: string;
+  ui: string;
+}
+
+interface Feature {
+  name: string;
+  /** Code to show in the name cell. */
+  code?: string;
+  link: string;
+  has: (c: Ctx) => boolean;
+}
+
+const some = (c: Ctx, f: (n: FlowNode) => boolean) => c.nodes.some(f);
+const zoneVis = (c: Ctx, v: string) =>
+  Object.values(c.game.spec.zones).some((z) => z.visibility === v);
+
+const groups: { title: string; features: Feature[] }[] = [
+  {
+    title: "Flow",
+    features: [
+      {
+        name: "Turns over players",
+        code: "each",
+        link: "reference/flow/each/",
+        has: (c) => some(c, (n) => n.kind === "each" && "players" in n.over),
+      },
+      {
+        name: "Simultaneous turns",
+        code: 'mode: "parallel"',
+        link: "reference/flow/each/",
+        has: (c) =>
+          some(c, (n) => n.kind === "each" && n.mode === "parallel"),
+      },
+      {
+        name: "Repeating rounds",
+        code: "loop",
+        link: "reference/flow/loop/",
+        has: (c) => some(c, (n) => n.kind === "loop"),
+      },
+      {
+        name: "Branches",
+        code: "branch",
+        link: "reference/flow/branch/",
+        has: (c) => some(c, (n) => n.kind === "branch"),
+      },
+      {
+        name: "A decision that stays open",
+        code: "ends: false",
+        link: "reference/flow/decision/",
+        has: (c) =>
+          some(
+            c,
+            (n) =>
+              n.kind === "decision" &&
+              Object.values(n.actions).some((a) => a.ends === false),
+          ),
+      },
+      {
+        name: "Picking from options",
+        code: "choose",
+        link: "reference/flow/choose/",
+        has: (c) => some(c, (n) => n.kind === "choose"),
+      },
+      {
+        name: "Racing responses",
+        code: 'parallel, join: "race"',
+        link: "reference/flow/parallel/",
+        has: (c) =>
+          some(c, (n) => n.kind === "parallel" && n.join === "race"),
+      },
+      {
+        name: "Guards that end a node",
+        code: "exits",
+        link: "concepts/outcomes/",
+        has: (c) => some(c, (n) => !!n.exits),
+      },
+      {
+        name: "Raised outcomes",
+        code: "tx.exit",
+        link: "concepts/outcomes/",
+        has: (c) => /tx\.exit\(/.test(c.source),
+      },
+      {
+        name: "Reusable subflows",
+        code: "subflow",
+        link: "reference/flow/subflow/",
+        has: (c) => some(c, (n) => n.kind === "use"),
+      },
+      {
+        name: "Per-node state",
+        code: "locals",
+        link: "concepts/state/",
+        has: (c) => some(c, (n) => !!n.locals),
+      },
+      {
+        name: "Interrupts",
+        code: "triggers",
+        link: "reference/spec/triggers/",
+        has: (c) => (c.game.spec.triggers?.length ?? 0) > 0,
+      },
+    ],
+  },
+  {
+    title: "State and visibility",
+    features: [
+      {
+        name: "Per-player zones",
+        code: "perPlayer",
+        link: "concepts/state/",
+        has: (c) =>
+          Object.values(c.game.spec.zones).some((z) => z.perPlayer),
+      },
+      {
+        name: "Hidden decks",
+        code: '"hidden"',
+        link: "concepts/views/",
+        has: (c) => zoneVis(c, "hidden"),
+      },
+      {
+        name: "Hands only their owner sees",
+        code: '"owner"',
+        link: "concepts/views/",
+        has: (c) => zoneVis(c, "owner"),
+      },
+      {
+        name: "Only the top card shows",
+        code: '"top"',
+        link: "concepts/views/",
+        has: (c) => zoneVis(c, "top"),
+      },
+      {
+        name: "Face-down cards in public zones",
+        code: "faceUp",
+        link: "concepts/views/",
+        has: (c) => /faceUp:/.test(c.source),
+      },
+      {
+        name: "Secret per-player vars",
+        code: 'vars: "owner"',
+        link: "concepts/views/",
+        has: (c) =>
+          Object.values(c.game.spec.vars ?? {}).some(
+            (v) => v.visibility === "owner",
+          ),
+      },
+      {
+        name: "Dice and shuffles",
+        code: "tx.random",
+        link: "concepts/determinism/",
+        has: (c) => /tx\.(random|shuffle)\b/.test(c.source),
+      },
+    ],
+  },
+  {
+    title: "Hosting",
+    features: [
+      {
+        name: "Bots",
+        code: "controller",
+        link: "guides/bots/",
+        has: (c) => /controller:/.test(c.ui),
+      },
+      {
+        name: "Custom events",
+        code: "tx.emit",
+        link: "guides/animating-events/",
+        has: (c) => /tx\.emit\(/.test(c.source),
+      },
+      {
+        name: "Paced playback",
+        code: "useGameEvent",
+        link: "guides/animating-events/",
+        has: (c) => /useGameEvent\(/.test(c.ui),
+      },
+    ],
+  },
+];
+
+function walk(node: FlowNode, out: FlowNode[]) {
+  out.push(node);
+  const n = node as unknown as Record<string, unknown>;
+  const kids: unknown[] = [
+    n.body,
+    n.else,
+    ...((n.children as unknown[]) ?? []),
+    ...((n.cases as { then: unknown }[]) ?? []).map((x) => x.then),
+    ...Object.values((n.on as object) ?? {}),
+    ...Object.values((n.actions as Record<string, { then?: unknown }>) ?? {}).map(
+      (a) => a.then,
+    ),
+  ];
+  for (const k of kids) if (k) walk(k as FlowNode, out);
+}
+
+const root = examplesRoot();
+const entries = catalog.map((e) => {
+  const game = games[e.slug]!;
+  const nodes: FlowNode[] = [];
+  walk(game.flow, nodes);
+  for (const t of game.triggers) walk(t.def.flow, nodes);
+  const dir = join(root, "games", e.slug);
+  const files = readdirSync(dir).filter(
+    (f) => /\.tsx?$/.test(f) && !f.includes(".test."),
+  );
+  const read = (f: string) => readFileSync(join(dir, f), "utf8");
+  const source = files.filter((f) => f.endsWith(".ts")).map(read).join("\n");
+  const ui = files.filter((f) => f.endsWith(".tsx")).map(read).join("\n");
+  return { entry: e, ctx: { game, nodes, source, ui } };
+});
+---
+
+<div class="not-content bgt-wide overflow-x-auto">
+  <table class="w-full border-collapse text-sm">
+    <thead>
+      <tr class="border-b border-line-strong text-left">
+        <th class="py-2 pr-4 font-semibold text-ink">Feature</th>
+        <th class="py-2 font-semibold text-ink">Shown in</th>
+      </tr>
+    </thead>
+    {
+      groups.map((g) => (
+        <tbody>
+          <tr>
+            <th colspan="2" class="pt-6 pb-2 text-left eyebrow">
+              {g.title}
+            </th>
+          </tr>
+          {g.features.map((f) => {
+            const shown = entries.filter((x) => f.has(x.ctx));
+            return (
+              <tr class="border-b border-line align-top">
+                <td class="py-2.5 pr-4">
+                  <a
+                    href={href(f.link)}
+                    class="font-medium text-ink hover:text-accent"
+                  >
+                    {f.name}
+                  </a>
+                  {f.code && (
+                    <code class="ml-2 rounded bg-well px-1.5 py-0.5 font-mono text-xs text-muted">
+                      {f.code}
+                    </code>
+                  )}
+                </td>
+                <td class="py-2">
+                  <div class="flex flex-wrap gap-1.5">
+                    {shown.length ? (
+                      shown.map((x) => (
+                        <a
+                          href={href(`examples/${x.entry.slug}/`)}
+                          class="rounded-md border border-line bg-panel px-2 py-0.5 text-[13px] text-ink-2 hover:border-accent-line hover:text-accent"
+                        >
+                          {x.entry.title}
+                        </a>
+                      ))
+                    ) : (
+                      <span class="text-subtle">
+                        Not in an example yet; see the reference.
+                      </span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      ))
+    }
+  </table>
+</div>

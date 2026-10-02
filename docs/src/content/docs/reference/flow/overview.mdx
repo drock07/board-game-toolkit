@@ -1,0 +1,57 @@
+---
+title: Flow nodes
+description: Every flow node kind, the options all nodes share, and the builders that create them.
+sidebar:
+  label: Overview
+  order: 0
+---
+
+The flow is a tree of nodes. Each node is a plain object with a `kind` and an
+`id`; the builders exported by the engine create them with less typing. See
+[Flow](/board-game-toolkit/concepts/flow/) for how the engine runs them.
+
+| Kind       | Builder                                | Waits? | Page                                                     |
+| ---------- | -------------------------------------- | ------ | -------------------------------------------------------- |
+| `seq`      | `seq(id, children, opts?)`             | No     | [seq](/board-game-toolkit/reference/flow/seq/)           |
+| `loop`     | `loop(id, body, opts?)`                | No     | [loop](/board-game-toolkit/reference/flow/loop/)         |
+| `each`     | `each(id, over, body, opts?)`          | No     | [each](/board-game-toolkit/reference/flow/each/)         |
+| `branch`   | `branch(id, cases, otherwise?, opts?)` | No     | [branch](/board-game-toolkit/reference/flow/branch/)     |
+| `step`     | `step(id, run, opts?)`                 | No     | [step](/board-game-toolkit/reference/flow/step/)         |
+| `decision` | `decision(id, opts, actions, common?)` | Yes    | [decision](/board-game-toolkit/reference/flow/decision/) |
+| `choose`   | `choose(id, opts)`                     | Yes    | [choose](/board-game-toolkit/reference/flow/choose/)     |
+| `pause`    | `pause(id, opts?)`                     | Yes    | [pause](/board-game-toolkit/reference/flow/pause/)       |
+| `parallel` | `parallel(id, children, opts)`         | No     | [parallel](/board-game-toolkit/reference/flow/parallel/) |
+| `exit`     | `exit(id, outcome, opts?)`             | No     | [exit](/board-game-toolkit/reference/flow/exit/)         |
+| `use`      | `subflow(id, name, opts?)`             | No     | [subflow](/board-game-toolkit/reference/flow/subflow/)   |
+
+## Options every node takes
+
+| Option   | Type                      | Meaning                                                                                                          |
+| -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `id`     | `string`                  | Unique in the spec. Set by the builder's first argument.                                                         |
+| `locals` | `string`                  | An `impl.locals` name. Its result becomes the node's locals each time the node is entered.                       |
+| `exits`  | `{ [outcome]: Cond }`     | Guards. After every transaction, if a condition holds, the node ends with that outcome. Checked outermost first. |
+| `on`     | `{ [outcome]: FlowNode }` | A flow to run when the node ends with that outcome.                                                              |
+
+A **`Cond`** is either the name of an `impl.conditions` entry or an inline
+[expression](/board-game-toolkit/reference/spec/expressions/). See
+[Outcomes and guards](/board-game-toolkit/concepts/outcomes/) for `exits` and `on`.
+
+## Builders and plain objects
+
+Builders return exactly the object you'd write by hand, and keep every string
+as a literal type so `defineGame` can check names:
+
+```ts
+decision("turn", { actor: "current" }, { play: {}, pass: {} });
+// { kind: "decision", id: "turn", actor: "current", actions: { play: {}, pass: {} } }
+```
+
+Specs loaded from JSON with [`fromJSON`](/board-game-toolkit/reference/spec/json/) use the plain form.
+
+## Custom node kinds
+
+`defineGame(def, { kinds })` accepts custom node kinds, through the exported
+`NodeKind` interface. This extension point is **experimental**: custom kinds
+can't have children yet, and a custom node needs a type cast in the spec. Use
+the built-in kinds for now.

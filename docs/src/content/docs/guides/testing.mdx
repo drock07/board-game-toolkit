@@ -1,0 +1,85 @@
+---
+title: Testing your game
+description: Unit-test rules, script whole games, record golden replays, and fuzz for bugs the engine can find on its own.
+sidebar:
+  order: 9
+---
+
+import Source from "../../../components/Source.astro";
+
+Rules are pure functions of state, so they're easy to test without a UI. The
+`/testing` entry point adds tools for the rest. The examples below use
+[Vitest](https://vitest.dev), but nothing depends on it.
+
+```ts
+import {
+  fuzz,
+  hashState,
+  playBots,
+  record,
+  simulate,
+  transact,
+} from "@drock07/board-game-toolkit-engine/testing";
+```
+
+## Unit-test a rule
+
+Run one step, action or choice in a transaction on any state with `transact`:
+
+<Source file="snippets/guides.test.ts" region="unit" title={false} />
+
+## Script a game
+
+`simulate` applies a list of inputs from `init` and returns every result. It
+throws if any input is rejected. `expectPrompt` checks there's exactly one
+open prompt and that it matches:
+
+<Source file="snippets/guides.test.ts" region="simulate" title={false} />
+
+To get a game into a particular situation, search seeds instead of scripting
+dozens of inputs. Several example tests have a `findSeed(predicate)` helper
+that tries seeds until the opening deal fits.
+
+## Golden replays
+
+A golden replay is a recorded game, committed to the repo: players, seed,
+inputs, and a hash of the final state. If a change alters behavior, the replay
+reaches a different hash and the test fails.
+
+<Source file="snippets/guides.test.ts" region="golden" title={false} />
+
+`hashState` hashes a state's JSON with sorted keys, so equal states always
+hash the same. Every example has a `golden.json` like this, replayed in CI.
+When a behavior change is intended, record a new one.
+
+## Fuzzing
+
+`fuzz` plays random legal inputs from every player, for many seeds:
+
+<Source file="snippets/quickstart.test.ts" region="fuzz" title={false} />
+
+After **every input** it checks that:
+
+- the state keeps its invariants: every entity in exactly one zone, its
+  `zone` field matching, ids never reused (`checkInvariants`),
+- no rule mutated a state it was given (states are deep-frozen),
+- a legal input is accepted,
+- `reduceEvents` on the events rebuilds the new state.
+
+After **every run** it checks that `replay` rebuilds the final state, and that
+no player's or a spectator's view or events ever showed the real id of an
+entity they couldn't see.
+
+Errors thrown along the way, like `FlowStuckError` or an `OpError` from a
+rule, are recorded as failures with their seed and step, so you can replay
+exactly that game.
+
+The report also has `warnings`: actions that were never legal without args.
+That usually means the action takes args and needs an `enumerate`.
+
+The examples fuzz 100 seeds locally and 1,000 in CI.
+
+## Bots in tests
+
+`playBots` plays with bots until no bot can act, the game ends, or
+`maxInputs` runs out. See [Writing a bot](/board-game-toolkit/guides/bots/#test-with-bots).

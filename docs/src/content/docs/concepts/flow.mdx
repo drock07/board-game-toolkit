@@ -1,0 +1,121 @@
+---
+title: Flow
+description: How the engine runs a game's flow tree, waits for players, and runs several branches at once with fibers.
+sidebar:
+  order: 4
+---
+
+import FlowFigure from "../../../components/FlowFigure.astro";
+import Source from "../../../components/Source.astro";
+
+The flow is a tree of nodes that says what happens in what order: rounds,
+turns, the decisions players make, the steps between them. It's the `flow`
+field of the spec.
+
+<FlowFigure
+  slug="crazy-eights"
+  caption="Crazy Eights' flow, drawn by FlowGraph: a session loop around a game seq, whose turns are an each over players."
+/>
+
+## Node kinds
+
+| Kind                                                       | Does                                                               | Waits for a player? |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ | ------------------- |
+| [`seq`](/board-game-toolkit/reference/flow/seq/)           | Runs its children in order.                                        | No                  |
+| [`loop`](/board-game-toolkit/reference/flow/loop/)         | Runs its body repeatedly, with `times`, `until` or `while`.        | No                  |
+| [`each`](/board-game-toolkit/reference/flow/each/)         | Runs its body per player or per list item, in turn or all at once. | No                  |
+| [`branch`](/board-game-toolkit/reference/flow/branch/)     | Runs the first case whose condition holds.                         | No                  |
+| [`step`](/board-game-toolkit/reference/flow/step/)         | Runs a rule (`impl.steps`).                                        | No                  |
+| [`decision`](/board-game-toolkit/reference/flow/decision/) | Offers named actions to its actors.                                | **Yes**             |
+| [`choose`](/board-game-toolkit/reference/flow/choose/)     | Offers a list of options to pick from.                             | **Yes**             |
+| [`pause`](/board-game-toolkit/reference/flow/pause/)       | Waits for someone to continue.                                     | **Yes**             |
+| [`parallel`](/board-game-toolkit/reference/flow/parallel/) | Runs branches at once; joins on all or the first.                  | No                  |
+| [`exit`](/board-game-toolkit/reference/flow/exit/)         | Raises an outcome.                                                 | No                  |
+| [`subflow`](/board-game-toolkit/reference/flow/subflow/)   | Runs a named flow from `spec.subflows`.                            | No                  |
+
+Every node has an `id`, unique in the spec. Ids show up in prompts
+(`prompt.node`), in flow events, in `tx.local(id)`, and in the devtools.
+
+Every node also takes these options:
+
+- **`locals`**: a `impl.locals` name that builds the node's own state when
+  it's entered. See [State](/board-game-toolkit/concepts/state/#locals).
+- **`exits`**: guards. When a condition holds, the node ends with that
+  outcome. See [Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+- **`on`**: a flow to run after the node ends with a given outcome.
+
+## How it runs
+
+The engine keeps a stack of **frames**, one per running node. Entering a
+`seq` pushes a frame for it, which pushes its first child; when the child
+ends, the `seq` pushes the next. A `step` runs its rule and ends at once. A
+`decision`, `choose` or `pause` opens a **prompt** and stops.
+
+`init` and `apply` both run the flow until every branch is waiting on a
+prompt. Then they return. The game only moves forward when a player answers:
+
+1. `init` runs `setup`, then runs the flow until it waits:
+   `session → game → deal → turns → turn`, which opens a prompt for `p1`.
+2. `apply` with p1's `playCard` runs the action, ends `turn`, and the `each`
+   moves to `p2`, whose `turn` opens a prompt.
+3. And so on.
+
+Between steps, the engine also checks guards (`exits`) and fires
+[triggers](/board-game-toolkit/reference/spec/triggers/).
+
+### A flow never runs out
+
+The flow must always have something to wait for. If the root finishes without
+`tx.end()`, `apply` throws `FlowEndedWithoutEndError`. That's why the examples
+wrap everything in `loop("session", …)` with a "Play again" pause at the end.
+To end the game for good, call `tx.end(result)` in a step.
+
+The opposite mistake, a flow that never waits, such as a loop with no prompt
+and no end, throws `FlowStuckError` after 10,000 steps, with a trace of the
+nodes it ran.
+
+## Scope
+
+As the flow runs, some nodes bind values that the nodes inside them can read
+through the **scope**:
+
+| Scope key   | Set by                      | Used for                                     |
+| ----------- | --------------------------- | -------------------------------------------- |
+| `player`    | An `each` over players      | `actor: "current"`, `$player` in expressions |
+| `item`      | An `each` over a list       | The current item                             |
+| `iteration` | A `loop`                    | Which pass this is, from 0                   |
+| `actor`     | Whoever answered the prompt | Who's acting, in validators and `execute`    |
+| `event`     | A trigger                   | The event that fired it                      |
+
+Conditions, lists and locals get the scope as an argument; transactions have
+`tx.scope`. The nearest binding wins.
+
+## Fibers: several things at once
+
+Some flows need more than one prompt open at a time: everyone bidding at once,
+or any player able to respond to a card. Two nodes do this:
+
+- **`each` with `mode: "parallel"`** runs its body for every player at the
+  same time.
+- **`parallel`** runs different branches at the same time.
+
+Each branch runs on its own **fiber**: a separate stack of frames. The spawning
+node waits until its branches **join**: all of them (`join: "all"`, and
+always for a parallel `each`) or the first one to finish (`join: "race"`),
+which cancels the rest.
+
+<Source file="games/sealed-bids/spec.ts" title="sealed-bids/spec.ts" />
+
+While fibers run, `apply` returns a prompt for each one that's waiting, so
+`prompts` can hold several entries, answered in any order. Fibers run one step
+at a time, oldest first, so even parallel flows are deterministic.
+
+You can see fibers live in the devtools' `FiberInspector`, on any example
+page under **Devtools → Fibers**.
+
+## Flow events
+
+As it runs, the flow emits `flow` events: `enter` and `exit` for each node
+(with the outcome on exit), `prompt` when a prompt opens, and `resolve` when
+one is answered. They're useful for a game log, or for triggers that watch
+a node: `{ type: "flow", kind: "enter", node: "turn" }`.
