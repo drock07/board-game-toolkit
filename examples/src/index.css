@@ -117,6 +117,22 @@
   --shadow-card: var(--card-shadow);
 }
 
+/* Theme the toolkit's devtools with the site's tokens */
+:root {
+  --bgt-dt-bg: var(--panel);
+  --bgt-dt-surface: var(--page);
+  --bgt-dt-fg: var(--ink);
+  --bgt-dt-muted: var(--subtle);
+  --bgt-dt-faint: var(--faint);
+  --bgt-dt-line: var(--line);
+  --bgt-dt-accent: var(--accent);
+  --bgt-dt-accent-soft: var(--accent-soft);
+  --bgt-dt-good: var(--good);
+  --bgt-dt-bad: var(--bad);
+  --bgt-dt-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --bgt-dt-sans: "IBM Plex Sans", ui-sans-serif, sans-serif;
+}
+
 @layer base {
   html,
   body,

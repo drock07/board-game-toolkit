@@ -71,6 +71,16 @@ function die(x: number, y: number, n: 1 | 3 | 5 | 6, held = false) {
 }
 
 const THUMBS: Record<string, () => string> = {
+  "flow-gallery": () =>
+    // Nested boxes: a sequence of three, the middle one holding a loop
+    r(14, 14, 92, 52, { rx: 5, fill: "none" }) +
+    r(20, 28, 18, 24, { rx: 3 }) +
+    r(44, 22, 34, 36, { rx: 3, stroke: A }) +
+    r(50, 32, 22, 16, { rx: 2, stroke: A }) +
+    r(84, 28, 16, 24, { rx: 3 }) +
+    l(38, 40, 44, 40) +
+    l(78, 40, 84, 40) +
+    t(61, 20, "↻", A, 8),
   sandbox: () =>
     r(14, 26, 24, 34) +
     r(18, 22, 24, 34) +

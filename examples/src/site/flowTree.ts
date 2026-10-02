@@ -103,7 +103,7 @@ export function flowActivity(state: GameState): FlowActivity {
   for (const fiber of Object.values(state.flow.fibers)) {
     for (const frame of fiber.stack) active.add(frame.node);
     const top = fiber.stack.at(-1);
-    if (fiber.status === "blocked" && top) waiting.add(top.node);
+    if (fiber.status === "blocked" && top?.prompt) waiting.add(top.node);
   }
   return { active, waiting };
 }

@@ -69,3 +69,25 @@ human can answer is left to the human, so people set the pace between hands.
 
 `useGame` wraps `GameHost`, a framework-free class with the same commands
 plus `subscribe` and `getSnapshot`, for other UI libraries or tests.
+
+## Devtools
+
+`@drock07/board-game-toolkit-react/devtools` has two components for
+inspecting a running game. Both use inline styles, themed by `--bgt-dt-*`
+CSS variables (`--bgt-dt-bg`, `--bgt-dt-fg`, `--bgt-dt-accent`, …) so they
+fit light or dark pages.
+
+```tsx
+import { FiberInspector, FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
+
+<FlowGraph game={game} flow={g.state.flow} />
+<FiberInspector flow={g.state.flow} />
+```
+
+- `FlowGraph` draws the flow and its triggers as nested boxes: sequences run
+  left to right; branch cases, parallel lanes, actions' `then` flows and
+  `on` flows stack; loops are marked ↻. Each box lists its guards,
+  conditions (via `describeCond`), actors and refs. Given a flow state,
+  running nodes are outlined and nodes waiting for input are filled.
+- `FiberInspector` lists live fibers with their frame stacks: node, phase,
+  binding, locals and open prompt.

@@ -1,8 +1,14 @@
-import type { GameTypes, PlayerId } from "@drock07/board-game-toolkit-engine";
+import type {
+  GameState,
+  GameTypes,
+  PlayerId,
+} from "@drock07/board-game-toolkit-engine";
 import type { UseGameResult } from "@drock07/board-game-toolkit-react";
+import { WrenchScrewdriverIcon } from "@heroicons/react/20/solid";
 import clsx from "clsx";
-import { createContext, use, type ReactNode } from "react";
+import { createContext, use, useState, type ReactNode } from "react";
 import { sourceUrl, type CatalogEntry } from "../catalog";
+import { DevtoolsPanel } from "./DevtoolsPanel";
 import { Inspector } from "./Inspector";
 
 export const EntryContext = createContext<CatalogEntry | null>(null);
@@ -70,6 +76,7 @@ export function GameFrame<T extends GameTypes>({
   const entry = use(EntryContext)!;
   // The frame reads only what every game has
   const host = g as unknown as UseGameResult;
+  const [devtools, setDevtools] = useState(false);
   return (
     <div className="flex h-full flex-col">
       <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-line bg-chrome px-4 sm:px-7">
@@ -84,6 +91,20 @@ export function GameFrame<T extends GameTypes>({
           <span className="font-semibold">{entry.title}</span>
         </nav>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={devtools}
+            onClick={() => setDevtools(!devtools)}
+            className={clsx(
+              "hidden h-9 items-center gap-1.5 rounded-md border px-3.5 text-sm font-medium md:flex",
+              devtools
+                ? "border-accent-line bg-accent-soft text-accent"
+                : "border-line-strong bg-panel hover:bg-well",
+            )}
+          >
+            <WrenchScrewdriverIcon className="size-4" aria-hidden />
+            Devtools
+          </button>
           <button
             type="button"
             onClick={() => host.restart()}
@@ -125,6 +146,13 @@ export function GameFrame<T extends GameTypes>({
         </section>
         <Inspector g={host} entry={entry} names={names} panels={panels} />
       </div>
+      {devtools && (
+        <DevtoolsPanel
+          onClose={() => setDevtools(false)}
+          game={host.host.game}
+          state={host.state as GameState}
+        />
+      )}
     </div>
   );
 }

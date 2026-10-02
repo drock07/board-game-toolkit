@@ -41,6 +41,16 @@ export const catalog: CatalogEntry[] = [
     ],
   },
   {
+    slug: "flow-gallery",
+    group: "Concepts",
+    title: "Flow Gallery",
+    desc: "Every example's flow spec drawn as nested boxes by the devtools' FlowGraph.",
+    tags: ["Devtools", "FlowGraph"],
+    component: "FlowGallery",
+    Page: lazy(() => import("./site/FlowGallery")),
+    notes: [],
+  },
+  {
     slug: "tic-tac-toe",
     group: "Examples",
     title: "Tic-Tac-Toe",
