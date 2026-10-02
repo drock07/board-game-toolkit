@@ -1,0 +1,32 @@
+---
+title: step
+description: "Runs a rule from impl.steps, then ends."
+sidebar:
+  order: 5
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+step(id, run, opts?)
+// { kind: "step", id, run }
+```
+
+Runs `impl.steps[run](tx)` in a transaction and ends. Steps never wait for
+input: they're for the automatic parts of a game, such as dealing,
+scoring, refilling a market, or the dealer playing their hand.
+
+| Option | Type     | Meaning                        |
+| ------ | -------- | ------------------------------ |
+| `run`  | `string` | The `impl.steps` entry to run. |
+
+The step gets a transaction with the current scope in `tx.scope`, so a step
+inside an `each` over players knows whose turn it is (`tx.scope.player`). A
+step can raise an outcome with `tx.exit`, or end the game with `tx.end`.
+
+Several step nodes can run the same rule: the node id is unique, the rule
+name needn't be.
+
+## Demo
+
+<Demo name="seq" />

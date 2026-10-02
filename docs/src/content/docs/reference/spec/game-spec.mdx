@@ -1,0 +1,82 @@
+---
+title: The spec object
+description: Every field of a GameSpec, with its type and meaning.
+sidebar:
+  label: Spec object
+  order: 1
+---
+
+A `GameSpec` is the data half of a game. Write it with `as const satisfies
+GameSpec` so names stay literal for type checking.
+
+```ts
+export const spec = {
+  id: "crazy-eights",
+  version: 1,
+  players: { min: 2, max: 5 },
+  zones: { ... },
+  vars: { ... },
+  flow: loop("session", ...),
+  subflows: { ... },   // optional
+  triggers: [ ... ],   // optional
+  triggerOrder: "fifo", // optional
+} as const satisfies GameSpec;
+```
+
+| Field          | Type                         | Meaning                                                                                                                     |
+| -------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `string`                     | The game's id. Saved in every state; `apply` rejects a state from another game.                                             |
+| `version`      | `number`                     | The spec's version. Saved in every state; `apply` rejects a state from another version. Bump it when old saves would break. |
+| `players`      | `{ min, max }`               | Allowed player counts. `init` throws outside the range.                                                                     |
+| `zones`        | `{ [name]: ZoneDef }`        | Places entities can be. See below.                                                                                          |
+| `vars`         | `{ [key]: { visibility? } }` | Optional. Declares top-level vars and their visibility. Expressions may only read declared vars.                            |
+| `flow`         | `FlowNode`                   | The root of the flow. See [Flow nodes](../../flow/overview/).                                                               |
+| `subflows`     | `{ [name]: FlowNode }`       | Optional. Named flows run by [`subflow`](../../flow/subflow/).                                                              |
+| `triggers`     | `TriggerDef[]`               | Optional. See [Triggers](../triggers/).                                                                                     |
+| `triggerOrder` | `"fifo"` or `"lifo"`         | Optional. The order triggers fired by the same step run in. Defaults to `"fifo"`.                                           |
+
+## Zones
+
+```ts
+zones: {
+  deck: { visibility: "hidden" },
+  discard: { visibility: "top" },
+  hand: { perPlayer: true, visibility: "owner" },
+  monsters: { visibility: "hidden", revealType: true },
+  board: { visibility: { ref: "inSight" } },
+},
+```
+
+| Field        | Type                                                    | Meaning                                                                                                                                                 |
+| ------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `visibility` | `"public"`, `"hidden"`, `"owner"`, `"top"` or `{ ref }` | Who can see the zone's entities. `{ ref }` names an `impl.visibility` function `(s, entity, viewer) => boolean`. See [Views](../../../concepts/views/). |
+| `perPlayer`  | `boolean`                                               | One zone per player, with ids `name:playerId`, each owned by its player.                                                                                |
+| `revealType` | `boolean`                                               | Hidden entities in this zone still show their `type`.                                                                                                   |
+| `ordered`    | `boolean`                                               | Defaults to `true`. A hint that order doesn't matter; the engine keeps order either way.                                                                |
+
+## Vars
+
+```ts
+vars: {
+  score: {},                       // public
+  bids: { visibility: "owner" },   // Record<PlayerId, …>: each player sees their own key
+  boss: { visibility: "hidden" },  // in no player's view
+},
+```
+
+The values themselves are set in `setup` and typed by the `vars` you declare
+in `TypesFor`.
+
+## Conditions
+
+Wherever the spec takes a condition (`until`, `while`, `endWhen`, `exits`,
+branch `when`, trigger `when`), it's a `Cond`:
+
+- a string, naming an `impl.conditions` entry, or
+- an [expression](../expressions/) object.
+
+## Actors
+
+Wherever the spec takes an actor (`decision`, `choose`, `pause`), it's one of
+`"current"`, `"any"`, a player id, or `{ ref }` naming an `impl.lists` entry
+that returns player ids. See [Prompts and inputs](../../../concepts/prompts/#actors).

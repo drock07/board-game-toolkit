@@ -1,0 +1,69 @@
+---
+title: Triggers
+description: Interrupts that run a flow when an event happens, for reactions, responses and abilities.
+sidebar:
+  order: 3
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+A **trigger** watches the events the game produces. When one matches, it
+**interrupts** the flow that produced the event and runs its own flow; when
+that finishes, the interrupted flow carries on where it was.
+
+```ts
+triggers: [
+  {
+    id: "plusTwo",
+    on: { type: "moved", from: "hand", to: "discard", entityType: "card" },
+    when: "plusTwoPlayed",
+    flow: seq("window", [...]),
+    priority: 0,
+  },
+],
+```
+
+| Field      | Type           | Meaning                                                             |
+| ---------- | -------------- | ------------------------------------------------------------------- |
+| `id`       | `string`       | Unique among triggers.                                              |
+| `on`       | `EventPattern` | Which events to watch. See below.                                   |
+| `when`     | `Cond`         | Optional. Checked with `scope.event` set to the matching event.     |
+| `flow`     | `FlowNode`     | The flow to run as an interrupt.                                    |
+| `priority` | `number`       | Optional. Higher priorities run first. Ties keep declaration order. |
+
+## Event patterns
+
+| Pattern                                           | Matches                                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `{ type: "moved", from?, to?, entityType? }`      | A move. `from` and `to` are zone **names** from the spec (`"hand"` matches `hand:p2`). `entityType` matches any moved entity's type. |
+| `{ type: "created", entityType? }`                | An entity created.                                                                                                                   |
+| `{ type: "destroyed", entityType? }`              | An entity destroyed.                                                                                                                 |
+| `{ type: "flipped", entityType? }`                | An entity flipped.                                                                                                                   |
+| `{ type: "custom", name }`                        | A `tx.emit(name, …)`.                                                                                                                |
+| `{ type: "flow", kind: "enter" \| "exit", node }` | A node starting or ending.                                                                                                           |
+
+Triggers never see `vars`, `locals` or `shuffled` events.
+
+## How they run
+
+- Events are matched after the step that produced them, between flow steps.
+- The trigger's flow runs on the fiber that produced the event, on top of
+  whatever was running. A decision that was waiting gets its prompt back
+  afterwards.
+- Inside the trigger's flow and its `when`, `scope.event` is the matching
+  event. `actor: "current"` resolves from the interrupted flow.
+- Triggers can fire inside other triggers' flows. In
+  [Plus Two](../../../examples/plus-two/), stacking a +2 in a response window
+  opens a new window inside it.
+- When one step fires several triggers, they run in priority order, then in
+  `triggerOrder`: `"fifo"` (the default) runs the first event's triggers
+  first; `"lifo"` the last.
+- An outcome raised inside a trigger flow unwinds through the interrupted
+  flow.
+
+## Demo
+
+Drawing a bomb interrupts the turn with a `defuse` decision. The `turn`
+decision's prompt comes back once the bomb is defused.
+
+<Demo name="trigger" />

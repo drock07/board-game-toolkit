@@ -1,0 +1,36 @@
+---
+title: parallel
+description: "Runs several branches at once and joins on all of them or the first."
+sidebar:
+  order: 9
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+parallel(id, children, { join, ...common });
+// { kind: "parallel", id, children: [...], join }
+```
+
+Starts each child on its own fiber, at the same time. Each can open its own
+prompt, so several prompts are open at once and can be answered in any order.
+
+| Option     | Type                | Meaning                                                                                          |
+| ---------- | ------------------- | ------------------------------------------------------------------------------------------------ |
+| `children` | `FlowNode[]`        | The branches.                                                                                    |
+| `join`     | `"all"` or `"race"` | `"all"` ends when every branch has. `"race"` ends when the first one does, and cancels the rest. |
+
+If a branch raises an outcome it doesn't handle, the other branches are
+cancelled and the outcome passes to the `parallel`, and unwinds from there.
+
+Use `"race"` for "whoever responds first": a buzzer, or the response window in
+[Plus Two](../../../examples/plus-two/). Use `"all"` for independent things
+that must all finish. For the same body run per player, use a parallel
+[`each`](../each/) instead.
+
+## Demo
+
+Both players may buzz; the first wins the point (`race`). Then both must click
+Ready, in any order (`all`).
+
+<Demo name="parallel" />

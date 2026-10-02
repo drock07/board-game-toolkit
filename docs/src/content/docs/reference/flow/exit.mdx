@@ -1,0 +1,32 @@
+---
+title: exit
+description: "Raises an outcome from the flow."
+sidebar:
+  order: 10
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+exit(id, outcome, opts?)
+// { kind: "exit", id, outcome }
+```
+
+When reached, raises `outcome`: the nearest enclosing node that handles it
+(in its `exits` or `on`) ends, after running its `on` flow for that outcome.
+It's the flow's version of `tx.exit`.
+
+| Option    | Type     | Meaning                                  |
+| --------- | -------- | ---------------------------------------- |
+| `outcome` | `string` | The outcome to raise. Can't be `"done"`. |
+
+`defineGame` checks that some enclosing node handles the outcome. See
+[Outcomes and guards](../../../concepts/outcomes/).
+
+## Demo
+
+Draw until you bank or bust. Three outcomes end the `draws` loop: a guard
+(`bust`), `tx.exit` in an action (`banked`), and an `exit` node in an action's
+`then` flow (`forfeit`). Each has its own `on` flow.
+
+<Demo name="exit" />

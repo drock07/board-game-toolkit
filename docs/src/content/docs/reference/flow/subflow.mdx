@@ -1,0 +1,34 @@
+---
+title: subflow
+description: "Runs a named, reusable flow from spec.subflows."
+sidebar:
+  order: 11
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+subflow(id, name, opts?)
+// { kind: "use", id, subflow: name }
+```
+
+Runs `spec.subflows[name]`, as if its nodes were written in place. The
+builder is called `subflow`; the node kind is `"use"`.
+
+| Option    | Type     | Meaning                                |
+| --------- | -------- | -------------------------------------- |
+| `subflow` | `string` | The name of a flow in `spec.subflows`. |
+
+**Node ids are prefixed** with the `use` node's id and a dot, so one subflow
+can be used in several places: `subflow("first", "duel")` turns the subflow's
+`attack` into `first.attack`. Refer to the prefixed ids in `tx.local`, triggers
+and the UI.
+
+`defineGame` reports unknown subflows, unused subflows, and subflows that use
+themselves.
+
+## Demo
+
+The `duel` subflow is used twice per round, as `first` and `second`.
+
+<Demo name="subflow" />

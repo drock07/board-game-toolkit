@@ -1,0 +1,37 @@
+---
+title: loop
+description: "Runs its body repeatedly, a fixed number of times or until a condition."
+sidebar:
+  order: 2
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+loop(id, body, { times?, until?, while?, ...common })
+// { kind: "loop", id, body, times?, until?, while? }
+```
+
+Runs `body` again each time it ends. Each pass binds `scope.iteration`,
+counting from 0.
+
+| Option  | Type       | Meaning                                                                      |
+| ------- | ---------- | ---------------------------------------------------------------------------- |
+| `body`  | `FlowNode` | The node to repeat.                                                          |
+| `times` | `number`   | Run at most this many passes.                                                |
+| `while` | `Cond`     | Checked **before** each pass, including the first. Ends the loop when false. |
+| `until` | `Cond`     | Checked **after** each pass. Ends the loop when true.                        |
+
+With none of these, a loop runs forever, which is right for the outermost
+`session` loop of most games. `defineGame` rejects a loop that has no way to
+end (no `times`, `until`, `while` or `exits`) **and** whose body can never
+wait for input, since it would spin forever.
+
+To end a loop from inside, give it an `exits` guard, or raise an outcome it
+handles. See [Outcomes and guards](../../../concepts/outcomes/).
+
+## Demo
+
+Three rounds, then a summary pause. `startRound` reads `tx.scope.iteration`.
+
+<Demo name="loop" />

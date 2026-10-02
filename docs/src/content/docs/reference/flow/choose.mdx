@@ -1,0 +1,38 @@
+---
+title: choose
+description: "Offers a list of options and waits for a selection."
+sidebar:
+  order: 7
+---
+
+import Demo from "../../../../components/Demo.astro";
+
+```ts
+choose(id, { actor, options, min?, max?, apply, ...common })
+// { kind: "choose", id, actor, options, min?, max?, apply }
+```
+
+Opens a prompt with a list of JSON options. The player picks between `min`
+and `max` of them, and `impl.choices[apply](tx, selection)` applies the pick.
+
+| Option    | Type                 | Meaning                                                                   |
+| --------- | -------------------- | ------------------------------------------------------------------------- |
+| `actor`   | `Actor`              | Who may answer.                                                           |
+| `options` | `string` or `Json[]` | An `impl.lists` name, evaluated when the prompt opens, or a literal list. |
+| `min`     | `number`             | Fewest options to pick. Defaults to 1. May be 0.                          |
+| `max`     | `number`             | Most options to pick. Defaults to 1.                                      |
+| `apply`   | `string`             | The `impl.choices` entry that receives the selection.                     |
+
+The prompt carries `options`, `min` and `max`. An input answers with
+`{ choose: [...] }`: options from the list, each at most as often as it's
+offered. Anything else is rejected with `bad_selection`. If the list has fewer
+than `min` options when the prompt opens, the game throws: it's a rules bug.
+
+Use `choose` when the answer is "pick from these": a color, targets, cards to
+keep. Use a `decision` when the answer is "do one of these things".
+
+## Demo
+
+Keep one or two of three items on offer.
+
+<Demo name="choose" />

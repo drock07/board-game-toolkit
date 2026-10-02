@@ -1,0 +1,74 @@
+---
+title: Expressions
+description: The JSON condition language for guards, loops and branches that don't need a named function.
+sidebar:
+  order: 2
+---
+
+import Source from "../../../../components/Source.astro";
+
+Any condition in a spec can be an **expression** instead of the name of an
+`impl.conditions` function. Expressions are plain JSON, so they survive
+[`toJSON`](../json/) and show up readably in the devtools.
+
+```ts
+exits: {
+  won: { lte: [{ var: "vars.enemy.hp" }, 0] },
+  lost: { lte: [{ var: "vars.player.hp" }, 0] },
+},
+```
+
+An expression is an object with exactly one operator key. Its operands are
+literals (strings, numbers, booleans, `null`, arrays) or nested expressions. A
+plain object operand is always read as an expression.
+
+## Operators
+
+| Operator                 | Form                        | Result                                                    |
+| ------------------------ | --------------------------- | --------------------------------------------------------- |
+| `var`                    | `{ var: "vars.enemy.hp" }`  | A value from state. Missing paths are `null`.             |
+| `count`                  | `{ count: "hand:$player" }` | The number of entities in a zone.                         |
+| `eq`, `ne`               | `{ eq: [a, b] }`            | Deep JSON equality.                                       |
+| `lt`, `lte`, `gt`, `gte` | `{ gt: [a, b] }`            | Numeric comparison. Both sides must be numbers.           |
+| `add`, `sub`             | `{ add: [a, b] }`           | Arithmetic on numbers.                                    |
+| `and`, `or`              | `{ and: [a, b, ...] }`      | Every / any operand is `true`. Operands must be booleans. |
+| `not`                    | `{ not: a }`                | Negation.                                                 |
+| `ref`                    | `{ ref: "hasAce" }`         | Calls an `impl.conditions` entry.                         |
+
+A condition must evaluate to `true` or `false`; anything else throws when it's
+checked.
+
+### `var` paths
+
+| Root      | Reads                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------------- |
+| `vars.…`  | The game's vars: `vars.bankroll`, `vars.player.hp`. The first key must be declared in `spec.vars`. |
+| `local.…` | The nearest enclosing node's locals: `local.rolls`.                                                |
+| `scope.…` | The scope: `scope.player`, `scope.item`, `scope.iteration`, `scope.actor`, `scope.event`.          |
+
+### `count` zones
+
+`count` takes a zone id. `$player` is replaced with `scope.player`, so
+`{ count: "hand:$player" }` inside an `each` over players counts the current
+player's hand.
+
+## Checked at definition
+
+`defineGame` checks every expression's shape: one operator per object, the
+right number of operands, `var` paths with a known root and declared var, and
+`count` zones that exist. Problems are reported with where they are, like
+`node "rounds" exits.won: …`.
+
+## Readable form
+
+`describeCond` turns a condition into text. The devtools use it to label
+guards and branches.
+
+<Source file="snippets/spec.test.ts" region="describe" title={false} />
+
+## When to use a function instead
+
+Expressions are good for comparisons on vars and zone counts. Use a named
+condition for anything with logic: scanning a hand, checking lines on a board,
+reading entity props. Named conditions are type-checked TypeScript and can be
+unit-tested; an expression can call one with `{ ref }`.

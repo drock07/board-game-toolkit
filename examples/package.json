@@ -11,7 +11,9 @@
     "./games/*": "./src/games/*/index.ts",
     "./games/*/Table": "./src/games/*/Table.tsx",
     "./site/*": "./src/site/*.tsx",
-    "./ui/*": "./src/ui/*.tsx"
+    "./ui/*": "./src/ui/*.tsx",
+    "./demos": "./src/demos/index.ts",
+    "./site/flowTree": "./src/site/flowTree.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
