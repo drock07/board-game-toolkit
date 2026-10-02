@@ -1,5 +1,10 @@
-export * from "./backgrounds/index.js";
-export * from "./cards/index.js";
-export * from "./dice/index.js";
-export * from "./gameBoards/index.js";
-export * from "./stateMachine/index.js";
+export { useGame, useGameEvent } from "./hooks.js";
+export type { EventOfType, UseGameResult } from "./hooks.js";
+export { GameHost } from "./host.js";
+export type {
+  Controller,
+  EventHandler,
+  GameHostOptions,
+  GameSnapshot,
+  PlayerSeat,
+} from "./host.js";

@@ -37,7 +37,9 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm -r publish
+          # changeset publish prints "New tag:" lines, which the action needs
+          # to create tags and GitHub Releases and to report `published`
+          publish: pnpm release
           title: "Version Packages"
           createGithubReleases: true
         env:

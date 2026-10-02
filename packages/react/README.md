@@ -1,321 +1,94 @@
 # @drock07/board-game-toolkit-react
 
-React bindings for `@drock07/board-game-toolkit-core`. Provides a context provider, hooks, and components for integrating the state machine engine into React applications.
-
-## Installation
-
-```bash
-pnpm add @drock07/board-game-toolkit-react @drock07/board-game-toolkit-core
-```
-
-Requires React 19 or higher. `@drock07/board-game-toolkit-core` is a peer dependency, so install it alongside this package. Both packages are versioned together.
-
-Everything is exported from the package root. Each domain also has its own entry point: `/backgrounds`, `/boards`, `/cards`, `/dice` and `/state-machine`.
-
-## Quick Start
+The React host for
+[`@drock07/board-game-toolkit-engine`](../engine), which it depends on and
+installs for you (the two are always released together): it runs a game in a
+component, plays events back one at a time so the UI can animate them, and
+lets bots answer their prompts.
 
 ```tsx
-import {
-  StateMachineContext,
-  useStateMachineActions,
-  useStateMachineState,
-  State,
-} from "@drock07/board-game-toolkit-react";
+import { randomBot } from "@drock07/board-game-toolkit-engine";
+import { useGame, useGameEvent } from "@drock07/board-game-toolkit-react";
 
-function App() {
-  return (
-    <StateMachineContext
-      config={gameConfig}
-      initialState={{ score: 0, round: 1 }}
-    >
-      <Game />
-    </StateMachineContext>
-  );
-}
+function Table() {
+  const g = useGame(myGame, {
+    players: ["p1", { id: "p2", controller: randomBot() }],
+  });
+  // Playback waits for the promise, so each card lands before the next moves
+  useGameEvent(g, "moved", () => new Promise((r) => setTimeout(r, 250)));
 
-function Game() {
-  const { start } = useStateMachineActions<GameState, GameCommand>();
-
-  return (
-    <>
-      <State state="setup">
-        <button onClick={start}>Start Game</button>
-      </State>
-      <State state="playing">
-        <PlayingScreen />
-      </State>
-      <State state="gameOver">
-        <GameOverScreen />
-      </State>
-    </>
-  );
+  return g.legal.map((input) => (
+    <button key={JSON.stringify(input)} onClick={() => g.submit(input)}>
+      {"action" in input ? input.action : "Continue"}
+    </button>
+  ));
 }
 ```
 
-## Provider
+## `useGame(game, options)`
 
-### `StateMachineContext`
+Options:
 
-Wraps your app and manages the engine state internally. Pass your machine config and initial game state as props.
+- `players`: seats in order. A bare id is a human seat; `{ id, controller }`
+  sets a bot.
+- `seed`: defaults to a random one.
+- `viewer`: whose view to show. Defaults to the first human seat.
+- `botDelay`: milliseconds a bot waits before answering (default 500).
 
-```tsx
-<StateMachineContext config={gameConfig} initialState={{ score: 0, round: 1 }}>
-  {children}
-</StateMachineContext>
-```
+It returns:
 
-| Prop           | Type                                   | Description                     |
-| -------------- | -------------------------------------- | ------------------------------- |
-| `config`       | `StateMachineConfig<TState, TCommand>` | The state machine configuration |
-| `initialState` | `TState`                               | The initial game state          |
-| `autostart`    | `boolean`                              | Start the machine on mount      |
-| `onError`      | `(error, operation) => void`           | Called when an operation fails  |
-| `children`     | `ReactNode`                            | Child components                |
+- `view`: the viewer's `PlayerView`. During playback it lags the committed
+  state, one event at a time.
+- `prompts`, `legal`: the viewer's open prompts and legal inputs. Both are
+  empty while events play back, and for a spectator or a bot's seat.
+- `submit(input)`: applies an input. Returns the engine's error if it was
+  rejected.
+- `playing`: true while events are playing back.
+- `log`: the viewer's events so far.
+- `restart(seed?)`, `setViewer(viewer)`.
+- `state`: the committed state with nothing hidden. Use it for inspectors and
+  devtools; render the game from `view`.
 
-Engine operations run one at a time, in the order they're called. If one fails (for example a command fails validation, or a lifecycle hook throws), `onError` is called with the error and the operation name (`"start"`, `"advance"` or `"dispatch"`). By default the error is logged with `console.error`. Operations that were already queued behind the failed one are cancelled, so `dispatch(move); advance();` doesn't advance after an illegal move.
+The game and seats are read once. To change them, remount the component, for
+example with a `key`.
 
-## Hooks
+## `useGameEvent(g, type, handler)`
 
-### `useStateMachineState<TState>()`
+Runs `handler(event, view)` as each of the viewer's events of `type` plays
+back (`"*"` for all). The view already includes the event. If the handler
+returns a promise, playback waits for it before the next event. Events
+without handlers are applied straight away, without a render in between.
 
-Returns the current game state.
+## Bots
 
-```tsx
-const gameState = useStateMachineState<GameState>();
-// gameState.score, gameState.round, etc.
-```
+A bot answers when one of its prompts is open and playback has finished. It
+sees only its own view, and gets its own RNG seeded from the game's seed, so
+the game's determinism depends only on the inputs it produces. A pause that a
+human can answer is left to the human, so people set the pace between hands.
 
-### `useStateMachineActions<TState, TCommand>()`
+## `GameHost`
 
-Returns the engine action functions: `start`, `advance`, `dispatch`, and `canDispatch`.
+`useGame` wraps `GameHost`, a framework-free class with the same commands
+plus `subscribe` and `getSnapshot`, for other UI libraries or tests.
 
-```tsx
-const { start, advance, dispatch, canDispatch } = useStateMachineActions<
-  GameState,
-  GameCommand
->();
+## Devtools
 
-// Start the machine
-start();
-
-// Advance to the next state
-advance();
-
-// Dispatch a command
-dispatch({ type: "addScore", points: 10 });
-
-// Each action returns a promise that resolves to true once applied, or false
-// if it failed or was cancelled. It never rejects, so awaiting it is optional.
-if (await dispatch({ type: "addScore", points: 10 })) {
-  playSound("score");
-}
-
-// Check if a command can be dispatched
-if (canDispatch({ type: "addScore", points: 10 })) {
-  // command is valid in the current state
-}
-```
-
-### `useStateMachineCurrentState()`
-
-Returns the current state names as an array, ordered root-to-leaf (outermost machine to innermost state). Optionally pass a machine ID to get a specific machine's current state.
+`@drock07/board-game-toolkit-react/devtools` has two components for
+inspecting a running game. Both use inline styles, themed by `--bgt-dt-*`
+CSS variables (`--bgt-dt-bg`, `--bgt-dt-fg`, `--bgt-dt-accent`, …) so they
+fit light or dark pages.
 
 ```tsx
-// All active states (root-to-leaf)
-const currentState = useStateMachineCurrentState();
-// ["game", "round", "draw"]
+import { FiberInspector, FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
 
-// Specific machine's state
-const roundState = useStateMachineCurrentState("round");
-// "draw"
+<FlowGraph game={game} flow={g.state.flow} />
+<FiberInspector flow={g.state.flow} />
 ```
 
-### `useStateMachineEngineState<TState>()`
-
-Returns engine-level metadata: whether the machine has started and the current state hierarchy.
-
-```tsx
-const { started, currentState } = useStateMachineEngineState<GameState>();
-```
-
-## Commands
-
-Actions are defined as command objects with a `type` discriminant. Define a command union for your game, then declare handlers in the state machine config:
-
-```tsx
-// Define your command types
-type GameCommand = { type: "addScore"; points: number } | { type: "drawCard" };
-
-// Define your config with command handlers
-const gameConfig: StateMachineConfig<GameState, GameCommand> = {
-  id: "game",
-  initial: "playing",
-  states: {
-    playing: {
-      actions: {
-        addScore: {
-          validate: (state, cmd) => cmd.points > 0,
-          execute: (state, cmd) => ({
-            ...state,
-            score: state.score + cmd.points,
-          }),
-        },
-        drawCard: {
-          execute: (state) => ({
-            ...state,
-            hand: [...state.hand, state.deck[0]],
-            deck: state.deck.slice(1),
-          }),
-        },
-      },
-      getNext: () => null,
-    },
-  },
-};
-```
-
-Each handler receives the narrowed command type — `addScore`'s handler gets `{ type: "addScore"; points: number }`, not the full union. The `validate` function is optional and controls whether the command is allowed in the current state.
-
-### Action-Triggered Transitions
-
-An `execute` handler can trigger a state transition by using the `transitionTo` helper passed as the third argument. This is useful when a command needs to move the machine to a different state (e.g., entering a resolution phase):
-
-```tsx
-actions: {
-  playCard: {
-    execute: (state, cmd, transitionTo) => {
-      const newState = { ...state, pending: true };
-      return transitionTo("resolveEffect", newState);
-    },
-  },
-},
-```
-
-`transitionTo` accepts an optional third argument for transition data, which is passed to the target state's `onEnter`:
-
-```tsx
-return transitionTo("resolveEffect", newState, { returnTo: "playCards" });
-```
-
-Every operation is recorded in `engine.log`, which together with `engine.seed` can rebuild the game with core's `replay`. Pass a `seed` prop to `StateMachineContext` to reproduce a game.
-
-## Components
-
-### `State`
-
-Conditionally renders children based on the current state. Supports three matching modes:
-
-**Exact match** - matches the leaf state:
-
-```tsx
-<State state="playing">
-  <PlayingScreen />
-</State>
-```
-
-**Hierarchy match with wildcards** - matches against the state path (root-to-leaf):
-
-```tsx
-{
-  /* "round" machine with any leaf state */
-}
-<State state={["round", "*"]}>
-  <RoundLayout />
-</State>;
-```
-
-**Includes match** - matches if the state appears anywhere in the stack:
-
-```tsx
-<State includes="round">
-  <RoundHUD />
-</State>
-```
-
-### `StateTree`
-
-Automatically renders the correct component tree based on the current machine state. Uses `StateModule` definitions to map states to components and supports nested machines with optional layouts.
-
-```tsx
-import {
-  StateTree,
-  StateMachineModule,
-  StateLeafModule,
-} from "@drock07/board-game-toolkit-react";
-
-const drawModule: StateLeafModule = {
-  component: DrawScreen,
-};
-
-const roundModule: StateMachineModule<GameState> = {
-  stateMachineConfig: roundConfig,
-  layout: RoundLayout,
-  childModules: {
-    draw: drawModule,
-    play: { component: PlayScreen },
-    score: { component: ScoreScreen },
-  },
-};
-
-const gameModule: StateMachineModule<GameState> = {
-  stateMachineConfig: gameConfig,
-  childModules: {
-    round: roundModule,
-    gameOver: { component: GameOverScreen },
-  },
-};
-
-function App() {
-  return (
-    <StateMachineContext config={gameConfig} initialState={initialState}>
-      <StateTree module={gameModule} />
-    </StateMachineContext>
-  );
-}
-```
-
-### `CardHand`
-
-Displays a hand of overlapping cards with hover/focus raise, selection, and optional fan layout. Comes in controlled and uncontrolled variants.
-
-```tsx
-import { CardHand, UncontrolledCardHand } from "@drock07/board-game-toolkit-react";
-
-// Uncontrolled — manages selection internally
-<UncontrolledCardHand onSelect={(key) => console.log(key)}>
-  <MyCard key="ace" />
-  <MyCard key="king" />
-  <MyCard key="queen" />
-</UncontrolledCardHand>
-
-// Controlled — parent owns selection state
-<CardHand selectedKey={selectedKey} onCardClick={setSelectedKey}>
-  {cards.map((card) => <MyCard key={card.id} card={card} />)}
-</CardHand>
-```
-
-| Prop              | Type                                | Description                                                 |
-| ----------------- | ----------------------------------- | ----------------------------------------------------------- |
-| `children`        | `ReactNode`                         | Card elements to display                                    |
-| `selectedKey`     | `string \| null`                    | Currently selected card key (controlled)                    |
-| `onCardClick`     | `(key: string) => void`             | Called when a card is clicked (controlled)                  |
-| `onSelect`        | `(key: string \| null) => void`     | Called when selection changes (uncontrolled)                |
-| `arc`             | `number`                            | Fan intensity (0 = flat, 1 = full arc). Default `0`         |
-| `getCardProps`    | `(key: string) => CardWrapperProps` | Prop getter for drag-and-drop integration                   |
-| `cardWidth`       | `number`                            | Card width override (falls back to `CardDimensionsContext`) |
-| `cardAspectRatio` | `number`                            | Card aspect ratio override                                  |
-| `className`       | `string`                            | Container class (replaces default `"w-full"`)               |
-| `style`           | `CSSProperties`                     | Container style                                             |
-| `aria-label`      | `string`                            | Accessible label. Default `"Card hand"`                     |
-
-**Keyboard navigation:** Arrow keys to move focus, Home/End to jump, Enter/Space to select. The component uses `role="listbox"` with `role="option"` on each card.
-
-**Drag-and-drop:** Use `getCardProps` to attach refs, event handlers, and transforms from libraries like dnd-kit. The component composes the consumer's `transform` and `transition` with its own layout transforms.
-
-### StateModule Types
-
-| Type                         | Description                                                     |
-| ---------------------------- | --------------------------------------------------------------- |
-| `StateLeafModule`            | `{ component: React.FC }` - a leaf state with a component       |
-| `StateMachineModule<TState>` | A machine state with config, optional layout, and child modules |
-| `StateModule<TState>`        | Union of `StateLeafModule \| StateMachineModule<TState>`        |
+- `FlowGraph` draws the flow and its triggers as nested boxes: sequences run
+  left to right; branch cases, parallel lanes, actions' `then` flows and
+  `on` flows stack; loops are marked ↻. Each box lists its guards,
+  conditions (via `describeCond`), actors and refs. Given a flow state,
+  running nodes are outlined and nodes waiting for input are filled.
+- `FiberInspector` lists live fibers with their frame stacks: node, phase,
+  binding, locals and open prompt.

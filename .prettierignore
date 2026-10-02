@@ -1,3 +1,6 @@
 pnpm-lock.yaml
 dist
 **/CHANGELOG.md
+
+# Golden replay fixtures are compared byte for byte
+**/golden.json

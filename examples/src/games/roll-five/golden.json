@@ -1,0 +1,351 @@
+{
+  "players": [
+    "p1"
+  ],
+  "seed": "golden",
+  "inputs": [
+    {
+      "prompt": "q1",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q2",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q3",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q4",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "threeOfAKind"
+      }
+    },
+    {
+      "prompt": "q5",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q6",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q7",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q8",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "chance"
+      }
+    },
+    {
+      "prompt": "q9",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q10",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q11",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q12",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "sixes"
+      }
+    },
+    {
+      "prompt": "q13",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q14",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q15",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q16",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "fives"
+      }
+    },
+    {
+      "prompt": "q17",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q18",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q19",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q20",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "fours"
+      }
+    },
+    {
+      "prompt": "q21",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q22",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q23",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q24",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "twos"
+      }
+    },
+    {
+      "prompt": "q25",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q26",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q27",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q28",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "aces"
+      }
+    },
+    {
+      "prompt": "q29",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q30",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q31",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q32",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "smallStraight"
+      }
+    },
+    {
+      "prompt": "q33",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q34",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q35",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q36",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "threes"
+      }
+    },
+    {
+      "prompt": "q37",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q38",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q39",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q40",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "fourOfAKind"
+      }
+    },
+    {
+      "prompt": "q41",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q42",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q43",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q44",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "fullHouse"
+      }
+    },
+    {
+      "prompt": "q45",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q46",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q47",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q48",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "largeStraight"
+      }
+    },
+    {
+      "prompt": "q49",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q50",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q51",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q52",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "rollFive"
+      }
+    },
+    {
+      "prompt": "q53",
+      "player": "p1",
+      "continue": true
+    },
+    {
+      "prompt": "q54",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q55",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q56",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q57",
+      "player": "p1",
+      "action": "score",
+      "args": {
+        "category": "chance"
+      }
+    },
+    {
+      "prompt": "q58",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q59",
+      "player": "p1",
+      "action": "roll"
+    },
+    {
+      "prompt": "q60",
+      "player": "p1",
+      "action": "roll"
+    }
+  ],
+  "finalStateHash": "805d1cfc1443518dd9cf6ddf2dc6794f"
+}

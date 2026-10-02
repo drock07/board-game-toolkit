@@ -3,9 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "jsx": "react-jsx",
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "jsx": "react-jsx"
   },
   "include": ["src"]
 }

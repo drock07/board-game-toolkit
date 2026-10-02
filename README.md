@@ -1,13 +1,17 @@
 # Board Game Toolkit
 
-A TypeScript toolkit for building board games with state machine-driven game flow.
+A TypeScript toolkit for building board games. A game's flow (phases, rounds,
+turns, decisions) is a JSON-serializable spec interpreted by a pure,
+deterministic engine: `apply(game, state, input) → { state, events, prompts }`.
+
+> The engine is being rewritten from scratch. Expect breaking changes until 1.0.
 
 ## Packages
 
-| Package                                              | Description                                 |
-| ---------------------------------------------------- | ------------------------------------------- |
-| [@drock07/board-game-toolkit-core](packages/core/)   | Framework-agnostic state machine engine     |
-| [@drock07/board-game-toolkit-react](packages/react/) | React bindings (context, hooks, components) |
+| Package                                                | Description                                       |
+| ------------------------------------------------------ | ------------------------------------------------- |
+| [@drock07/board-game-toolkit-engine](packages/engine/) | State model, ops, seeded RNG, flow interpreter    |
+| [@drock07/board-game-toolkit-react](packages/react/)   | React host: hooks, event playback, bots (planned) |
 
 ## Development
 
@@ -37,6 +41,7 @@ pnpm format       # Format with Prettier (format:check to verify)
 
 ```
 packages/
-  core/     # State machine engine (no dependencies)
-  react/    # React bindings (depends on core)
+  engine/   # The engine: no UI, only depends on immer
+  react/    # React host (depends on engine)
+examples/   # Example games (src/games) and the examples site
 ```

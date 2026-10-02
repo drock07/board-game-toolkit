@@ -1,6 +1,7 @@
 {
   "name": "@drock07/board-game-toolkit-react",
-  "version": "0.4.0",
+  "version": "0.0.0",
+  "description": "React host for the board game toolkit engine",
   "type": "module",
   "sideEffects": false,
   "repository": {
@@ -17,25 +18,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./backgrounds": {
-      "types": "./dist/backgrounds/index.d.ts",
-      "import": "./dist/backgrounds/index.js"
-    },
-    "./boards": {
-      "types": "./dist/gameBoards/index.d.ts",
-      "import": "./dist/gameBoards/index.js"
-    },
-    "./cards": {
-      "types": "./dist/cards/index.d.ts",
-      "import": "./dist/cards/index.js"
-    },
-    "./dice": {
-      "types": "./dist/dice/index.d.ts",
-      "import": "./dist/dice/index.js"
-    },
-    "./state-machine": {
-      "types": "./dist/stateMachine/index.d.ts",
-      "import": "./dist/stateMachine/index.js"
+    "./devtools": {
+      "types": "./dist/devtools/index.d.ts",
+      "import": "./dist/devtools/index.js"
     }
   },
   "files": [
@@ -51,20 +36,19 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "@drock07/board-game-toolkit-engine": "workspace:^"
+  },
   "devDependencies": {
-    "@drock07/board-game-toolkit-core": "workspace:*",
-    "@testing-library/dom": "^10.4.2",
-    "@testing-library/react": "^16.3.3",
-    "@types/react": "catalog:",
-    "@types/react-dom": "^19.2.3",
-    "jsdom": "^30.1.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
     "typescript": "catalog:",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "catalog:",
+    "jsdom": "^26.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@drock07/board-game-toolkit-core": "workspace:^",
     "react": "^19.0.0"
   }
 }

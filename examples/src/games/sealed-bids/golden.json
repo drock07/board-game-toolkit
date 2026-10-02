@@ -1,0 +1,319 @@
+{
+  "players": [
+    "p1",
+    "p2",
+    "p3"
+  ],
+  "seed": "golden",
+  "inputs": [
+    {
+      "prompt": "q1",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 6
+      }
+    },
+    {
+      "prompt": "q2",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "prompt": "q3",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 1
+      }
+    },
+    {
+      "prompt": "q4",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 8
+      }
+    },
+    {
+      "prompt": "q5",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q6",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 7
+      }
+    },
+    {
+      "prompt": "q7",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q8",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q9",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "prompt": "q10",
+      "player": "p1",
+      "continue": true
+    },
+    {
+      "prompt": "q11",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 8
+      }
+    },
+    {
+      "prompt": "q12",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 8
+      }
+    },
+    {
+      "prompt": "q13",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 5
+      }
+    },
+    {
+      "prompt": "q14",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q15",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 2
+      }
+    },
+    {
+      "prompt": "q16",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 7
+      }
+    },
+    {
+      "prompt": "q17",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 1
+      }
+    },
+    {
+      "prompt": "q18",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 2
+      }
+    },
+    {
+      "prompt": "q19",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 3
+      }
+    },
+    {
+      "prompt": "q20",
+      "player": "p1",
+      "continue": true
+    },
+    {
+      "prompt": "q21",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 1
+      }
+    },
+    {
+      "prompt": "q22",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 9
+      }
+    },
+    {
+      "prompt": "q23",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 2
+      }
+    },
+    {
+      "prompt": "q24",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 6
+      }
+    },
+    {
+      "prompt": "q25",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q26",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 7
+      }
+    },
+    {
+      "prompt": "q27",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 4
+      }
+    },
+    {
+      "prompt": "q28",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q29",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 3
+      }
+    },
+    {
+      "prompt": "q30",
+      "player": "p1",
+      "continue": true
+    },
+    {
+      "prompt": "q31",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "prompt": "q32",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 6
+      }
+    },
+    {
+      "prompt": "q33",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 5
+      }
+    },
+    {
+      "prompt": "q34",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q35",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q36",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q37",
+      "player": "p1",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q38",
+      "player": "p2",
+      "action": "placeBid",
+      "args": {
+        "amount": 9
+      }
+    },
+    {
+      "prompt": "q39",
+      "player": "p3",
+      "action": "placeBid",
+      "args": {
+        "amount": 0
+      }
+    },
+    {
+      "prompt": "q40",
+      "player": "p1",
+      "continue": true
+    }
+  ],
+  "finalStateHash": "fabc630b450e9f6f423564d594d4bd69"
+}
