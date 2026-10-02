@@ -4,6 +4,8 @@ import {
   legalInputs,
   randomBot,
   replay,
+  view,
+  viewEvents,
   type ApplyResult,
   type Input,
 } from "@drock07/board-game-toolkit-engine";
@@ -152,6 +154,44 @@ describe("crazy eights", () => {
     expect(r.state.vars.winner).toBeNull();
     for (const p of players) expect(hand(r, p)).toHaveLength(7);
   });
+});
+
+test("from p2's view, p1's cards never show (M6 acceptance)", () => {
+  const { results } = playBots(crazyEights, {
+    players,
+    seed: "views",
+    bots: simpleBot,
+    maxInputs: 200,
+  });
+  let checked = 0;
+  for (let i = 1; i < results.length; i++) {
+    const before = results[i - 1]!.state;
+    const after = results[i]!;
+    // Cards in p1's hand now never show in p2's view; cards p1 held both
+    // before and after a step never show in that step's events
+    const held = after.state.zones["hand:p1"]!.items;
+    const heldThroughout = held.filter((id) =>
+      before.zones["hand:p1"]!.items.includes(id),
+    );
+    const v = JSON.stringify(view(crazyEights, after.state, "p2"));
+    const events = JSON.stringify(
+      viewEvents(crazyEights, before, after.events, "p2"),
+    );
+    for (const id of held) {
+      expect(v).not.toContain(`"${id}"`);
+      checked++;
+    }
+    for (const id of heldThroughout) expect(events).not.toContain(`"${id}"`);
+    // p2 does see their own hand
+    for (const id of after.state.zones["hand:p2"]!.items)
+      expect(v).toContain(`"${id}"`);
+  }
+  expect(checked).toBeGreaterThan(100);
+  // The discard pile shows only its top card
+  const last = view(crazyEights, results.at(-1)!.state, "p2");
+  expect(
+    last.zones.discard.items.slice(1).every((id) => id.startsWith("?discard#")),
+  ).toBe(true);
 });
 
 test("golden replay", async () => {

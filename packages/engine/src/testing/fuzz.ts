@@ -11,7 +11,16 @@ import { checkInvariants } from "../invariants.js";
 import { jsonEqual, type Json } from "../json.js";
 import { reduceEvents } from "../reduce.js";
 import { seededRandom } from "../rng.js";
-import type { GameTypes, Input, PlayerId } from "../types.js";
+import { untyped } from "../state.js";
+import type { GameEvent, GameTypes, Input, PlayerId } from "../types.js";
+import {
+  canSee,
+  statesAlong,
+  view,
+  viewEventsOver,
+  type PlayerView,
+  type Viewer,
+} from "../view.js";
 
 export interface PlayBotsOptions<T extends GameTypes> {
   players: PlayerId[];
@@ -55,7 +64,11 @@ export function playBots<T extends GameTypes>(
           (x) => x.prompt === prompt.id,
         );
         if (!legal.length) continue;
-        const answer = bot(last.state, prompt, { player, legal, random });
+        const answer = bot(view(game, last.state, player), prompt, {
+          player,
+          legal,
+          random,
+        });
         if (answer instanceof Promise) {
           throw new Error("playBots runs synchronous bots only");
         }
@@ -118,12 +131,104 @@ export interface FuzzReport {
   warnings: string[];
 }
 
+/** Adds every string shaped like an entity id (`type#n`) in a JSON value. */
+function addIdsIn(value: unknown, out: Set<string>): Set<string> {
+  if (value === undefined) return out;
+  for (const s of JSON.stringify(value).match(/"[^"?]*#\d+"/g) ?? []) {
+    out.add(s.slice(1, -1));
+  }
+  return out;
+}
+
+/**
+ * The entity ids a view shows. Entities and zones are read directly; only
+ * the free-form parts are scanned, which keeps the check fast.
+ */
+function idsInView(v: PlayerView): Set<string> {
+  const out = new Set<string>(Object.keys(v.entities));
+  for (const e of Object.values(v.entities)) out.add(e.id);
+  for (const z of Object.values(v.zones))
+    for (const id of z?.items ?? []) out.add(id);
+  return addIdsIn([v.vars, v.locals, v.prompts, v.result], out);
+}
+
+/** The entity ids a list of events shows. */
+function idsInEvents(events: readonly GameEvent[]): Set<string> {
+  const out = new Set<string>();
+  for (const e of events) {
+    switch (e.type) {
+      case "created":
+        out.add(e.id).add(e.entity.id);
+        break;
+      case "moved":
+        for (const id of e.ids) out.add(id);
+        break;
+      case "shuffled":
+        for (const id of e.order) out.add(id);
+        break;
+      case "flipped":
+      case "destroyed":
+        out.add(e.id);
+        break;
+      case "vars":
+      case "locals":
+        addIdsIn(e.patches, out);
+        break;
+      case "custom":
+        addIdsIn(e.payload, out);
+        break;
+      case "ended":
+        addIdsIn(e.result, out);
+        break;
+      default:
+        break;
+    }
+  }
+  return out;
+}
+
+/**
+ * Hidden entity ids that a player's (or a spectator's) view or events
+ * reveal. An id may appear in events if the viewer could see the entity
+ * before or after them.
+ */
+function leaks<T extends GameTypes>(
+  game: Game<T>,
+  before: ApplyResult<T>["state"],
+  after: ApplyResult<T>,
+  players: PlayerId[],
+): string[] {
+  const s0 = untyped(before);
+  const s1 = untyped(after.state);
+  const found: string[] = [];
+  const along = statesAlong(before, after.events);
+  for (const viewer of [...players, "spectator"] as Viewer[]) {
+    const seenNow = (id: string) => canSee(game, s1, id, viewer);
+    const hidden = Object.keys(s1.entities).filter((id) => !seenNow(id));
+    const inView = idsInView(view(game, after.state, viewer) as PlayerView);
+    for (const id of hidden)
+      if (inView.has(id)) found.push(`view for ${viewer} leaks ${id}`);
+    const neverSeen = new Set(
+      [...Object.keys(s0.entities), ...hidden].filter(
+        (id) => !canSee(game, s0, id, viewer) && !seenNow(id),
+      ),
+    );
+    const inEvents = idsInEvents(
+      viewEventsOver(game, along, after.events, viewer) as GameEvent[],
+    );
+    for (const id of neverSeen)
+      if (inEvents.has(id)) found.push(`events for ${viewer} leak ${id}`);
+  }
+  return found;
+}
+
 /**
  * Plays random legal inputs from every player. Every state is deep-frozen
  * before the next input, so an engine or rules bug that mutates a state it
  * was given throws. After every apply it checks the state invariants, that a legal input is accepted, and that
  * `reduceEvents` reproduces the new state; after every run, that `replay`
- * rebuilds the final state. Thrown errors (such as `FlowStuckError`) are
+ * rebuilds the final state, and that no player's or spectator's view or
+ * events reveal an entity id they can't see. Thrown errors (such as `FlowStuckError`) are
  * recorded as failures.
  */
 export function fuzz<T extends GameTypes>(
@@ -192,6 +297,8 @@ export function fuzz<T extends GameTypes>(
           fail(`Invariants broken: ${problems.join("; ")}`);
           break;
         }
+        for (const leak of leaks(game, last.state, res, opts.players))
+          fail(leak);
         const replayed = reduceEvents(last.state, res.events);
         for (const key of ["entities", "zones", "vars", "status"] as const) {
           if (!jsonEqual(replayed[key], res.state[key])) {

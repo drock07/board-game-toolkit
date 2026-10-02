@@ -41,18 +41,18 @@ function search(marks: Cell[], toMove: Mark, me: Mark): number {
  * best, breaking ties with its own RNG. Continues past the end-of-game pause.
  */
 export const minimaxBot: Bot<Types> = (
-  state,
+  view,
   prompt,
   { player, legal, random },
 ) => {
   if (prompt.node !== "place") return random.pick(legal);
-  const me = markOf(state.players, player);
+  const me = markOf(view.players, player);
   let best = -Infinity;
   let choices: typeof legal = [];
   for (const input of legal) {
     if (!("args" in input)) continue;
     const { index } = input.args as { index: number };
-    const marks = [...state.vars.marks];
+    const marks = [...(view.vars.marks ?? [])];
     marks[index] = me;
     const score = minimax(marks, other(me), me);
     if (score > best) {

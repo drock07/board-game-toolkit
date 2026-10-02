@@ -4,6 +4,7 @@ import {
   legalInputs,
   randomBot,
   replay,
+  view,
   type ApplyResult,
   type Input,
 } from "@drock07/board-game-toolkit-engine";
@@ -62,6 +63,9 @@ describe("sealed bids", () => {
     r = ok(apply(sealedBids, r.state, bid(r, "p3", 4)));
     r = ok(apply(sealedBids, r.state, bid(r, "p1", 6)));
     expect(r.prompts.map((p) => p.actors[0])).toEqual(["p2"]);
+    // Bids are secret: each player sees only their own
+    expect(view(sealedBids, r.state, "p2").vars.bids).toEqual({ p2: null });
+    expect(view(sealedBids, r.state, "p3").vars.bids).toEqual({ p3: 4 });
     expect(r.state.vars.lastResult).toBeNull();
     r = ok(apply(sealedBids, r.state, bid(r, "p2", 2)));
     expect(r.state.vars.lastResult).toEqual({

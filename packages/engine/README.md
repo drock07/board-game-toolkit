@@ -4,8 +4,8 @@ A pure, deterministic board game engine. Game state is plain JSON, rules code
 changes it only through a transaction (`tx`), and every change is recorded as
 an event that can be replayed.
 
-> Under construction: views and hidden information arrive in a later
-> milestone.
+> Under construction: the React host and devtools arrive in later
+> milestones.
 
 ## Defining a game
 
@@ -164,6 +164,24 @@ hashed with cyrb128 and the generator is warmed up for 12 rounds.
 dice (`D4`–`D20`, `D100`, `Fudge`) ship as data. `Math.random` and `Date` are
 banned by lint in the engine and in game rules.
 
+## Views and hidden information
+
+`view(game, state, viewer)` is what one player (or `"spectator"`) may see:
+
+- An entity shows if its zone allows it (`public`; `owner` for the zone's
+  owner; `top` for the top item; a custom `{ ref }` function), and `faceUp`
+  overrides the zone either way. Hidden entities become positional opaque
+  ids like `?deck#3`, so a shuffle reveals nothing; `revealType` keeps their
+  type.
+- Vars marked `visibility: "hidden"` are dropped, and `"owner"` vars (a
+  record by player) keep only the viewer's entry.
+- Other players' prompts lose their options, locals are public, and the RNG
+  and flow internals are left out.
+
+`viewEvents(game, before, events, viewer)` applies the same rules to
+events, given the state before them: a move shows an entity's real id to
+viewers who can see either end. Bots receive views, so they can't cheat.
+
 ## Legal inputs and bots
 
 `legalInputs(game, state, player)` lists every input a player could give now:
@@ -184,8 +202,9 @@ determinism depends only on the inputs they produce.
 `@drock07/board-game-toolkit-engine/testing` has:
 
 - `fuzz(game, { seeds, maxInputs, players })`: plays random legal inputs and
-  checks invariants, that legal inputs are accepted, the replay property and
-  `replay` equality. It reports failures with their seeds, and warns about
+  checks invariants, that legal inputs are accepted, the replay property,
+  `replay` equality, and that no view or event stream leaks a hidden entity
+  id. It reports failures with their seeds, and warns about
   actions without `enumerate` that were never legal.
 - `playBots(game, { players, seed, bots, maxInputs })`: plays synchronous bots.
 - `record`, `simulate`, `hashState` and `expectPrompt` for golden replays.

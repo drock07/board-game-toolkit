@@ -1,19 +1,33 @@
-import type { Bot, Input } from "@drock07/board-game-toolkit-engine";
-import { COLORS, hand, type Color, type Types } from "./impl";
+import {
+  isHidden,
+  type Bot,
+  type Input,
+  type PlayerView,
+} from "@drock07/board-game-toolkit-engine";
+import { COLORS, type Card, type Color, type Types } from "./impl";
+
+/** The bot's own cards, from its view: its hand is the one zone it can see into. */
+function myCards(view: PlayerView<Types>, player: string): Card[] {
+  const items = view.zones[`hand:${player}`]?.items ?? [];
+  return items.flatMap((id) => {
+    const e = view.entities[id];
+    return e && !isHidden(e) ? [e.props] : [];
+  });
+}
 
 /**
  * Plays its first playable card, preferring non-eights; after an eight, picks
  * the color it holds most of. Draws or passes when it must.
  */
 export const simpleBot: Bot<Types> = (
-  state,
+  view,
   prompt,
   { player, legal, random },
 ) => {
   if (prompt.node === "wildColor") {
     const counts = new Map<Color, number>(COLORS.map((c) => [c, 0]));
-    for (const e of hand({ state }, player)) {
-      counts.set(e.props.color, counts.get(e.props.color)! + 1);
+    for (const card of myCards(view, player)) {
+      counts.set(card.color, counts.get(card.color)! + 1);
     }
     const best = [...counts].sort((a, b) => b[1] - a[1])[0]![0];
     return (
@@ -26,10 +40,11 @@ export const simpleBot: Bot<Types> = (
       (i): i is Extract<Input, { action: string }> =>
         "action" in i && i.action === "playCard",
     );
-    const card = (i: (typeof plays)[number]) =>
-      state.entities[(i.args as { card: string }).card]!.props;
-    const nonEight = plays.find((i) => card(i).value !== 8);
-    return nonEight ?? plays[0] ?? legal[0]!;
+    const isEight = (i: (typeof plays)[number]) => {
+      const e = view.entities[(i.args as { card: string }).card];
+      return e !== undefined && !isHidden(e) && e.props.value === 8;
+    };
+    return plays.find((i) => !isEight(i)) ?? plays[0] ?? legal[0]!;
   }
   return random.pick(legal);
 };

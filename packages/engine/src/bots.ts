@@ -1,12 +1,6 @@
 import type { Random } from "./rng.js";
-import type {
-  AnyTypes,
-  GameTypes,
-  Input,
-  PlayerId,
-  Prompt,
-  ReadonlyGameState,
-} from "./types.js";
+import type { AnyTypes, GameTypes, Input, PlayerId, Prompt } from "./types.js";
+import type { PlayerView } from "./view.js";
 
 export interface BotContext {
   /** The player the bot is answering for. */
@@ -20,12 +14,9 @@ export interface BotContext {
   random: Random;
 }
 
-/**
- * A bot answers one prompt. It sees the game state for now; once views land
- * (M6) it will see only its player's view.
- */
+/** A bot answers one prompt, seeing only what its player may see. */
 export type Bot<T extends GameTypes = AnyTypes> = (
-  view: ReadonlyGameState<T>,
+  view: PlayerView<T>,
   prompt: Prompt,
   ctx: BotContext,
 ) => Input | Promise<Input>;
