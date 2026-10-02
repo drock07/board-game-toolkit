@@ -29,6 +29,16 @@ describe("JsonCompatible", () => {
     expectTypeOf<IsJsonCompatible<Alias>>().toEqualTypeOf<true>();
     expectTypeOf<IsJsonCompatible<Json>>().toEqualTypeOf<true>();
     expectTypeOf<IsJsonCompatible<string[]>>().toEqualTypeOf<true>();
+    // An interface in a union with primitives
+    expectTypeOf<
+      IsJsonCompatible<{ lot: Nested | null }>
+    >().toEqualTypeOf<true>();
+    expectTypeOf<
+      IsJsonCompatible<{ v: Nested | string | 3 }>
+    >().toEqualTypeOf<true>();
+    expectTypeOf<
+      IsJsonCompatible<{ v: Nested | Date }>
+    >().toEqualTypeOf<false>();
   });
 
   test("rejects Date, Map, Set, functions, methods, bigint and required undefined", () => {

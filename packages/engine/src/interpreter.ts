@@ -8,15 +8,15 @@ import {
 import type { StateReader } from "./impl.js";
 import type { Json } from "./json.js";
 import { createReader } from "./reader.js";
-import type { Actor, Cond, FlowNode } from "./spec.js";
+import type { Actor, Cond, EventPattern, FlowNode } from "./spec.js";
 import { untyped } from "./state.js";
 import { openTx, type Tx, type TxOptions } from "./tx.js";
 import type {
   Binding,
   Fiber,
+  FiberId,
   Frame,
   GameEvent,
-  GameEventBody,
   GameState,
   Input,
   NodeId,
@@ -105,6 +105,8 @@ export class Runtime {
   private guardsDirty = true;
   private pendingExit: string | undefined;
   private readonly trace: string[] = [];
+  /** Events not yet matched against triggers, with the fiber that caused them. */
+  private triggerQueue: { event: GameEvent; fiber: FiberId | undefined }[] = [];
 
   /**
    * `readOnly` skips copying the flow, for queries like `legalInputs` that
@@ -167,10 +169,26 @@ export class Runtime {
     return f;
   }
 
+  /** Frames from `idx` down, then on through the fibers that spawned this one. */
+  private *framesFrom(f: Fiber, idx: number): Generator<[Fiber, number]> {
+    let fiber: Fiber | undefined = f;
+    let i = idx;
+    while (fiber) {
+      for (; i >= 0; i--) yield [fiber, i];
+      const parent: Fiber["parent"] = fiber.parent;
+      fiber = parent ? this.state.flow.fibers[parent.fiber] : undefined;
+      i = parent?.frame ?? -1;
+    }
+  }
+
   private scopeAt(f: Fiber, idx: number): Scope {
     const scope: Scope = {};
-    for (let i = idx; i >= 0; i--) {
-      const b = f.stack[i]?.binding;
+    for (const [fiber, i] of this.framesFrom(f, idx)) {
+      const frame = fiber.stack[i]!;
+      if (scope.event === undefined && frame.event !== undefined) {
+        scope.event = frame.event;
+      }
+      const b = frame.binding;
       if (!b) continue;
       if (scope.player === undefined && b.player !== undefined)
         scope.player = b.player;
@@ -182,10 +200,10 @@ export class Runtime {
     return scope;
   }
 
-  /** The frame index holding the locals `tx.local(nodeId?)` refers to. */
-  private localsFrame(f: Fiber, idx: number, nodeId?: NodeId): number {
-    for (let i = idx; i >= 0; i--) {
-      const frame = f.stack[i]!;
+  /** The frame holding the locals `tx.local(nodeId?)` refers to. */
+  private localsFrame(f: Fiber, idx: number, nodeId?: NodeId): [Fiber, number] {
+    for (const [fiber, i] of this.framesFrom(f, idx)) {
+      const frame = fiber.stack[i]!;
       if (
         nodeId === undefined
           ? frame.locals !== undefined
@@ -194,7 +212,7 @@ export class Runtime {
         if (frame.locals === undefined) {
           throw new GameDefinitionError(`Node "${nodeId}" has no locals`);
         }
-        return i;
+        return [fiber, i];
       }
     }
     throw new GameDefinitionError(
@@ -206,7 +224,8 @@ export class Runtime {
 
   private readerAt(f: Fiber, idx: number): StateReader {
     return createReader(this.state, (nodeId) => {
-      return f.stack[this.localsFrame(f, idx, nodeId)]!.locals!;
+      const [fiber, i] = this.localsFrame(f, idx, nodeId);
+      return fiber.stack[i]!.locals!;
     });
   }
 
@@ -282,10 +301,10 @@ export class Runtime {
     const opts: TxOptions = { scope };
     if (f) {
       opts.locals = (nodeId) => {
-        const i = this.localsFrame(f, idx, nodeId);
+        const [fiber, i] = this.localsFrame(f, idx, nodeId);
         return {
-          node: f.stack[i]!.node,
-          path: ["flow", "fibers", f.id, "stack", i, "locals"],
+          node: fiber.stack[i]!.node,
+          path: ["flow", "fibers", fiber.id, "stack", i, "locals"],
         };
       };
     }
@@ -295,29 +314,48 @@ export class Runtime {
     fn(tx);
     const res = commit();
     this.events.push(...res.events);
+    for (const event of res.events) this.queueForTriggers(event, f);
     this.adoptTx(untyped(res.state), base);
     this.guardsDirty = true;
     if (res.exit !== undefined) this.pendingExit ??= res.exit;
     if (this.state.status === "finished") this.finish();
   }
 
-  private emit(body: GameEventBody) {
-    const meta = this.state.meta;
-    this.events.push({
-      seq: meta.eventCount++,
-      input: meta.inputCount,
-      ...body,
-    });
-  }
-
   private emitFlow(
+    f: Fiber,
     kind: "enter" | "exit" | "prompt" | "resolve",
     node: NodeId,
     outcome?: string,
   ) {
-    const body: GameEventBody = { type: "flow", kind, node };
-    if (outcome !== undefined) body.outcome = outcome;
-    this.emit(body);
+    const meta = this.state.meta;
+    const event: GameEvent = {
+      seq: meta.eventCount++,
+      input: meta.inputCount,
+      type: "flow",
+      kind,
+      node,
+    };
+    if (outcome !== undefined && event.type === "flow") event.outcome = outcome;
+    this.events.push(event);
+    this.queueForTriggers(event, f);
+  }
+
+  /** Remembers an event for the trigger pass. Triggers never see vars, locals or shuffles. */
+  private queueForTriggers(event: GameEvent, f: Fiber | undefined) {
+    if (!this.game.spec.triggers?.length) return;
+    if (
+      event.type === "vars" ||
+      event.type === "locals" ||
+      event.type === "shuffled"
+    )
+      return;
+    if (
+      event.type === "flow" &&
+      event.kind !== "enter" &&
+      event.kind !== "exit"
+    )
+      return;
+    this.triggerQueue.push({ event, fiber: f?.id });
   }
 
   /** `tx.end` was called: cancel every fiber and stop. */
@@ -331,9 +369,15 @@ export class Runtime {
   // -------------------------------------------------------------------------
   // Frames
 
-  push(f: Fiber, nodeId: NodeId, binding?: Binding) {
+  push(
+    f: Fiber,
+    nodeId: NodeId,
+    binding?: Binding,
+    interrupt?: { trigger: string; event: GameEvent },
+  ) {
     const frame: Frame = { node: nodeId, phase: "new", data: null };
     if (binding) frame.binding = binding;
+    if (interrupt) Object.assign(frame, interrupt);
     f.stack.push(frame);
     const cn = this.node(nodeId);
     if (cn.node.locals) {
@@ -372,7 +416,7 @@ export class Runtime {
       const cn = this.node(top.node);
       delete top.next;
       delete top.prompt;
-      this.emitFlow("exit", top.node, outcome);
+      this.emitFlow(f, "exit", top.node, outcome);
       if (
         outcome !== "done" &&
         top.phase !== "handling" &&
@@ -392,10 +436,18 @@ export class Runtime {
           cn.node,
         );
       }
+      this.cancelSpawned(top);
       f.stack.pop();
       const parent = f.stack.at(-1);
       if (!parent) {
         this.fiberDone(f, outcome);
+        return;
+      }
+      // An interrupt isn't its parent's child: when it ends, the interrupted
+      // frame resumes where it was. An outcome it raises unwinds below it.
+      if (top.trigger !== undefined) {
+        if (outcome !== "done") continue;
+        if (parent.prompt || parent.spawned) f.status = "blocked";
         return;
       }
       // A raised outcome keeps unwinding; a handling frame's `on` flow ending
@@ -416,11 +468,64 @@ export class Runtime {
   private fiberDone(f: Fiber, outcome: string) {
     f.status = "done";
     f.outcome = outcome;
-    if (outcome !== "done" && !f.parent) {
+    if (f.parent) {
+      this.childFiberDone(f, outcome);
+      return;
+    }
+    if (outcome !== "done") {
       throw new UnhandledOutcomeError(
         `Outcome "${outcome}" reached the root of the flow without being handled`,
       );
     }
+  }
+
+  /**
+   * A spawned fiber finished. `all` waits for every sibling; `race` ends on
+   * the first. An outcome the child didn't handle cancels its siblings and
+   * passes to the spawning frame.
+   */
+  private childFiberDone(child: Fiber, outcome: string) {
+    const parent = this.fiber(child.parent!.fiber);
+    const idx = child.parent!.frame;
+    const frame = parent.stack[idx]!;
+    delete this.state.flow.fibers[child.id];
+    const spawned = frame.spawned!;
+    spawned.fibers = spawned.fibers.filter((id) => id !== child.id);
+    const finished =
+      outcome !== "done" ||
+      spawned.join === "race" ||
+      spawned.fibers.length === 0;
+    if (!finished) return;
+    this.cancelSpawned(frame);
+    parent.status = "runnable";
+    this.guardsDirty = true;
+    if (outcome !== "done") {
+      this.endFrame(parent, outcome);
+      return;
+    }
+    const next = this.kind(frame.node).childEnded(
+      this.ctx(parent, idx),
+      frame,
+      this.node(frame.node).node,
+      "done",
+    );
+    this.afterHandler(parent, frame, next);
+  }
+
+  /** Cancels the fibers a frame spawned, and theirs. */
+  private cancelSpawned(frame: Frame) {
+    if (!frame.spawned) return;
+    for (const id of frame.spawned.fibers) {
+      const fiber = this.state.flow.fibers[id];
+      if (!fiber) continue;
+      for (let i = fiber.stack.length - 1; i >= 0; i--) {
+        const f = fiber.stack[i]!;
+        this.cancelSpawned(f);
+        this.emitFlow(fiber, "exit", f.node);
+      }
+      delete this.state.flow.fibers[id];
+    }
+    delete frame.spawned;
   }
 
   /** Pops every frame above `idx`, then ends that frame with `outcome`. */
@@ -433,7 +538,8 @@ export class Runtime {
         top,
         cn.node,
       );
-      this.emitFlow("exit", top.node);
+      this.emitFlow(f, "exit", top.node);
+      this.cancelSpawned(top);
       f.stack.pop();
     }
     this.endFrame(f, outcome);
@@ -462,14 +568,48 @@ export class Runtime {
     }
     frame.prompt = prompt;
     f.status = "blocked";
-    this.emitFlow("prompt", frame.node);
+    this.emitFlow(f, "prompt", frame.node);
   }
 
   private applyNext(f: Fiber, next: Next) {
     if ("push" in next) this.push(f, next.push, next.binding);
     else if ("end" in next) this.endFrame(f, next.end);
     else if ("block" in next) this.openPrompt(f, f.stack.at(-1)!);
-    else throw new GameDefinitionError("parallel flows are not supported yet");
+    else this.spawn(f, next);
+  }
+
+  /** Starts a child fiber per branch; the frame waits for them to join. */
+  private spawn(f: Fiber, next: Extract<Next, { spawn: unknown }>) {
+    const idx = f.stack.length - 1;
+    const frame = f.stack[idx]!;
+    if (!next.spawn.length) {
+      this.afterHandler(
+        f,
+        frame,
+        this.kind(frame.node).childEnded(
+          this.ctx(f, idx),
+          frame,
+          this.node(frame.node).node,
+          "done",
+        ),
+      );
+      return;
+    }
+    const flow = this.state.flow;
+    frame.spawned = { fibers: [], join: next.join };
+    for (const branch of next.spawn) {
+      const id = `f${flow.nextFiberId++}`;
+      const child: Fiber = {
+        id,
+        parent: { fiber: f.id, frame: idx },
+        stack: [],
+        status: "runnable",
+      };
+      flow.fibers[id] = child;
+      frame.spawned.fibers.push(id);
+      this.push(child, branch.node, branch.binding);
+    }
+    f.status = "blocked";
   }
 
   private stepFiber(f: Fiber) {
@@ -479,7 +619,7 @@ export class Runtime {
     if (this.trace.length > 50) this.trace.shift();
     if (top.phase === "new") {
       top.phase = "active";
-      this.emitFlow("enter", top.node);
+      this.emitFlow(f, "enter", top.node);
       const next = this.kind(top.node).enter(
         this.ctx(f, idx),
         top,
@@ -533,6 +673,7 @@ export class Runtime {
           continue;
         }
       }
+      if (this.triggerQueue.length && this.fireTriggers()) continue;
       const f = Object.values(this.state.flow.fibers)
         .filter((x) => x.status === "runnable")
         .sort(fiberOrder)[0];
@@ -550,6 +691,87 @@ export class Runtime {
       throw new FlowEndedWithoutEndError(
         "The flow finished without calling tx.end(); wrap it in a loop or end the game in a step",
       );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Triggers
+
+  /**
+   * Matches queued events against triggers and pushes the matches as
+   * interrupts on the fiber that caused each event. Returns whether any fired.
+   */
+  private fireTriggers(): boolean {
+    const queue = this.triggerQueue;
+    this.triggerQueue = [];
+    const triggers = this.game.triggers;
+    const fired = new Map<
+      Fiber,
+      { trigger: string; node: NodeId; event: GameEvent }[]
+    >();
+    for (const { event, fiber: fiberId } of queue) {
+      const f = this.state.flow.fibers[fiberId ?? this.state.flow.rootFiber];
+      if (!f || f.status === "done" || !f.stack.length) continue;
+      const top = f.stack.length - 1;
+      for (const t of triggers) {
+        if (!this.matches(t.def.on, event)) continue;
+        if (t.def.when !== undefined) {
+          const scope = { ...this.scopeAt(f, top), event };
+          if (!this.evalCond(t.def.when, f, top, scope)) continue;
+        }
+        const list = fired.get(f) ?? [];
+        list.push({ trigger: t.def.id, node: t.def.flow.id, event });
+        fired.set(f, list);
+      }
+    }
+    // Pushed so they *run* in trigger order: FIFO pushes the list reversed
+    const lifo = this.game.spec.triggerOrder === "lifo";
+    for (const [f, list] of fired) {
+      const order = lifo ? list : [...list].reverse();
+      for (const x of order) {
+        this.push(f, x.node, undefined, { trigger: x.trigger, event: x.event });
+      }
+      // A waiting fiber runs its interrupts first, then waits again
+      f.status = "runnable";
+    }
+    return fired.size > 0;
+  }
+
+  private matches(pattern: EventPattern, event: GameEvent): boolean {
+    if (pattern.type !== event.type) return false;
+    const def = (zone: string) => this.state.zones[zone]?.def;
+    const typeOf = (id: string) => id.slice(0, id.lastIndexOf("#"));
+    switch (event.type) {
+      case "moved": {
+        const p = pattern as Extract<EventPattern, { type: "moved" }>;
+        if (p.from !== undefined && !event.from.some((z) => def(z) === p.from))
+          return false;
+        if (p.to !== undefined && def(event.to) !== p.to) return false;
+        if (
+          p.entityType !== undefined &&
+          !event.ids.some((id) => typeOf(id) === p.entityType)
+        ) {
+          return false;
+        }
+        return true;
+      }
+      case "created":
+      case "destroyed":
+      case "flipped": {
+        const p = pattern as { entityType?: string };
+        return p.entityType === undefined || typeOf(event.id) === p.entityType;
+      }
+      case "custom":
+        return (
+          (pattern as Extract<EventPattern, { type: "custom" }>).name ===
+          event.name
+        );
+      case "flow": {
+        const p = pattern as Extract<EventPattern, { type: "flow" }>;
+        return p.kind === event.kind && p.node === event.node;
+      }
+      default:
+        return false;
     }
   }
 
@@ -584,7 +806,7 @@ export class Runtime {
       );
     }
     this.state.meta.inputCount++;
-    this.emitFlow("resolve", frame.node);
+    this.emitFlow(fiber, "resolve", frame.node);
     fiber.status = "runnable";
     // The prompt stays on the frame while the kind validates against it
     const res = kind.input(

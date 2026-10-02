@@ -322,7 +322,7 @@ describe("legalInputs for decisions", () => {
 });
 
 describe("definition checks", () => {
-  test("current outside an each over players, bad choose bounds and parallel each are rejected", () => {
+  test("current outside an each over players, bad choose bounds and a repeating parallel each are rejected", () => {
     const run = (flow: Parameters<typeof loop>[1]) => () =>
       defineGame({
         spec: { ...base, flow: loop("l", flow) },
@@ -338,9 +338,12 @@ describe("definition checks", () => {
     ).toThrow(/min <= max/);
     expect(
       run(
-        each("e", { players: "clockwise" }, pause("p"), { mode: "parallel" }),
+        each("e", { players: "clockwise" }, pause("p"), {
+          mode: "parallel",
+          repeat: true,
+        }),
       ),
-    ).toThrow(/parallel mode/);
+    ).toThrow(/only apply in sequential mode/);
     expect(
       run(
         each(

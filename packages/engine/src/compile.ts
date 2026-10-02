@@ -1,6 +1,6 @@
 import { GameDefinitionError } from "./errors.js";
 import { IMPL_CATEGORIES, type GameImpl, type ImplCategory } from "./impl.js";
-import type { FlowNode, GameSpec, UseNode } from "./spec.js";
+import type { FlowNode, GameSpec, TriggerDef, UseNode } from "./spec.js";
 import type { NodeId, PlayerId, Zone } from "./types.js";
 
 export interface CompiledNode {
@@ -19,6 +19,8 @@ export interface CompiledGame {
   impl: GameImpl;
   /** The flow with every `use` expanded. */
   flow: FlowNode;
+  /** Triggers in firing order: priority (highest first), then declaration order. */
+  triggers: { def: TriggerDef }[];
   nodes: ReadonlyMap<NodeId, CompiledNode>;
   root: NodeId;
 }
@@ -202,15 +204,27 @@ export function compile(
     return { ...renamed, body } as ExpandedUse;
   };
   const flow = expand(spec.flow, "", []);
+  const triggers = (spec.triggers ?? [])
+    .map((def, index) => ({
+      def: { ...def, flow: expand(def.flow, "", []) },
+      index,
+    }))
+    .sort(
+      (a, b) =>
+        (b.def.priority ?? 0) - (a.def.priority ?? 0) || a.index - b.index,
+    )
+    .map(({ def }) => ({ def }));
   for (const name of Object.keys(spec.subflows ?? {})) {
     if (!usedSubflows.has(name)) problems.push(`Unused subflow "${name}"`);
   }
 
+  // `handled` is null inside trigger flows: they run on whatever fiber fired
+  // them, so which outcomes are handled below them isn't known statically
   const visit = (
     node: FlowNode,
     parent?: NodeId,
     underPlayers = false,
-    handled: ReadonlySet<string> = new Set(),
+    handled: ReadonlySet<string> | null = new Set(),
   ) => {
     if (nodes.has(node.id)) problems.push(`Duplicate node id "${node.id}"`);
     if (!kinds.has(node.kind)) {
@@ -255,15 +269,21 @@ export function compile(
         );
       }
     }
-    if (node.kind === "each" && node.mode === "parallel") {
-      problems.push(`Each "${node.id}": parallel mode is not supported yet`);
+    if (
+      node.kind === "each" &&
+      node.mode === "parallel" &&
+      (node.until || node.repeat)
+    ) {
+      problems.push(
+        `Each "${node.id}": until and repeat only apply in sequential mode`,
+      );
     }
     if (node.kind === "exit") {
       if (node.outcome === "done") {
         problems.push(
           `Exit "${node.id}" can't raise "done", the normal outcome`,
         );
-      } else if (!handled.has(node.outcome)) {
+      } else if (handled && !handled.has(node.outcome)) {
         problems.push(
           `Exit "${node.id}" raises "${node.outcome}", which no enclosing node handles (list it in exits or on)`,
         );
@@ -273,7 +293,7 @@ export function compile(
     // and a node doesn't handle outcomes raised from its own `on` flows
     const binds = node.kind === "each" && "players" in node.over;
     const onFlows = new Set(Object.values(node.on ?? {}));
-    const handledBelow = new Set([...handled, ...handles]);
+    const handledBelow = handled && new Set([...handled, ...handles]);
     for (const child of childNodes(node)) {
       const inOn = onFlows.has(child);
       visit(
@@ -285,6 +305,27 @@ export function compile(
     }
   };
   visit(flow);
+  const zoneNames = new Set(Object.keys(spec.zones));
+  for (const { def } of triggers) {
+    // Trigger flows may use "current": it resolves from the interrupted flow
+    visit(def.flow, undefined, true, null);
+    const { on } = def;
+    for (const zone of "from" in on || "to" in on ? [on.from, on.to] : []) {
+      if (zone !== undefined && !zoneNames.has(zone)) {
+        problems.push(`Trigger "${def.id}" names unknown zone "${zone}"`);
+      }
+    }
+  }
+  for (const { def } of triggers) {
+    if (def.on.type === "flow" && !nodes.has(def.on.node)) {
+      problems.push(
+        `Trigger "${def.id}" watches unknown node "${def.on.node}"`,
+      );
+    }
+  }
+  const ids = (spec.triggers ?? []).map((t) => t.id);
+  if (new Set(ids).size !== ids.length)
+    problems.push("Trigger ids must be unique");
 
   if (spec.players.min < 1 || spec.players.min > spec.players.max) {
     problems.push(
@@ -297,6 +338,10 @@ export function compile(
     IMPL_CATEGORIES.map((c) => [c, new Map<string, string[]>()]),
   ) as Refs;
   collectRefs(flow, refs);
+  for (const { def } of triggers) {
+    collectRefs(def.flow, refs);
+    if (def.when) addRef(refs, "conditions", def.when, `trigger "${def.id}"`);
+  }
   for (const [name, def] of Object.entries(spec.zones)) {
     if (typeof def.visibility === "object") {
       addRef(refs, "visibility", def.visibility.ref, `zone "${name}"`);
@@ -325,7 +370,7 @@ export function compile(
       `Invalid game "${spec.id}":\n  ${problems.join("\n  ")}`,
     );
   }
-  return { spec, impl, flow, nodes, root: flow.id };
+  return { spec, impl, flow, triggers, nodes, root: flow.id };
 }
 
 /** The zones a game has for a given seating. */

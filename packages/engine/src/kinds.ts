@@ -16,11 +16,12 @@ import type {
   ExitNode,
   FlowNode,
   LoopNode,
+  ParallelNode,
   PauseNode,
   SeqNode,
   StepNode,
 } from "./spec.js";
-import type { Frame, Input, PlayerId } from "./types.js";
+import type { Binding, Frame, Input, PlayerId } from "./types.js";
 
 const DONE: Next = { end: "done" };
 
@@ -229,9 +230,23 @@ const each: NodeKind<EachNode> = {
     const data: EachData = { items: eachItems(ctx, node, start), index: 0 };
     if (start !== undefined) data.start = start;
     frame.data = data;
+    if (node.mode === "parallel") {
+      // A fiber per item, joined on all of them
+      return {
+        spawn: data.items.map((_, i) => {
+          const branch = pushItem(node, data.items, i) as {
+            push: string;
+            binding: Binding;
+          };
+          return { node: branch.push, binding: branch.binding };
+        }),
+        join: "all",
+      };
+    }
     return data.items.length ? pushItem(node, data.items, 0) : DONE;
   },
   childEnded(ctx, frame, node) {
+    if (node.mode === "parallel") return DONE;
     const data = frame.data as EachData;
     data.index++;
     if (node.until !== undefined && ctx.cond(node.until)) return DONE;
@@ -352,6 +367,18 @@ const use: NodeKind<ExpandedUse> = {
   childEnded: () => DONE,
 };
 
+// ---------------------------------------------------------------------------
+// parallel
+
+/** A fiber per child. `all` waits for every one; `race` ends on the first. */
+const parallel: NodeKind<ParallelNode> = {
+  enter: (_ctx, _frame, node) => ({
+    spawn: node.children.map((c) => ({ node: c.id })),
+    join: node.join,
+  }),
+  childEnded: () => DONE,
+};
+
 /** The built-in node kinds. */
 export const builtinKinds = new Map<FlowNode["kind"], NodeKind<never>>([
   ["seq", seq],
@@ -364,4 +391,5 @@ export const builtinKinds = new Map<FlowNode["kind"], NodeKind<never>>([
   ["choose", choose],
   ["exit", exit],
   ["use", use],
+  ["parallel", parallel],
 ] as [FlowNode["kind"], NodeKind<never>][]);

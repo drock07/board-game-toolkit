@@ -543,7 +543,7 @@ describe("defineGame validation", () => {
       flow: seq("game", [
         step("a", "missingStep"),
         pause("a"),
-        { kind: "parallel", id: "p", children: [], join: "all" },
+        { kind: "auction", id: "p" } as never,
       ]),
     };
     expect(() =>
@@ -564,7 +564,7 @@ describe("defineGame validation", () => {
         /Missing impl\.steps\.missingStep \(used by node "a"\)/,
       );
       expect(msg).toMatch(/Unused impl\.steps\.extra/);
-      expect(msg).toMatch(/unsupported kind "parallel"/);
+      expect(msg).toMatch(/unsupported kind "auction"/);
     }
   });
 

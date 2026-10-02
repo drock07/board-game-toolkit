@@ -4,8 +4,8 @@ A pure, deterministic board game engine. Game state is plain JSON, rules code
 changes it only through a transaction (`tx`), and every change is recorded as
 an event that can be replayed.
 
-> Under construction: `parallel`, triggers and views arrive in later
-> milestones.
+> Under construction: views and hidden information arrive in a later
+> milestone.
 
 ## Defining a game
 
@@ -98,6 +98,32 @@ node into `combat.fight`. (The node kind is `use`; the builder isn't called
 
 A guard is also checked when its node is pushed again, before any of its
 children run, so reset the state it watches before re-entering it.
+
+## Parallel flows and triggers
+
+`parallel(id, children, { join })` runs each child in its own fiber: `all`
+waits for every one, `race` ends on the first and cancels the rest. An
+`each` with `mode: "parallel"` gives each player (or item) a fiber, so every
+player answers their own prompt at once (simultaneous bids). Several prompts
+can be open together; spawned fibers see their parent's scope and locals.
+
+A trigger runs a flow when an event matches:
+
+```ts
+triggers: [{
+  id: "plusTwo",
+  on: { type: "moved", from: "hand", to: "discard", entityType: "card" },
+  when: "plusTwoPlayed", // sees the event as scope.event
+  flow: seq("window", [...]),
+}]
+```
+
+The flow runs as an interrupt on the fiber whose transaction produced the
+event, before that fiber continues. Interrupts may wait on prompts (a
+response window), and their own events can fire further triggers, which
+nest. Triggers fire by priority, then declaration order, then
+`spec.triggerOrder` (`"fifo"` by default). They never fire on vars, locals
+or shuffles; use a guard to react to vars.
 
 ## State model
 

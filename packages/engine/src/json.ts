@@ -30,20 +30,24 @@ export type JsonCompatible<T> = [T] extends [Json]
   ? // Already JSON (including the recursive Json type itself, which would
     // otherwise recurse forever); only interfaces need the structural check
     T
-  : T extends (...args: never[]) => unknown
-    ? never
-    : T extends readonly unknown[]
-      ? { [K in keyof T]: JsonCompatible<T[K]> }
-      : T extends object
-        ? {
-            [K in keyof T]: K extends string
-              ? // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{} extends Pick` tests whether K is optional
-                {} extends Pick<T, K>
-                ? JsonCompatible<Exclude<T[K], undefined>>
-                : JsonCompatible<T[K]>
-              : never;
-          }
-        : never;
+  : // From here the checks distribute over unions, so primitives in a union
+    // with an interface (Item | null) still need their own branch
+    T extends string | number | boolean | null
+    ? T
+    : T extends (...args: never[]) => unknown
+      ? never
+      : T extends readonly unknown[]
+        ? { [K in keyof T]: JsonCompatible<T[K]> }
+        : T extends object
+          ? {
+              [K in keyof T]: K extends string
+                ? // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{} extends Pick` tests whether K is optional
+                  {} extends Pick<T, K>
+                  ? JsonCompatible<Exclude<T[K], undefined>>
+                  : JsonCompatible<T[K]>
+                : never;
+            }
+          : never;
 
 /** `true` when `T` is JSON-compatible. */
 export type IsJsonCompatible<T> = [T] extends [JsonCompatible<T>]

@@ -45,23 +45,24 @@ export function playBots<T extends GameTypes>(
   for (let i = 0; i < opts.maxInputs; i++) {
     const last = results.at(-1)!;
     if (last.state.status === "finished") break;
+    // The first prompt (by fiber) with a bot player who has a legal input
     let input: Input | undefined;
     for (const prompt of last.prompts) {
-      const player = prompt.actors.find((p) => botFor(p));
-      if (!player) continue;
-      const legal = legalInputs(game, last.state, player).filter(
-        (x) => x.prompt === prompt.id,
-      );
-      const answer = botFor(player)!(last.state, prompt, {
-        player,
-        legal,
-        random,
-      });
-      if (answer instanceof Promise) {
-        throw new Error("playBots runs synchronous bots only");
+      for (const player of prompt.actors) {
+        const bot = botFor(player);
+        if (!bot) continue;
+        const legal = legalInputs(game, last.state, player).filter(
+          (x) => x.prompt === prompt.id,
+        );
+        if (!legal.length) continue;
+        const answer = bot(last.state, prompt, { player, legal, random });
+        if (answer instanceof Promise) {
+          throw new Error("playBots runs synchronous bots only");
+        }
+        input = answer;
+        break;
       }
-      input = answer;
-      break;
+      if (input) break;
     }
     if (!input) break;
     const res = apply(game, last.state, input);

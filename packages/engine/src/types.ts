@@ -204,6 +204,8 @@ export interface Frame {
   trigger?: string;
   /** The event that fired the trigger, for `scope.event`. */
   event?: GameEvent;
+  /** Fibers this frame spawned and is waiting on (parallel, parallel each). */
+  spawned?: { fibers: FiberId[]; join: "all" | "race" };
 }
 
 // ---------------------------------------------------------------------------
