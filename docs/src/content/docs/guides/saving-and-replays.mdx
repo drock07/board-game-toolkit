@@ -1,0 +1,58 @@
+---
+title: Saving and replays
+description: Save games as states or inputs, load them, undo moves, and replay games for review.
+sidebar:
+  order: 10
+---
+
+import Source from "../../../components/Source.astro";
+
+Because a game is determined by its seed and inputs, there are two ways to
+save one.
+
+## Save the state
+
+State is JSON:
+
+<Source file="snippets/concepts.test.ts" region="save" title={false} />
+
+This is the simplest option and loads instantly. The state records its
+`spec.id` and `spec.version`; `apply` refuses a state from another version, so
+bump `version` when a spec change would break old saves.
+
+## Save the inputs
+
+Keep the players, seed and every accepted input. `replay` rebuilds the state:
+
+<Source file="snippets/concepts.test.ts" region="replay" title={false} />
+
+Inputs are smaller than a state, keep the full history (for a game log or a
+replay viewer), and still load after a rules fix that doesn't change what
+those inputs did. A golden replay is exactly this, plus a hash to check it.
+
+## Undo
+
+Two ways:
+
+- **Keep earlier states.** States share structure, so a stack of them is
+  cheap. Undo is popping the stack.
+- **Replay all but the last input**, which needs nothing but the inputs:
+
+<Source file="snippets/guides.test.ts" region="undo" title={false} />
+
+Undo in a game with hidden information or bots needs care: undoing past a
+card draw lets a player see the card and choose differently. Most games allow
+undo only until something new is revealed.
+
+## Replay viewers
+
+To step through a finished game, replay its inputs one at a time with `init`
+and `apply`, keeping each result. Each result's `events` drive the same
+animations as live play.
+
+## With the React host
+
+`useGame` takes a `seed`, and `restart(seed?)` starts over. The host can't
+start from a saved state yet. To resume a game, mount it with the saved seed
+and submit the saved inputs in order; their events play back like any others,
+so register animation handlers afterwards or skip them while restoring.

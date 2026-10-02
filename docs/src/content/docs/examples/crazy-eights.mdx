@@ -20,11 +20,11 @@ The first to empty their hand wins.
 (`hand:p1`, `hand:p2`, …) with `visibility: "owner"`, the deck is `"hidden"`,
 and the discard pile is `"top"`: only its top card shows. Switch **Viewing as**
 in the inspector to see another seat's view. Bots get their own view too, so
-they can't cheat. See [Views and hidden information](../../concepts/views/).
+they can't cheat. See [Views and hidden information](/board-game-toolkit/concepts/views/).
 
 **Playing an eight asks for a color.** The `playCard` action has a `then` flow:
 a `branch` that, when an eight was played, runs a `choose` prompt over the
-`colors` list. See [`choose`](../../reference/flow/choose/).
+`colors` list. See [`choose`](/board-game-toolkit/reference/flow/choose/).
 
 <Source file="games/crazy-eights/spec.ts" />
 

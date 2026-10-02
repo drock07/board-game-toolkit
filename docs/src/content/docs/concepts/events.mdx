@@ -47,14 +47,14 @@ the same way through `tx.local(nodeId)`, as one `locals` event per node.
 
 ## Everything else on tx
 
-| Member                                | Does                                                                                                                           |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `tx.state`                            | The state, including this transaction's changes so far. Read-only.                                                             |
-| `tx.scope`                            | Who and what this code is running for: `actor`, `player`, `item`, `iteration`, `event`. See [Prompts and inputs](../prompts/). |
-| `tx.random`                           | The seeded RNG: `int`, `float`, `pick`, `shuffle`, `roll`. See [Determinism](../determinism/).                                 |
-| `tx.emit(name, payload?, visibleTo?)` | A `custom` event for the UI, like "the enemy attacked for 6". Changes no state. `visibleTo` limits who sees it.                |
-| `tx.exit(outcome)`                    | Ends the nearest node that handles `outcome`, once the transaction commits. See [Outcomes](../outcomes/).                      |
-| `tx.end(result?)`                     | Finishes the game. `state.status` becomes `"finished"` and `state.result` holds `result`.                                      |
+| Member                                | Does                                                                                                                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tx.state`                            | The state, including this transaction's changes so far. Read-only.                                                                                       |
+| `tx.scope`                            | Who and what this code is running for: `actor`, `player`, `item`, `iteration`, `event`. See [Prompts and inputs](/board-game-toolkit/concepts/prompts/). |
+| `tx.random`                           | The seeded RNG: `int`, `float`, `pick`, `shuffle`, `roll`. See [Determinism](/board-game-toolkit/concepts/determinism/).                                 |
+| `tx.emit(name, payload?, visibleTo?)` | A `custom` event for the UI, like "the enemy attacked for 6". Changes no state. `visibleTo` limits who sees it.                                          |
+| `tx.exit(outcome)`                    | Ends the nearest node that handles `outcome`, once the transaction commits. See [Outcomes](/board-game-toolkit/concepts/outcomes/).                      |
+| `tx.end(result?)`                     | Finishes the game. `state.status` becomes `"finished"` and `state.result` holds `result`.                                                                |
 
 ## Events
 
@@ -89,8 +89,8 @@ vars and status:
 
 That's how the React host animates: it applies one event at a time to the
 state on screen, waiting for your animation between them. See
-[Animating events](../../guides/animating-events/). The
-[fuzzer](../../guides/testing/) checks this property after every input.
+[Animating events](/board-game-toolkit/guides/animating-events/). The
+[fuzzer](/board-game-toolkit/guides/testing/) checks this property after every input.
 
 ## Events per player
 
@@ -98,4 +98,4 @@ Events can reveal hidden information: a `moved` event names the card that was
 drawn. `viewEvents(game, before, events, viewer)` filters events for one
 player. Ids of entities they can't see become opaque, `custom` events respect
 `visibleTo`, and patches to hidden vars are dropped. See
-[Views](../views/#events-per-player).
+[Views](/board-game-toolkit/concepts/views/#events-per-player).

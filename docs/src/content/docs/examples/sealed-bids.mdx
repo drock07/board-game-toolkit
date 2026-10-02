@@ -19,7 +19,7 @@ the highest bid wins the lot.
 **Everyone bids at once.** The `bidding` each has `mode: "parallel"`: it runs a
 fiber per player, so every player has an open prompt at the same time and can
 answer in any order. The round resolves once all are in. See
-[Simultaneous turns](../../guides/simultaneous-turns/).
+[Simultaneous turns](/board-game-toolkit/guides/simultaneous-turns/).
 
 **Bids are secret.** The `bids` var has `visibility: "owner"`. It's a record
 keyed by player, and each player's view holds only their own entry. Switch

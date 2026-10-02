@@ -10,7 +10,7 @@ import Source from "../../../components/Source.astro";
 
 This page builds Tic-Tac-Toe: two players, a 3×3 board, turns that alternate
 until someone makes a line. Every code sample here is from the
-[Tic-Tac-Toe example](../../examples/tic-tac-toe/), which you can play, and
+[Tic-Tac-Toe example](/board-game-toolkit/examples/tic-tac-toe/), which you can play, and
 from tests that run in CI, so they're known to work.
 
 You'll write four files:
@@ -23,7 +23,7 @@ tic-tac-toe/
   Board.tsx  a React UI
 ```
 
-Install the packages first; see [Installation](../installation/).
+Install the packages first; see [Installation](/board-game-toolkit/start/installation/).
 
 ## 1. Describe the game
 
@@ -132,8 +132,8 @@ bots: here, the example's minimax bot.
 
 That's a playable game. The bot answers its own prompts after a short delay,
 and `view.vars.marks` updates as each move plays back. To animate moves, see
-[Animating events](../../guides/animating-events/); to write your own bot, see
-[Writing a bot](../../guides/bots/).
+[Animating events](/board-game-toolkit/guides/animating-events/); to write your own bot, see
+[Writing a bot](/board-game-toolkit/guides/bots/).
 
 ## 7. Test it
 
@@ -148,12 +148,12 @@ and that no player's view leaks a hidden entity.
 
 <Source file="snippets/quickstart.test.ts" region="fuzz" title={false} />
 
-See [Testing your game](../../guides/testing/) for golden replays and more.
+See [Testing your game](/board-game-toolkit/guides/testing/) for golden replays and more.
 
 ## Next steps
 
-- [Spec and impl](../../concepts/spec-and-impl/) and [Flow](../../concepts/flow/)
+- [Spec and impl](/board-game-toolkit/concepts/spec-and-impl/) and [Flow](/board-game-toolkit/concepts/flow/)
   explain the model behind what you just wrote.
-- [Hidden information](../../guides/hidden-information/) adds cards and hands.
-- The [flow node reference](../../reference/flow/overview/) lists every kind
+- [Hidden information](/board-game-toolkit/guides/hidden-information/) adds cards and hands.
+- The [flow node reference](/board-game-toolkit/reference/flow/overview/) lists every kind
   of node and its options.

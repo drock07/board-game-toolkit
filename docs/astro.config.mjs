@@ -3,6 +3,7 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import starlightLinksValidator from "starlight-links-validator";
 
 const REPO = "https://github.com/drock07/board-game-toolkit";
 
@@ -12,6 +13,8 @@ export default defineConfig({
   trailingSlash: "always",
   integrations: [
     starlight({
+      // Fails the build on a broken internal link or anchor
+      plugins: [starlightLinksValidator()],
       title: "Board Game Toolkit",
       description:
         "A TypeScript toolkit for board games: a JSON flow spec, a pure deterministic engine, and a React host.",

@@ -28,9 +28,9 @@ step("deal", "dealSeven");
 ```
 
 Because it's data, a spec can be saved to a file and loaded back
-([`toJSON` and `fromJSON`](../../reference/spec/json/)), diffed in a code
+([`toJSON` and `fromJSON`](/board-game-toolkit/reference/spec/json/)), diffed in a code
 review, and drawn as a diagram by the devtools' `FlowGraph`. Conditions can
-even be written inline as JSON [expressions](../../reference/spec/expressions/)
+even be written inline as JSON [expressions](/board-game-toolkit/reference/spec/expressions/)
 instead of named functions.
 
 Here's the top of a spec, with its parts:
@@ -41,10 +41,10 @@ Here's the top of a spec, with its parts:
   from a different id or version, so an old save can't run against changed
   rules.
 - **`players`**: the allowed player count.
-- **`zones`**: named places entities can be. See [State](../state/).
+- **`zones`**: named places entities can be. See [State](/board-game-toolkit/concepts/state/).
 - **`vars`**: the declared top-level vars, with their visibility. See
-  [Views](../views/).
-- **`flow`**: the root of the flow tree. See [Flow](../flow/).
+  [Views](/board-game-toolkit/concepts/views/).
+- **`flow`**: the root of the flow tree. See [Flow](/board-game-toolkit/concepts/flow/).
 - **`subflows`** and **`triggers`**: reusable flows and interrupts, both
   optional.
 
@@ -105,7 +105,7 @@ wrong entity props are compile errors as well.
   empty, deal seven cards. The order they run in lives in the spec, where you
   can see it.
 - **The structure is inspectable.** Tools can read the flow without running
-  it. The [Flow Gallery](../../examples/flow-gallery/) draws every example's
+  it. The [Flow Gallery](/board-game-toolkit/examples/flow-gallery/) draws every example's
   spec, and the live devtools highlight the running nodes.
 - **Mistakes are caught early.** A typo in a name is a compile error, not a
   game that hangs on turn three.

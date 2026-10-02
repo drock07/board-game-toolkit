@@ -1,0 +1,60 @@
+---
+title: Animating events
+description: Play the engine's events back one at a time in React, and wait for your animations between them.
+sidebar:
+  order: 8
+---
+
+import Source from "../../../components/Source.astro";
+
+`apply` jumps straight from one state to the next, but a player wants to see
+the card slide, the dice tumble, the damage flash. The React host gives you
+the events between the two states, one at a time.
+
+## How playback works
+
+When an input is applied, the host keeps the new **committed** state and
+queues its events. It then applies them one by one to the **displayed** state,
+which is what `g.view` shows. Before each event it calls your handlers, and
+waits for any promise they return.
+
+While events are playing:
+
+- `g.playing` is `true`,
+- `g.view` lags behind the committed state, one event at a time,
+- `g.legal` and `g.prompts` are empty, so the player can't act on a state they
+  haven't seen yet,
+- bots wait too.
+
+## useGameEvent
+
+<Source file="snippets/AnimatedTable.tsx" region="table" title="Table.tsx" />
+
+- The first argument is the `useGame` result.
+- The type is an event type (`"moved"`, `"created"`, `"vars"`, `"custom"`,
+  …) or `"*"` for all.
+- The handler gets the event and the displayed view, which already includes
+  the event.
+- Return a promise to hold playback until it resolves.
+
+Handlers only see the **viewer's** events: hidden cards keep positional ids,
+and custom events respect `visibleTo`. See
+[Views](/board-game-toolkit/concepts/views/#events-per-player).
+
+Events with no handler are applied straight away, without a render in between,
+so a burst of bookkeeping doesn't flicker.
+
+## Animating with layout animations
+
+A good pattern with a layout animation library such as Motion: render from
+`g.view` with stable `key`s (entity ids), and give `moved` events a short wait.
+Each card renders in its new zone after its event, and the library animates
+it from its old position. The examples do this with `motion/react`'s
+`layout` and `AnimatePresence`.
+
+## Without React
+
+`GameHost` is the framework-free class `useGame` wraps. Use it with another UI
+library, or headless:
+
+<Source file="snippets/AnimatedTable.tsx" region="host" title={false} />

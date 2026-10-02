@@ -19,14 +19,14 @@ the bankroll resets.
 **Guards end the hand early.** The `play` seq declares
 `exits: { natural, bust }`. Guards are checked after every transaction, so
 hitting to 22 ends `play` at once and the dealer never takes a turn. See
-[Outcomes and guards](../../concepts/outcomes/).
+[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
 
 **The decision stays open until you stand.** `hit` sets `ends: false`, so the
 decision prompts again after it. Its `endWhen: "playerAt21"` closes it on 21
 without asking.
 
 **A branch handles going broke.** It uses an inline
-[expression](../../reference/spec/expressions/), not a named condition:
+[expression](/board-game-toolkit/reference/spec/expressions/), not a named condition:
 `{ lte: [{ var: "vars.bankroll" }, 0] }`.
 
 <Source file="games/blackjack/spec.ts" />

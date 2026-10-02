@@ -53,7 +53,7 @@ Triggers never see `vars`, `locals` or `shuffled` events.
 - Inside the trigger's flow and its `when`, `scope.event` is the matching
   event. `actor: "current"` resolves from the interrupted flow.
 - Triggers can fire inside other triggers' flows. In
-  [Plus Two](../../../examples/plus-two/), stacking a +2 in a response window
+  [Plus Two](/board-game-toolkit/examples/plus-two/), stacking a +2 in a response window
   opens a new window inside it.
 - When one step fires several triggers, they run in priority order, then in
   `triggerOrder`: `"fifo"` (the default) runs the first event's triggers

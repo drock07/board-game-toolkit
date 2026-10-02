@@ -10,7 +10,7 @@ import Example from "../../../components/Example.astro";
 import Source from "../../../components/Source.astro";
 
 Two players alternate until someone makes a line or the board fills. The
-[Quickstart](../../start/quickstart/) builds this game step by step.
+[Quickstart](/board-game-toolkit/start/quickstart/) builds this game step by step.
 
 <Example slug="tic-tac-toe" />
 
@@ -20,7 +20,7 @@ Two players alternate until someone makes a line or the board fills. The
 (`from: "random"`, drawn from the seeded RNG) and goes clockwise. `repeat: true`
 starts another pass after the last player, and `until: "boardDecided"` stops it
 as soon as the condition holds after a turn. See
-[`each`](../../reference/flow/each/).
+[`each`](/board-game-toolkit/reference/flow/each/).
 
 **Each turn is a decision for the current player.** `actor: "current"` is the
 player bound by the nearest `each`, so only they get the prompt.
@@ -33,7 +33,7 @@ for things that move and can be hidden, like cards.
 **The computer is a bot.** A bot is a function from its own view and prompt to
 one of its legal inputs. This one scores every legal placement with minimax.
 The host runs it after a short delay, and the engine checks its input like
-anyone else's. See [Writing a bot](../../guides/bots/).
+anyone else's. See [Writing a bot](/board-game-toolkit/guides/bots/).
 
 `placeMark` lists its legal arguments with `enumerate`, which is how the bot
 (and the page) know which cells are open:

@@ -8,21 +8,21 @@ sidebar:
 
 The flow is a tree of nodes. Each node is a plain object with a `kind` and an
 `id`; the builders exported by the engine create them with less typing. See
-[Flow](../../../concepts/flow/) for how the engine runs them.
+[Flow](/board-game-toolkit/concepts/flow/) for how the engine runs them.
 
-| Kind       | Builder                                | Waits? | Page                     |
-| ---------- | -------------------------------------- | ------ | ------------------------ |
-| `seq`      | `seq(id, children, opts?)`             | No     | [seq](../seq/)           |
-| `loop`     | `loop(id, body, opts?)`                | No     | [loop](../loop/)         |
-| `each`     | `each(id, over, body, opts?)`          | No     | [each](../each/)         |
-| `branch`   | `branch(id, cases, otherwise?, opts?)` | No     | [branch](../branch/)     |
-| `step`     | `step(id, run, opts?)`                 | No     | [step](../step/)         |
-| `decision` | `decision(id, opts, actions, common?)` | Yes    | [decision](../decision/) |
-| `choose`   | `choose(id, opts)`                     | Yes    | [choose](../choose/)     |
-| `pause`    | `pause(id, opts?)`                     | Yes    | [pause](../pause/)       |
-| `parallel` | `parallel(id, children, opts)`         | No     | [parallel](../parallel/) |
-| `exit`     | `exit(id, outcome, opts?)`             | No     | [exit](../exit/)         |
-| `use`      | `subflow(id, name, opts?)`             | No     | [subflow](../subflow/)   |
+| Kind       | Builder                                | Waits? | Page                                                     |
+| ---------- | -------------------------------------- | ------ | -------------------------------------------------------- |
+| `seq`      | `seq(id, children, opts?)`             | No     | [seq](/board-game-toolkit/reference/flow/seq/)           |
+| `loop`     | `loop(id, body, opts?)`                | No     | [loop](/board-game-toolkit/reference/flow/loop/)         |
+| `each`     | `each(id, over, body, opts?)`          | No     | [each](/board-game-toolkit/reference/flow/each/)         |
+| `branch`   | `branch(id, cases, otherwise?, opts?)` | No     | [branch](/board-game-toolkit/reference/flow/branch/)     |
+| `step`     | `step(id, run, opts?)`                 | No     | [step](/board-game-toolkit/reference/flow/step/)         |
+| `decision` | `decision(id, opts, actions, common?)` | Yes    | [decision](/board-game-toolkit/reference/flow/decision/) |
+| `choose`   | `choose(id, opts)`                     | Yes    | [choose](/board-game-toolkit/reference/flow/choose/)     |
+| `pause`    | `pause(id, opts?)`                     | Yes    | [pause](/board-game-toolkit/reference/flow/pause/)       |
+| `parallel` | `parallel(id, children, opts)`         | No     | [parallel](/board-game-toolkit/reference/flow/parallel/) |
+| `exit`     | `exit(id, outcome, opts?)`             | No     | [exit](/board-game-toolkit/reference/flow/exit/)         |
+| `use`      | `subflow(id, name, opts?)`             | No     | [subflow](/board-game-toolkit/reference/flow/subflow/)   |
 
 ## Options every node takes
 
@@ -34,8 +34,8 @@ The flow is a tree of nodes. Each node is a plain object with a `kind` and an
 | `on`     | `{ [outcome]: FlowNode }` | A flow to run when the node ends with that outcome.                                                              |
 
 A **`Cond`** is either the name of an `impl.conditions` entry or an inline
-[expression](../../spec/expressions/). See
-[Outcomes and guards](../../../concepts/outcomes/) for `exits` and `on`.
+[expression](/board-game-toolkit/reference/spec/expressions/). See
+[Outcomes and guards](/board-game-toolkit/concepts/outcomes/) for `exits` and `on`.
 
 ## Builders and plain objects
 
@@ -47,7 +47,7 @@ decision("turn", { actor: "current" }, { play: {}, pass: {} });
 // { kind: "decision", id: "turn", actor: "current", actions: { play: {}, pass: {} } }
 ```
 
-Specs loaded from JSON with [`fromJSON`](../../spec/json/) use the plain form.
+Specs loaded from JSON with [`fromJSON`](/board-game-toolkit/reference/spec/json/) use the plain form.
 
 ## Custom node kinds
 

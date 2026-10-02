@@ -30,9 +30,9 @@ export const spec = {
 | `players`      | `{ min, max }`               | Allowed player counts. `init` throws outside the range.                                                                     |
 | `zones`        | `{ [name]: ZoneDef }`        | Places entities can be. See below.                                                                                          |
 | `vars`         | `{ [key]: { visibility? } }` | Optional. Declares top-level vars and their visibility. Expressions may only read declared vars.                            |
-| `flow`         | `FlowNode`                   | The root of the flow. See [Flow nodes](../../flow/overview/).                                                               |
-| `subflows`     | `{ [name]: FlowNode }`       | Optional. Named flows run by [`subflow`](../../flow/subflow/).                                                              |
-| `triggers`     | `TriggerDef[]`               | Optional. See [Triggers](../triggers/).                                                                                     |
+| `flow`         | `FlowNode`                   | The root of the flow. See [Flow nodes](/board-game-toolkit/reference/flow/overview/).                                       |
+| `subflows`     | `{ [name]: FlowNode }`       | Optional. Named flows run by [`subflow`](/board-game-toolkit/reference/flow/subflow/).                                      |
+| `triggers`     | `TriggerDef[]`               | Optional. See [Triggers](/board-game-toolkit/reference/spec/triggers/).                                                     |
 | `triggerOrder` | `"fifo"` or `"lifo"`         | Optional. The order triggers fired by the same step run in. Defaults to `"fifo"`.                                           |
 
 ## Zones
@@ -47,12 +47,12 @@ zones: {
 },
 ```
 
-| Field        | Type                                                    | Meaning                                                                                                                                                 |
-| ------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `visibility` | `"public"`, `"hidden"`, `"owner"`, `"top"` or `{ ref }` | Who can see the zone's entities. `{ ref }` names an `impl.visibility` function `(s, entity, viewer) => boolean`. See [Views](../../../concepts/views/). |
-| `perPlayer`  | `boolean`                                               | One zone per player, with ids `name:playerId`, each owned by its player.                                                                                |
-| `revealType` | `boolean`                                               | Hidden entities in this zone still show their `type`.                                                                                                   |
-| `ordered`    | `boolean`                                               | Defaults to `true`. A hint that order doesn't matter; the engine keeps order either way.                                                                |
+| Field        | Type                                                    | Meaning                                                                                                                                                            |
+| ------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `visibility` | `"public"`, `"hidden"`, `"owner"`, `"top"` or `{ ref }` | Who can see the zone's entities. `{ ref }` names an `impl.visibility` function `(s, entity, viewer) => boolean`. See [Views](/board-game-toolkit/concepts/views/). |
+| `perPlayer`  | `boolean`                                               | One zone per player, with ids `name:playerId`, each owned by its player.                                                                                           |
+| `revealType` | `boolean`                                               | Hidden entities in this zone still show their `type`.                                                                                                              |
+| `ordered`    | `boolean`                                               | Defaults to `true`. A hint that order doesn't matter; the engine keeps order either way.                                                                           |
 
 ## Vars
 
@@ -73,10 +73,10 @@ Wherever the spec takes a condition (`until`, `while`, `endWhen`, `exits`,
 branch `when`, trigger `when`), it's a `Cond`:
 
 - a string, naming an `impl.conditions` entry, or
-- an [expression](../expressions/) object.
+- an [expression](/board-game-toolkit/reference/spec/expressions/) object.
 
 ## Actors
 
 Wherever the spec takes an actor (`decision`, `choose`, `pause`), it's one of
 `"current"`, `"any"`, a player id, or `{ ref }` naming an `impl.lists` entry
-that returns player ids. See [Prompts and inputs](../../../concepts/prompts/#actors).
+that returns player ids. See [Prompts and inputs](/board-game-toolkit/concepts/prompts/#actors).

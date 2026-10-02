@@ -20,17 +20,17 @@ views and events work before any real rules get in the way.
 **Cards are entities in zones.** `setup` creates 52 cards in the `deck` zone
 and shuffles it. Every entity is in exactly one zone, and the only way to move
 it is an op on a transaction: `moveTop`, `move` or `shuffle` here. See
-[State: entities, zones and vars](../../concepts/state/).
+[State: entities, zones and vars](/board-game-toolkit/concepts/state/).
 
 **The deck is hidden.** Its zone has `visibility: "hidden"`, so your view
 shows its cards as opaque, positional ids like `?deck#0`. Shuffling reveals
 nothing, and a drawn card shows its face only once it lands in the public hand.
-See [Views and hidden information](../../concepts/views/).
+See [Views and hidden information](/board-game-toolkit/concepts/views/).
 
 **The flow is one decision that never ends.** Each action sets
 `ends: false`, so after any of them the decision prompts again. Each action is
 a transaction, and each op inside it becomes an event that the page plays back.
-See [`decision`](../../reference/flow/decision/).
+See [`decision`](/board-game-toolkit/reference/flow/decision/).
 
 <Source file="games/sandbox/spec.ts" />
 

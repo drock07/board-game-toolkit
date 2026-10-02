@@ -8,7 +8,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "typecheck": "astro check && tsc --noEmit"
+    "typecheck": "astro check && tsc --noEmit -p tsconfig.src.json"
   },
   "dependencies": {
     "@astrojs/react": "^7.0.0",
@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "starlight-links-validator": "^0.26.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

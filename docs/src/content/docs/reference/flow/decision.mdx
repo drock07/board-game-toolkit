@@ -15,13 +15,13 @@ decision(id, { actor, endWhen?, ...common }, actions)
 Opens a prompt offering its actions to its actors. When one answers, the
 action runs; then the decision ends, or prompts again.
 
-| Option               | Type                           | Meaning                                                                                                                       |
-| -------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `actor`              | `Actor`                        | Who may answer: `"current"`, `"any"`, a player id, or `{ ref }`. See [Prompts and inputs](../../../concepts/prompts/#actors). |
-| `actions`            | `{ [name]: { ends?, then? } }` | The actions offered. Each name must be an `impl.actions` entry.                                                               |
-| `actions[name].ends` | `boolean`                      | Whether the decision ends after this action. Defaults to `true`.                                                              |
-| `actions[name].then` | `FlowNode`                     | A flow to run after the action executes, before the decision ends or prompts again.                                           |
-| `endWhen`            | `Cond`                         | Checked whenever the decision would prompt again. Ends it when true.                                                          |
+| Option               | Type                           | Meaning                                                                                                                                  |
+| -------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `actor`              | `Actor`                        | Who may answer: `"current"`, `"any"`, a player id, or `{ ref }`. See [Prompts and inputs](/board-game-toolkit/concepts/prompts/#actors). |
+| `actions`            | `{ [name]: { ends?, then? } }` | The actions offered. Each name must be an `impl.actions` entry.                                                                          |
+| `actions[name].ends` | `boolean`                      | Whether the decision ends after this action. Defaults to `true`.                                                                         |
+| `actions[name].then` | `FlowNode`                     | A flow to run after the action executes, before the decision ends or prompts again.                                                      |
+| `endWhen`            | `Cond`                         | Checked whenever the decision would prompt again. Ends it when true.                                                                     |
 
 The prompt is `{ kind: "decision", actions: [{ name, ends }], … }`. An input
 answers with `{ action, args? }`.
@@ -41,7 +41,7 @@ actions: {
 ```
 
 All three are optional except `execute`. See
-[Prompts and inputs](../../../concepts/prompts/#validating-actions).
+[Prompts and inputs](/board-game-toolkit/concepts/prompts/#validating-actions).
 
 ## Demo
 

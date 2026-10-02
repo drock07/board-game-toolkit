@@ -19,19 +19,19 @@ field of the spec.
 
 ## Node kinds
 
-| Kind                                         | Does                                                               | Waits for a player? |
-| -------------------------------------------- | ------------------------------------------------------------------ | ------------------- |
-| [`seq`](../../reference/flow/seq/)           | Runs its children in order.                                        | No                  |
-| [`loop`](../../reference/flow/loop/)         | Runs its body repeatedly, with `times`, `until` or `while`.        | No                  |
-| [`each`](../../reference/flow/each/)         | Runs its body per player or per list item, in turn or all at once. | No                  |
-| [`branch`](../../reference/flow/branch/)     | Runs the first case whose condition holds.                         | No                  |
-| [`step`](../../reference/flow/step/)         | Runs a rule (`impl.steps`).                                        | No                  |
-| [`decision`](../../reference/flow/decision/) | Offers named actions to its actors.                                | **Yes**             |
-| [`choose`](../../reference/flow/choose/)     | Offers a list of options to pick from.                             | **Yes**             |
-| [`pause`](../../reference/flow/pause/)       | Waits for someone to continue.                                     | **Yes**             |
-| [`parallel`](../../reference/flow/parallel/) | Runs branches at once; joins on all or the first.                  | No                  |
-| [`exit`](../../reference/flow/exit/)         | Raises an outcome.                                                 | No                  |
-| [`subflow`](../../reference/flow/subflow/)   | Runs a named flow from `spec.subflows`.                            | No                  |
+| Kind                                                       | Does                                                               | Waits for a player? |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ | ------------------- |
+| [`seq`](/board-game-toolkit/reference/flow/seq/)           | Runs its children in order.                                        | No                  |
+| [`loop`](/board-game-toolkit/reference/flow/loop/)         | Runs its body repeatedly, with `times`, `until` or `while`.        | No                  |
+| [`each`](/board-game-toolkit/reference/flow/each/)         | Runs its body per player or per list item, in turn or all at once. | No                  |
+| [`branch`](/board-game-toolkit/reference/flow/branch/)     | Runs the first case whose condition holds.                         | No                  |
+| [`step`](/board-game-toolkit/reference/flow/step/)         | Runs a rule (`impl.steps`).                                        | No                  |
+| [`decision`](/board-game-toolkit/reference/flow/decision/) | Offers named actions to its actors.                                | **Yes**             |
+| [`choose`](/board-game-toolkit/reference/flow/choose/)     | Offers a list of options to pick from.                             | **Yes**             |
+| [`pause`](/board-game-toolkit/reference/flow/pause/)       | Waits for someone to continue.                                     | **Yes**             |
+| [`parallel`](/board-game-toolkit/reference/flow/parallel/) | Runs branches at once; joins on all or the first.                  | No                  |
+| [`exit`](/board-game-toolkit/reference/flow/exit/)         | Raises an outcome.                                                 | No                  |
+| [`subflow`](/board-game-toolkit/reference/flow/subflow/)   | Runs a named flow from `spec.subflows`.                            | No                  |
 
 Every node has an `id`, unique in the spec. Ids show up in prompts
 (`prompt.node`), in flow events, in `tx.local(id)`, and in the devtools.
@@ -39,9 +39,9 @@ Every node has an `id`, unique in the spec. Ids show up in prompts
 Every node also takes these options:
 
 - **`locals`**: a `impl.locals` name that builds the node's own state when
-  it's entered. See [State](../state/#locals).
+  it's entered. See [State](/board-game-toolkit/concepts/state/#locals).
 - **`exits`**: guards. When a condition holds, the node ends with that
-  outcome. See [Outcomes and guards](../outcomes/).
+  outcome. See [Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
 - **`on`**: a flow to run after the node ends with a given outcome.
 
 ## How it runs
@@ -61,7 +61,7 @@ prompt. Then they return. The game only moves forward when a player answers:
 3. And so on.
 
 Between steps, the engine also checks guards (`exits`) and fires
-[triggers](../../reference/spec/triggers/).
+[triggers](/board-game-toolkit/reference/spec/triggers/).
 
 ### A flow never runs out
 

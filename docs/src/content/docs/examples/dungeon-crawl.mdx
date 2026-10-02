@@ -19,13 +19,13 @@ beat the boss or fall.
 **Combat and traps are subflows.** The spec defines them once under
 `subflows` and uses them from the room `branch` with `subflow("combat",
 "combat")`. Their node ids get the use's id as a prefix, like
-`combat.playerAttack`. See [`subflow`](../../reference/flow/subflow/).
+`combat.playerAttack`. See [`subflow`](/board-game-toolkit/reference/flow/subflow/).
 
 **Guards decide the game wherever the flow is.** The `run` seq's exits turn a
 dead player into `defeat` and a dead boss into `victory`, and its `on` map
 runs a flow for each. Guards are checked outermost first, so killing the boss
 in a fight wins the game rather than just ending the fight. See
-[Outcomes and guards](../../concepts/outcomes/).
+[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
 
 <Source file="games/dungeon-crawl/spec.ts" />
 

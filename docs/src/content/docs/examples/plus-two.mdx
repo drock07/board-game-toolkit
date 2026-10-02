@@ -19,13 +19,13 @@ stack another on it, passing the growing penalty on, or the victim takes it.
 **A trigger opens the response window.** The `plusTwo` trigger watches for a
 card moving from a hand to the discard pile. When its `when` condition holds,
 it interrupts whatever made the move, even another window, and runs its flow.
-See [Triggers](../../reference/spec/triggers/) and
-[Reactions and interrupts](../../guides/reactions/).
+See [Triggers](/board-game-toolkit/reference/spec/triggers/) and
+[Reactions and interrupts](/board-game-toolkit/guides/reactions/).
 
 **The first answer wins.** The window is a `parallel` with `join: "race"`: the
 other players get a `stack` prompt and the victim gets a `takePenalty` prompt,
 all at once. The first answer ends the race and cancels the other branch. See
-[`parallel`](../../reference/flow/parallel/).
+[`parallel`](/board-game-toolkit/reference/flow/parallel/).
 
 <Source file="games/plus-two/spec.ts" />
 

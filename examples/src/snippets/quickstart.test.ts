@@ -14,7 +14,7 @@ test("play a few moves without a UI", () => {
   // Start a game: setup runs, and the flow runs until it needs input
   const start = init(ticTacToe, { players: ["alice", "bob"], seed: "demo" });
   const [prompt] = start.prompts;
-  // prompt: { id: "q0", node: "place", kind: "decision", actors: [...], ... }
+  // prompt: { id: "q1", node: "place", kind: "decision", actors: [...], ... }
 
   // Answer it: the player in `actors` places a mark in the center
   const next = apply(ticTacToe, start.state, {
@@ -38,6 +38,7 @@ test("play a few moves without a UI", () => {
   // #endregion play
 
   expect(prompt!.node).toBe("place");
+  expect(prompt!.id).toBe("q1");
   expect(next.state.vars.marks[4]).not.toBeNull();
   expect(next.prompts[0]!.actors).not.toEqual(prompt!.actors);
   expect(again).toEqual({

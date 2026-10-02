@@ -26,13 +26,13 @@ turn.
 function that builds the node's state each time the node is entered, so every
 round starts with fresh dice and nothing needs resetting. Actions read and
 write them with `tx.local("turn")`. See
-[State: entities, zones and vars](../../concepts/state/).
+[State: entities, zones and vars](/board-game-toolkit/concepts/state/).
 
 <Source file="games/roll-five/impl.ts" region="locals" />
 
 **The dice come from the seeded RNG.** `tx.random.roll(D6)` draws from the
 RNG stored in state, so replaying the same seed and inputs rolls the same
-numbers. See [Determinism and replays](../../concepts/determinism/).
+numbers. See [Determinism and replays](/board-game-toolkit/concepts/determinism/).
 
 <Source file="games/roll-five/impl.ts" region="roll" />
 
