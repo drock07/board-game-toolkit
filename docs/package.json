@@ -27,7 +27,10 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "starlight-links-validator": "^0.26.0",
-    "tailwindcss": "^4.3.3"
+    "starlight-typedoc": "^0.23.1",
+    "tailwindcss": "^4.3.3",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

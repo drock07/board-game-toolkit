@@ -67,4 +67,8 @@ spec should say where every outcome goes.
 - A node doesn't handle outcomes raised from its own `on` flows; they unwind
   past it.
 - Guards aren't checked on a node while its `on` flow is running.
+- A guard is also checked as soon as its node is entered, before any of its
+  children run. Reset the state a guard watches **before** re-entering the
+  node, or it fires again at once. Dungeon Crawl generates a fresh dungeon
+  before its `run` seq for exactly this reason.
 - Cancelled nodes emit `flow` exit events, so a UI or trigger can see them end.

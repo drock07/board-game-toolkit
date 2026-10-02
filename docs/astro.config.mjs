@@ -4,8 +4,20 @@ import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
+import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 
 const REPO = "https://github.com/drock07/board-game-toolkit";
+
+// API reference, generated from each package's TSDoc into src/content/docs/api
+const [engineApi, engineApiSidebar] = createStarlightTypeDocPlugin();
+const [reactApi, reactApiSidebar] = createStarlightTypeDocPlugin();
+const typeDoc = {
+  excludePrivate: true,
+  excludeInternal: true,
+  // Link "Defined in" to the source on GitHub
+  gitRevision: "main",
+  sourceLinkTemplate: `${REPO}/blob/{gitRevision}/{path}#L{line}`,
+};
 
 export default defineConfig({
   site: "https://drock07.github.io",
@@ -14,7 +26,35 @@ export default defineConfig({
   integrations: [
     starlight({
       // Fails the build on a broken internal link or anchor
-      plugins: [starlightLinksValidator()],
+      plugins: [
+        starlightLinksValidator(),
+        engineApi({
+          entryPoints: [
+            "../packages/engine/src/index.ts",
+            "../packages/engine/src/testing/index.ts",
+          ],
+          tsconfig: "../packages/engine/tsconfig.build.json",
+          output: "api/engine",
+          sidebar: { label: "Engine API", collapsed: true },
+          typeDoc: {
+            ...typeDoc,
+            entryModule: "@drock07/board-game-toolkit-engine",
+          },
+        }),
+        reactApi({
+          entryPoints: [
+            "../packages/react/src/index.ts",
+            "../packages/react/src/devtools/index.ts",
+          ],
+          tsconfig: "../packages/react/tsconfig.build.json",
+          output: "api/react",
+          sidebar: { label: "React API", collapsed: true },
+          typeDoc: {
+            ...typeDoc,
+            entryModule: "@drock07/board-game-toolkit-react",
+          },
+        }),
+      ],
       title: "Board Game Toolkit",
       description:
         "A TypeScript toolkit for board games: a JSON flow spec, a pure deterministic engine, and a React host.",
@@ -56,6 +96,8 @@ export default defineConfig({
               label: "Spec",
               items: [{ autogenerate: { directory: "reference/spec" } }],
             },
+            engineApiSidebar,
+            reactApiSidebar,
           ],
         },
         {
