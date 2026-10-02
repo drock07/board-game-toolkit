@@ -75,6 +75,13 @@ export type {
 export { reduceEvents } from "./reduce.js";
 export { seededRandom } from "./rng.js";
 export type { Die, Random, RngState } from "./rng.js";
+export {
+  SPEC_FORMAT,
+  SPEC_FORMAT_VERSION,
+  fromJSON,
+  toJSON,
+} from "./serialize.js";
+export type { SpecDocument } from "./serialize.js";
 export type * from "./spec.js";
 export type { MoveOptions, Tx } from "./tx.js";
 export type {

@@ -152,6 +152,29 @@ and arrays are literals. `defineGame` checks every expression's shape, path
 roots, declared vars and zone names. A condition must evaluate to `true` or
 `false`. `describeCond(cond)` prints one readably (`vars.enemy.hp <= 0`).
 
+## Specs as JSON
+
+A spec is plain data, so it can be saved, diffed and loaded:
+
+```ts
+import {
+  defineGame,
+  fromJSON,
+  toJSON,
+} from "@drock07/board-game-toolkit-engine";
+
+const text = toJSON(spec); // { "format": "board-game-toolkit/spec", "formatVersion": 1, "spec": … }
+const game = defineGame({ spec: fromJSON(text), impl });
+```
+
+`fromJSON` checks the document's shape (node kinds and their fields,
+conditions and expressions, zones, vars, triggers) and reports every problem
+with its path, such as `spec.flow.children[2].actions.hit.then: …`. Unknown
+fields are errors, which catches typos. Custom node kinds pass with their
+`id` checked; `defineGame` checks the rest as usual. A loaded spec's type is
+the plain `GameSpec`, so impl refs are checked at runtime instead of by the
+compiler.
+
 ## State model
 
 - **Entities** (cards, tokens, dice) live in exactly one **zone**. Zone index 0

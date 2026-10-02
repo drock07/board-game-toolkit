@@ -304,9 +304,14 @@ type NoUnusedEntries<S, I> = {
 /**
  * Checks an impl against a spec: every ref the spec uses must exist, and
  * every impl entry must be used. Violations surface as type errors naming
- * the entry.
+ * the entry. A spec whose type isn't literal (one loaded with `fromJSON`) is
+ * checked at runtime only.
  */
-export type CheckImpl<S, I> = RequiredEntries<S, I> & NoUnusedEntries<S, I>;
+export type CheckImpl<S, I> = S extends { readonly id: infer Id }
+  ? string extends Id
+    ? unknown
+    : RequiredEntries<S, I> & NoUnusedEntries<S, I>
+  : RequiredEntries<S, I> & NoUnusedEntries<S, I>;
 
 /**
  * The impl's bundle must be JSON-compatible. `TypesFor` already checks this;
