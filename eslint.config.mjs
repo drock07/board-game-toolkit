@@ -62,6 +62,12 @@ export default tseslint.config(
     rules: { "@typescript-eslint/require-await": "off" },
   },
 
+  // Docs snippets show values as bare expressions: `state.players; // ["p1", …]`
+  {
+    files: ["examples/src/snippets/**/*.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-unused-expressions": "off" },
+  },
+
   // React
   {
     files: [

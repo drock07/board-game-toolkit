@@ -1,0 +1,87 @@
+---
+title: Determinism and replays
+description: A game is a pure function of its seed and inputs. The seeded RNG, replays, saves, and the rules that keep it that way.
+sidebar:
+  label: Determinism
+  order: 8
+---
+
+import Source from "../../../components/Source.astro";
+
+Given the same game, players, seed and inputs, the engine always produces the
+same state, byte for byte. That one property gives you a lot:
+
+- **Replays**: store the inputs, rebuild the game.
+- **Saves**: store the state, or just the inputs.
+- **Undo**: keep earlier states, or replay all but the last input.
+- **Bug reports**: a seed and a list of inputs reproduce the bug exactly.
+- **Servers**: a server and its clients can run the same rules and agree.
+- **Tests**: golden replays catch any change in behavior.
+
+## The seeded RNG
+
+Randomness comes from a generator whose state is part of the game state. In
+rules code it's `tx.random`:
+
+| Method           | Returns                             |
+| ---------------- | ----------------------------------- |
+| `int(n)`         | A whole number from `0` to `n - 1`. |
+| `float()`        | A number in `[0, 1)`.               |
+| `pick(array)`    | One element.                        |
+| `shuffle(array)` | A shuffled copy.                    |
+| `roll(die)`      | One of a die's faces.               |
+
+`tx.shuffle(zone)` uses the same generator. The engine ships dice:
+`D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` and `Fudge`. A die is just
+`{ faces: [...] }`, so you can define your own:
+
+```ts
+import { D6 } from "@drock07/board-game-toolkit-engine";
+
+const COLOR_DIE = { faces: ["red", "blue", "green"] };
+
+tx.random.roll(D6); // 1–6
+tx.random.roll(COLOR_DIE); // "red" | "blue" | "green"
+```
+
+The `seed` passed to `init` is any string. Same seed, same game.
+
+## Replays
+
+`replay` rebuilds a state from its seed and inputs:
+
+<Source file="snippets/concepts.test.ts" region="replay" title={false} />
+
+## Saves
+
+State is plain JSON, so a save is `JSON.stringify(state)`:
+
+<Source file="snippets/concepts.test.ts" region="save" title={false} />
+
+A state records its game's `spec.id` and `spec.version`. `apply` refuses a
+state from a different game or version, so bump `version` when a change to the
+spec would break old saves.
+
+Saving inputs instead of states is smaller, survives rule fixes that don't
+change behavior, and doubles as a replay. See
+[Saving and replays](../../guides/saving-and-replays/).
+
+## Keeping it deterministic
+
+The engine can only guarantee determinism if the rules cooperate:
+
+- **Use `tx.random`, never `Math.random`.**
+- **Don't read the clock.** No `Date.now()` or `new Date()` in rules.
+- **Don't keep state outside the game.** Module-level variables, caches that
+  change results, or anything else that survives between calls.
+- **Iterate in a fixed order.** Object key order is fine (it's
+  deterministic in JavaScript), but don't depend on anything like `Set`
+  iteration over values built in a random order.
+
+The toolkit's own repo enforces the first two with ESLint
+(`no-restricted-globals` for `Date`, `no-restricted-properties` for
+`Math.random`) on rules files. It's worth doing in yours.
+
+Bots get their own generator (`ctx.random`), separate from the game's, so a
+bot's choices don't disturb the game's dice. The game depends only on the
+inputs the bots produce.
