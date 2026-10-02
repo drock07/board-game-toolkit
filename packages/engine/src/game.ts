@@ -19,6 +19,7 @@ import type {
   Input,
   PlayerId,
   Prompt,
+  ReadonlyGameState,
 } from "./types.js";
 
 /** A compiled, validated game definition. */
@@ -62,7 +63,7 @@ export function defineGame<
 
 export interface ApplyResult<T extends GameTypes = AnyTypes> {
   ok: true;
-  state: GameState<T>;
+  state: ReadonlyGameState<T>;
   events: GameEvent<T>[];
   prompts: Prompt[];
 }
@@ -101,7 +102,7 @@ export function init<T extends GameTypes>(
     vars: {},
     zones: zonesFor(spec, players),
   });
-  const rt = new Runtime(game, game.kinds, state);
+  const rt = new Runtime(game, game.kinds, untyped(state));
   rt.runTx(undefined, 0, (tx) =>
     game.impl.setup(tx, { players, options: opts.options ?? null }),
   );
@@ -115,7 +116,7 @@ export function init<T extends GameTypes>(
 function result<T extends GameTypes>(rt: Runtime): ApplyResult<T> {
   return {
     ok: true,
-    state: rt.state as unknown as GameState<T>,
+    state: rt.state as unknown as ReadonlyGameState<T>,
     events: rt.events as unknown as GameEvent<T>[],
     prompts: openPrompts(rt.state),
   };
@@ -124,7 +125,7 @@ function result<T extends GameTypes>(rt: Runtime): ApplyResult<T> {
 /** Applies one player input. Invalid inputs return an error; the state is untouched. */
 export function apply<T extends GameTypes>(
   game: Game<T>,
-  state: GameState<T>,
+  state: ReadonlyGameState<T>,
   input: Input,
 ): ApplyResult<T> | ApplyError {
   const fail = (error: InputError): ApplyError => ({ ok: false, error });
@@ -170,7 +171,7 @@ function openPrompts(state: GameState): Prompt[] {
  */
 export function legalInputs<T extends GameTypes>(
   game: Game<T>,
-  state: GameState<T>,
+  state: ReadonlyGameState<T>,
   player: PlayerId,
 ): Input[] {
   if (state.status === "finished") return [];
@@ -182,7 +183,7 @@ export function legalInputs<T extends GameTypes>(
 /** The prompts currently open. */
 export function prompts<T extends GameTypes>(
   _game: Game<T>,
-  state: GameState<T>,
+  state: ReadonlyGameState<T>,
 ): Prompt[] {
   return openPrompts(untyped(state));
 }
@@ -195,7 +196,7 @@ export interface ReplayOptions extends InitOptions {
 export function replay<T extends GameTypes>(
   game: Game<T>,
   opts: ReplayOptions,
-): GameState<T> {
+): ReadonlyGameState<T> {
   let state = init(game, opts).state;
   opts.inputs.forEach((input, i) => {
     const res = apply(game, state, input);

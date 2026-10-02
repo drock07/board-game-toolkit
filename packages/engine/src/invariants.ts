@@ -1,5 +1,5 @@
 import { untyped } from "./state.js";
-import type { GameState, GameTypes } from "./types.js";
+import type { GameState, GameTypes, ReadonlyGameState } from "./types.js";
 
 /**
  * Checks the state model's invariants and returns a message per violation:
@@ -7,7 +7,7 @@ import type { GameState, GameTypes } from "./types.js";
  * no id is past the entity counter (so ids are never reused).
  */
 export function checkInvariants<T extends GameTypes>(
-  typed: GameState<T>,
+  typed: ReadonlyGameState<T> | GameState<T>,
 ): string[] {
   const state: GameState = untyped(typed);
   const errors: string[] = [];

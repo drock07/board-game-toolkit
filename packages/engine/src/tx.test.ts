@@ -5,7 +5,7 @@ import type { Json } from "./json.js";
 import { reduceEvents } from "./reduce.js";
 import { createGameState } from "./state.js";
 import { openTx, transact } from "./tx.js";
-import type { AnyTypes, GameEvent, GameState } from "./types.js";
+import type { AnyTypes, GameEvent, ReadonlyGameState } from "./types.js";
 
 type Vars = {
   score: number;
@@ -14,7 +14,7 @@ type Vars = {
 };
 type Types = Omit<AnyTypes, "vars"> & { vars: Vars };
 
-function fresh(): GameState<Types> {
+function fresh(): ReadonlyGameState<Types> {
   return createGameState<Types>({
     game: "test",
     specVersion: 1,
@@ -38,8 +38,8 @@ function withDeck() {
 }
 
 function expectReplays(
-  before: GameState<Types>,
-  after: GameState<Types>,
+  before: ReadonlyGameState<Types>,
+  after: ReadonlyGameState<Types>,
   events: GameEvent<Types>[],
 ) {
   const replayed = reduceEvents(before, events);
@@ -303,7 +303,7 @@ describe("transactions", () => {
 
   test("events carry the input index", () => {
     const s = withDeck();
-    const later: GameState<Types> = {
+    const later: ReadonlyGameState<Types> = {
       ...s,
       meta: { ...s.meta, inputCount: 4 },
     };
@@ -315,7 +315,7 @@ describe("transactions", () => {
 describe("locals", () => {
   test("tx.local drafts a frame's locals and emits a locals event", () => {
     const s = fresh();
-    const withFrame: GameState<Types> = {
+    const withFrame: ReadonlyGameState<Types> = {
       ...s,
       flow: {
         ...s.flow,

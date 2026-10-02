@@ -113,6 +113,10 @@ clears any override, so entities take on their new zone's visibility.
 `reduceEvents(state, events)` rebuilds entities, zones, vars and status from
 events. Hosts use it to step through intermediate states for animation.
 
+States are typed `ReadonlyGameState<T>`. Each one shares its unchanged parts
+with the states before it, so mutating one in place would corrupt the
+history; the type forbids it, and the fuzzer freezes states to catch it.
+
 ## Randomness
 
 The RNG is sfc32 with its four-uint32 state in `state.rng`. String seeds are

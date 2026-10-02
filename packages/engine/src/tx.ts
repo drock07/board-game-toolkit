@@ -15,6 +15,7 @@ import type {
   NodeId,
   PlayerId,
   Position,
+  ReadonlyGameState,
   Scope,
   Zone,
   ZoneId,
@@ -35,7 +36,7 @@ export interface MoveOptions {
  */
 export interface Tx<T extends GameTypes = AnyTypes> {
   /** Reflects changes made so far in this transaction. */
-  readonly state: DeepReadonly<GameState<T>>;
+  readonly state: ReadonlyGameState<T>;
   readonly scope: Scope;
 
   /**
@@ -97,7 +98,7 @@ export interface TxOptions {
 }
 
 export interface TxResult<T extends GameTypes = AnyTypes> {
-  state: GameState<T>;
+  state: ReadonlyGameState<T>;
   events: GameEvent<T>[];
   /** Set by `tx.exit`. */
   exit?: string;
@@ -460,7 +461,7 @@ export interface OpenTx<T extends GameTypes> {
 
 /** Opens a transaction over `state`, which is never mutated. */
 export function openTx<T extends GameTypes = AnyTypes>(
-  state: GameState<T>,
+  state: ReadonlyGameState<T>,
   opts: TxOptions = {},
 ): OpenTx<T> {
   const t = new Transaction(state as unknown as GameState, opts);
@@ -472,7 +473,7 @@ export function openTx<T extends GameTypes = AnyTypes>(
 
 /** Runs `fn` in a transaction and commits it. */
 export function transact<T extends GameTypes = AnyTypes>(
-  state: GameState<T>,
+  state: ReadonlyGameState<T>,
   fn: (tx: Tx<T>) => void,
   opts?: TxOptions,
 ): TxResult<T> {

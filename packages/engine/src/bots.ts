@@ -1,11 +1,11 @@
 import type { Random } from "./rng.js";
 import type {
   AnyTypes,
-  GameState,
   GameTypes,
   Input,
   PlayerId,
   Prompt,
+  ReadonlyGameState,
 } from "./types.js";
 
 export interface BotContext {
@@ -25,7 +25,7 @@ export interface BotContext {
  * (M6) it will see only its player's view.
  */
 export type Bot<T extends GameTypes = AnyTypes> = (
-  view: GameState<T>,
+  view: ReadonlyGameState<T>,
   prompt: Prompt,
   ctx: BotContext,
 ) => Input | Promise<Input>;

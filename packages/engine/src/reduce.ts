@@ -1,6 +1,13 @@
 import { applyPatches } from "./immer.js";
 import type { Json } from "./json.js";
-import type { Entity, GameEvent, GameState, GameTypes, Zone } from "./types.js";
+import type {
+  Entity,
+  GameEvent,
+  GameState,
+  GameTypes,
+  ReadonlyGameState,
+  Zone,
+} from "./types.js";
 
 /**
  * Replays events onto a state. Rebuilds `entities`, `zones`, `vars`, `status`
@@ -11,12 +18,12 @@ import type { Entity, GameEvent, GameState, GameTypes, Zone } from "./types.js";
  * applied state on entities, zones, vars and status.
  */
 export function reduceEvents<T extends GameTypes>(
-  state: GameState<T>,
+  state: ReadonlyGameState<T>,
   events: readonly GameEvent<T>[],
-): GameState<T> {
+): ReadonlyGameState<T> {
   const r = new Reducer(state as unknown as GameState);
   for (const event of events) r.apply(event as unknown as GameEvent);
-  return r.state as unknown as GameState<T>;
+  return r.state as unknown as ReadonlyGameState<T>;
 }
 
 /** Applies events with copy-on-write, copying only what they touch. */

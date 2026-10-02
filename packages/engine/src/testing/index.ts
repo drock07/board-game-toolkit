@@ -7,14 +7,14 @@ import {
 } from "../game.js";
 import type { Json } from "../json.js";
 import { cyrb128 } from "../rng.js";
-import type { GameState, GameTypes, Input, Prompt } from "../types.js";
+import type { GameTypes, Input, Prompt, ReadonlyGameState } from "../types.js";
 
 export { checkInvariants } from "../invariants.js";
 export { createGameState } from "../state.js";
 export type { CreateStateOptions } from "../state.js";
 export { openTx, transact } from "../tx.js";
 export type { OpenTx, TxOptions, TxResult } from "../tx.js";
-export { fuzz, playBots } from "./fuzz.js";
+export { deepFreeze, fuzz, playBots } from "./fuzz.js";
 export type {
   FuzzFailure,
   FuzzOptions,
@@ -36,7 +36,9 @@ export function stableStringify(value: unknown): string {
 }
 
 /** A short, stable hash of a state, for golden replay fixtures. */
-export function hashState<T extends GameTypes>(state: GameState<T>): string {
+export function hashState<T extends GameTypes>(
+  state: ReadonlyGameState<T>,
+): string {
   return cyrb128(stableStringify(state))
     .map((n) => n.toString(16).padStart(8, "0"))
     .join("");

@@ -94,6 +94,7 @@ export type {
   Position,
   Prompt,
   PromptId,
+  ReadonlyGameState,
   Scope,
   Zone,
   ZoneId,

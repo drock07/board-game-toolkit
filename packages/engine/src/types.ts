@@ -1,5 +1,5 @@
 import type { Patch } from "immer";
-import type { Json } from "./json.js";
+import type { DeepReadonly, Json } from "./json.js";
 import type { RngState } from "./rng.js";
 
 export type PlayerId = string;
@@ -80,6 +80,17 @@ export interface GameState<T extends GameTypes = AnyTypes> {
   /** Set by `tx.end(result)`. */
   result?: Json;
 }
+
+/**
+ * A state as the engine hands it out. States share unchanged parts with the
+ * states before them, so they must never be mutated; this type enforces it.
+ */
+export type ReadonlyGameState<T extends GameTypes = AnyTypes> = DeepReadonly<
+  GameState<T>
+> & {
+  /** Phantom: keeps `T` inferable, which `DeepReadonly` alone loses. */
+  readonly __types?: T;
+};
 
 export interface Entity<
   Type extends string = string,

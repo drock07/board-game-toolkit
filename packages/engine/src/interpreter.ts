@@ -9,7 +9,8 @@ import type { StateReader } from "./impl.js";
 import type { Json } from "./json.js";
 import { createReader } from "./reader.js";
 import type { Actor, Cond, FlowNode } from "./spec.js";
-import { openTx, type Tx } from "./tx.js";
+import { untyped } from "./state.js";
+import { openTx, type Tx, type TxOptions } from "./tx.js";
 import type {
   Binding,
   Fiber,
@@ -278,7 +279,7 @@ export class Runtime {
   ) {
     const scope = f ? this.scopeAt(f, idx) : {};
     if (actor !== undefined) scope.actor = actor;
-    const opts: Parameters<typeof openTx>[1] = { scope };
+    const opts: TxOptions = { scope };
     if (f) {
       opts.locals = (nodeId) => {
         const i = this.localsFrame(f, idx, nodeId);
@@ -294,7 +295,7 @@ export class Runtime {
     fn(tx);
     const res = commit();
     this.events.push(...res.events);
-    this.adoptTx(res.state, base);
+    this.adoptTx(untyped(res.state), base);
     this.guardsDirty = true;
     if (res.exit !== undefined) this.pendingExit ??= res.exit;
     if (this.state.status === "finished") this.finish();

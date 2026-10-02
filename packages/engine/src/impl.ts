@@ -10,9 +10,9 @@ import type {
   Entity,
   EntityId,
   EntityOf,
-  GameState,
   GameTypes,
   PlayerId,
+  ReadonlyGameState,
   Scope,
   Zone,
   ZoneIdOf,
@@ -20,7 +20,7 @@ import type {
 
 /** A read-only facade over state, for conditions, validators and lists. */
 export interface StateReader<T extends GameTypes = AnyTypes> {
-  readonly state: DeepReadonly<GameState<T>>;
+  readonly state: ReadonlyGameState<T>;
   readonly vars: DeepReadonly<T["vars"]>;
   readonly players: readonly PlayerId[];
   zone(id: ZoneIdOf<T>): DeepReadonly<Zone>;

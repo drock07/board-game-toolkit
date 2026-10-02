@@ -2,8 +2,8 @@ import { describe, expectTypeOf, test } from "vitest";
 import { decision, loop, step } from "./builders.js";
 import { defineGame, init } from "./game.js";
 import type { GameImpl, TypesFor } from "./impl.js";
-import type { IsJsonCompatible, Json } from "./json.js";
-import type { AnyTypes, Entity, GameState, ZoneIdOf } from "./types.js";
+import type { DeepReadonly, IsJsonCompatible, Json } from "./json.js";
+import type { AnyTypes, Entity, ReadonlyGameState, ZoneIdOf } from "./types.js";
 
 // These tests are checked by `tsc` (typecheck); at runtime they only build
 // the example game.
@@ -114,14 +114,26 @@ describe("game types", () => {
     const game = defineGame({ spec, impl });
     expectTypeOf(game).toEqualTypeOf<typeof game>();
     const { state } = init(game, { players: ["p1", "p2"], seed: "s" });
-    expectTypeOf(state.vars).toEqualTypeOf<Vars>();
-    expectTypeOf(state.zones.discard.items).toEqualTypeOf<string[]>();
+    expectTypeOf(state.vars).toEqualTypeOf<DeepReadonly<Vars>>();
+    expectTypeOf(state.zones.discard.items).toEqualTypeOf<readonly string[]>();
+    // Returned states are read-only (checked by tsc; never called)
+    const mutate = () => {
+      // @ts-expect-error vars can't be assigned
+      state.vars.activeColor = "red";
+      // @ts-expect-error zone items can't be pushed
+      state.zones.discard.items.push("card#0"); // eslint-disable-line @typescript-eslint/no-unsafe-call -- the call is the type error under test
+    };
+    void mutate;
   });
 
   test("entities narrow on type", () => {
-    const check = (e: GameState<Types>["entities"][string]) => {
-      if (e.type === "card") expectTypeOf(e.props).toEqualTypeOf<Card>();
-      else expectTypeOf(e.props).toEqualTypeOf<{ chosen?: Card["color"] }>();
+    const check = (e: ReadonlyGameState<Types>["entities"][string]) => {
+      if (e.type === "card")
+        expectTypeOf(e.props).toEqualTypeOf<DeepReadonly<Card>>();
+      else
+        expectTypeOf(e.props).toEqualTypeOf<
+          DeepReadonly<{ chosen?: Card["color"] }>
+        >();
     };
     void check;
   });

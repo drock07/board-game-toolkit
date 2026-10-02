@@ -76,6 +76,18 @@ export function playBots<T extends GameTypes>(
   return { results, inputs };
 }
 
+/**
+ * Freezes a value deeply. Stops at frozen objects: states share unchanged
+ * parts with earlier states, which are already frozen.
+ */
+export function deepFreeze<V>(value: V): V {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) deepFreeze(child);
+  }
+  return value;
+}
+
 export interface FuzzOptions {
   /** How many seeds to play (`fuzz-0`, `fuzz-1`, …), or the seeds themselves. */
   seeds: number | string[];
@@ -106,8 +118,9 @@ export interface FuzzReport {
 }
 
 /**
- * Plays random legal inputs from every player. After every apply it checks
- * the state invariants, that a legal input is accepted, and that
+ * Plays random legal inputs from every player. Every state is deep-frozen
+ * before the next input, so an engine or rules bug that mutates a state it
+ * was given throws. After every apply it checks the state invariants, that a legal input is accepted, and that
  * `reduceEvents` reproduces the new state; after every run, that `replay`
  * rebuilds the final state. Thrown errors (such as `FlowStuckError`) are
  * recorded as failures.
@@ -146,6 +159,7 @@ export function fuzz<T extends GameTypes>(
         seed,
         options: opts.options,
       });
+      deepFreeze(last);
       while (
         inputs.length < opts.maxInputs &&
         last.state.status === "running"
@@ -171,6 +185,7 @@ export function fuzz<T extends GameTypes>(
           break;
         }
         inputs.push(input);
+        deepFreeze(res);
         const problems = checkInvariants(res.state);
         if (problems.length) {
           fail(`Invariants broken: ${problems.join("; ")}`);

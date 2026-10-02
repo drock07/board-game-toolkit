@@ -5,7 +5,12 @@ import { reduceEvents } from "./reduce.js";
 import { seededRandom, type Random } from "./rng.js";
 import { createGameState } from "./state.js";
 import { transact, type Tx } from "./tx.js";
-import type { AnyTypes, GameState, Position } from "./types.js";
+import type {
+  AnyTypes,
+  GameState,
+  Position,
+  ReadonlyGameState,
+} from "./types.js";
 
 type Vars = {
   counters: Record<string, number>;
@@ -86,7 +91,7 @@ describe("replay property", () => {
   test("reduceEvents(before, events) equals after on random op sequences", () => {
     for (let seed = 0; seed < 300; seed++) {
       const r = seededRandom(`ops-${seed}`);
-      let state: GameState<Types> = createGameState<Types>({
+      let state: ReadonlyGameState<Types> = createGameState<Types>({
         game: "prop",
         specVersion: 1,
         players: ["p1", "p2"],
@@ -164,7 +169,8 @@ describe("checkInvariants", () => {
         tx.create("x", null, "a");
       },
     ).state;
-    const broken: GameState = structuredClone(s);
+    // Deliberately mutates a copy, which the read-only type forbids
+    const broken = structuredClone(s) as unknown as GameState;
     broken.zones.b!.items.push("x#0");
     expect(checkInvariants(broken)).toEqual(
       expect.arrayContaining([
