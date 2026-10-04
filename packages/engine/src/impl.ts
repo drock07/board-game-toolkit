@@ -15,6 +15,7 @@ import type {
   ReadonlyGameState,
   Scope,
   Zone,
+  ZoneDefOf,
   ZoneIdOf,
 } from "./types.js";
 
@@ -29,6 +30,11 @@ export interface StateReader<T extends GameTypes = AnyTypes> {
   entities(zoneId: ZoneIdOf<T>): DeepReadonly<EntityOf<T>>[];
   top(zoneId: ZoneIdOf<T>): DeepReadonly<EntityOf<T>> | undefined;
   count(zoneId: ZoneIdOf<T>): number;
+  /**
+   * The instances of a zone definition, in seat order then index order;
+   * only `player`'s when given. A shared zone gives a single instance.
+   */
+  zonesOf(def: ZoneDefOf<T>, player?: PlayerId): ZoneInstance<T>[];
   /** A named enclosing frame's locals, typed by the bundle's `locals`. */
   local<N extends keyof T["locals"] & string>(
     nodeId: N,
@@ -36,6 +42,11 @@ export interface StateReader<T extends GameTypes = AnyTypes> {
   /** The nearest frame's locals, untyped. */
   local<L = Json>(): DeepReadonly<L>;
 }
+
+/** A zone as `zonesOf` returns it, with its id typed for ops. */
+export type ZoneInstance<T extends GameTypes = AnyTypes> = DeepReadonly<
+  Omit<Zone, "id">
+> & { readonly id: ZoneIdOf<T> };
 
 // Handlers are declared with method syntax so their parameters are checked
 // bivariantly: an action can annotate `args` with its own shape.
@@ -71,6 +82,8 @@ export interface GameImpl<T extends GameTypes = AnyTypes> {
   choices?: { [name: string]: (tx: Tx<T>, selection: Json[]) => void };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each action picks its own args type
   actions?: { [name: string]: ActionDef<T, any> };
+  /** `count` refs: how many instances of a zone, from the seating and options. */
+  zoneCounts?: { [name: string]: (ctx: SetupContext) => number };
   /** Custom zone visibility refs. */
   visibility?: {
     [name: string]: (
@@ -86,20 +99,23 @@ export interface GameImpl<T extends GameTypes = AnyTypes> {
 
 type ZoneDefsOf<S> = S extends { zones: infer Z } ? Z : never;
 
-/** The zone names a spec declares, split by `perPlayer`. */
+/** The zone names in a spec whose defs match `Per` and `Counted`. */
+type ZoneNamesWhere<S, Per extends boolean, Counted extends boolean> = {
+  [K in keyof ZoneDefsOf<S>]: [
+    ZoneDefsOf<S>[K] extends { perPlayer: true } ? true : false,
+    ZoneDefsOf<S>[K] extends { count: number | { ref: string } } ? true : false,
+  ] extends [Per, Counted]
+    ? K
+    : never;
+}[keyof ZoneDefsOf<S>] &
+  string;
+
+/** The zone names a spec declares, split by `perPlayer` and `count`. */
 export type SpecZones<S> = {
-  shared: {
-    [K in keyof ZoneDefsOf<S>]: ZoneDefsOf<S>[K] extends { perPlayer: true }
-      ? never
-      : K;
-  }[keyof ZoneDefsOf<S>] &
-    string;
-  perPlayer: {
-    [K in keyof ZoneDefsOf<S>]: ZoneDefsOf<S>[K] extends { perPlayer: true }
-      ? K
-      : never;
-  }[keyof ZoneDefsOf<S>] &
-    string;
+  shared: ZoneNamesWhere<S, false, false>;
+  perPlayer: ZoneNamesWhere<S, true, false>;
+  counted: ZoneNamesWhere<S, false, true>;
+  perPlayerCounted: ZoneNamesWhere<S, true, true>;
 };
 
 /** What a game declares about its types. Every part must be JSON-compatible. */
@@ -157,6 +173,7 @@ export const IMPL_CATEGORIES = [
   "choices",
   "actions",
   "visibility",
+  "zoneCounts",
 ] as const;
 export type ImplCategory = (typeof IMPL_CATEGORIES)[number];
 
@@ -262,9 +279,9 @@ type TriggerRefs<T> = T extends {
   ? NodeRefs<F> | (T extends { when: infer W } ? CondTag<W> : never)
   : never;
 
-type ZoneRefs<Z> = Z extends { visibility: { ref: infer R } }
-  ? Tag<"visibility", R>
-  : never;
+type ZoneRefs<Z> =
+  | (Z extends { visibility: { ref: infer R } } ? Tag<"visibility", R> : never)
+  | (Z extends { count: { ref: infer R } } ? Tag<"zoneCounts", R> : never);
 
 /** Every impl ref a spec uses, as tagged strings like `"steps:deal"`. */
 export type SpecRefs<S> =

@@ -60,6 +60,7 @@ export type {
   TypeDecl,
   TypesFor,
   TypesOf,
+  ZoneInstance,
 } from "./impl.js";
 export { MAX_STEPS } from "./interpreter.js";
 export type {
@@ -115,6 +116,7 @@ export type {
   ReadonlyGameState,
   Scope,
   Zone,
+  ZoneDefOf,
   ZoneId,
   ZoneIdOf,
   ZonesOf,

@@ -50,7 +50,9 @@ checked.
 
 `count` takes a zone id. `$player` is replaced with `scope.player`, so
 `{ count: "hand:$player" }` inside an `each` over players counts the current
-player's hand.
+player's hand. `$item` is replaced with `scope.item`, which must be a string
+or number: `{ count: "factory:$item" }` inside an `each` over a list of
+indexes counts each factory in turn.
 
 ## Checked at definition
 

@@ -134,6 +134,13 @@ export type FlowNodeKind = FlowNode["kind"];
 export interface ZoneDef {
   /** Creates `<name>:<playerId>` for each player. */
   readonly perPlayer?: boolean;
+  /**
+   * Creates `<name>:<index>` for indexes `0` to `count - 1`, or
+   * `<name>:<playerId>:<index>` with `perPlayer`. A `ref` names an
+   * `impl.zoneCounts` entry, run once at `init`: the zone set is fixed for
+   * the game.
+   */
+  readonly count?: number | { readonly ref: string };
   /** Defaults to true. */
   readonly ordered?: boolean;
   readonly visibility:

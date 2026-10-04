@@ -1,8 +1,13 @@
 import { GameDefinitionError } from "./errors.js";
 import { checkExpr, condRefs } from "./expr.js";
-import { IMPL_CATEGORIES, type GameImpl, type ImplCategory } from "./impl.js";
+import {
+  IMPL_CATEGORIES,
+  type GameImpl,
+  type ImplCategory,
+  type SetupContext,
+} from "./impl.js";
 import type { Cond, FlowNode, GameSpec, TriggerDef, UseNode } from "./spec.js";
-import type { NodeId, PlayerId, Zone } from "./types.js";
+import type { NodeId, Zone } from "./types.js";
 
 export interface CompiledNode {
   id: NodeId;
@@ -359,6 +364,11 @@ export function compile(
     if (typeof def.visibility === "object") {
       addRef(refs, "visibility", def.visibility.ref, `zone "${name}"`);
     }
+    if (typeof def.count === "object") {
+      addRef(refs, "zoneCounts", def.count.ref, `zone "${name}"`);
+    } else if (def.count !== undefined && !isCount(def.count)) {
+      problems.push(`Zone "${name}": count must be a whole number >= 0`);
+    }
   }
   for (const cat of IMPL_CATEGORIES) {
     const entries = (impl[cat] ?? {}) as Record<string, unknown>;
@@ -386,18 +396,42 @@ export function compile(
   return { spec, impl, flow, triggers, nodes, root: flow.id };
 }
 
-/** The zones a game has for a given seating. */
+const isCount = (n: number) => Number.isInteger(n) && n >= 0;
+
+/**
+ * The zones a game has for a given seating: each def times its players (with
+ * `perPlayer`) times its indexes (with `count`).
+ */
 export function zonesFor(
-  spec: GameSpec,
-  players: readonly PlayerId[],
+  game: Pick<CompiledGame, "spec" | "impl">,
+  ctx: SetupContext,
 ): Omit<Zone, "items">[] {
   const zones: Omit<Zone, "items">[] = [];
-  for (const [name, def] of Object.entries(spec.zones)) {
-    if (def.perPlayer) {
-      for (const p of players)
-        zones.push({ id: `${name}:${p}`, def: name, owner: p });
-    } else {
-      zones.push({ id: name, def: name });
+  for (const [name, def] of Object.entries(game.spec.zones)) {
+    const owners = def.perPlayer ? ctx.players : [undefined];
+    let indexes: (number | undefined)[] = [undefined];
+    if (def.count !== undefined) {
+      const count =
+        typeof def.count === "number"
+          ? def.count
+          : game.impl.zoneCounts![def.count.ref]!(ctx);
+      if (!isCount(count)) {
+        throw new GameDefinitionError(
+          `Zone "${name}": count must be a whole number >= 0, got ${count}`,
+        );
+      }
+      indexes = Array.from({ length: count }, (_, i) => i);
+    }
+    for (const owner of owners) {
+      for (const index of indexes) {
+        const zone: Omit<Zone, "items"> = {
+          id: [name, owner, index].filter((x) => x !== undefined).join(":"),
+          def: name,
+        };
+        if (owner !== undefined) zone.owner = owner;
+        if (index !== undefined) zone.index = index;
+        zones.push(zone);
+      }
     }
   }
   return zones;

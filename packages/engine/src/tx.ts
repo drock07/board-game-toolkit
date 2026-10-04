@@ -1,7 +1,9 @@
 import { current, isDraft, type Patch } from "immer";
 import { OpError } from "./errors.js";
 import { createDraft, finishDraft } from "./immer.js";
+import type { ZoneInstance } from "./impl.js";
 import type { DeepReadonly, Json } from "./json.js";
+import { zoneFamily } from "./reader.js";
 import { createRandom, type Random, type RngState } from "./rng.js";
 import type {
   AnyTypes,
@@ -18,6 +20,7 @@ import type {
   ReadonlyGameState,
   Scope,
   Zone,
+  ZoneDefOf,
   ZoneId,
   ZoneIdOf,
 } from "./types.js";
@@ -52,6 +55,9 @@ export interface Tx<T extends GameTypes = AnyTypes> {
   local<N extends keyof T["locals"] & string>(nodeId: N): T["locals"][N];
   /** The nearest frame's locals, untyped. */
   local<L = Json>(): L;
+
+  /** As `StateReader.zonesOf`: a zone definition's instances, in order. */
+  zonesOf(def: ZoneDefOf<T>, player?: PlayerId): ZoneInstance<T>[];
 
   /** Creates an entity. Defaults to the bottom, so creation order reads top-down. */
   create<K extends EntityTypeOf<T>>(
@@ -217,6 +223,11 @@ class Transaction implements Tx {
       );
     }
     return target as L;
+  }
+
+  zonesOf(def: string, player?: PlayerId): ZoneInstance[] {
+    this.check();
+    return zoneFamily(this.w, def, player);
   }
 
   create(

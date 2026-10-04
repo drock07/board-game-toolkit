@@ -3,7 +3,14 @@ import { decision, loop, step } from "./builders.js";
 import { defineGame, init } from "./game.js";
 import type { GameImpl, TypesFor } from "./impl.js";
 import type { DeepReadonly, IsJsonCompatible, Json } from "./json.js";
-import type { AnyTypes, Entity, ReadonlyGameState, ZoneIdOf } from "./types.js";
+import type {
+  AnyTypes,
+  Entity,
+  GameTypes,
+  ReadonlyGameState,
+  ZoneDefOf,
+  ZoneIdOf,
+} from "./types.js";
 
 // These tests are checked by `tsc` (typecheck); at runtime they only build
 // the example game.
@@ -205,5 +212,55 @@ describe("game types", () => {
   test("the untyped bundle stays permissive", () => {
     expectTypeOf<ZoneIdOf<AnyTypes>>().toEqualTypeOf<string>();
     expectTypeOf<Entity>().toEqualTypeOf<Entity<string, Json, string>>();
+  });
+});
+
+describe("zone families", () => {
+  const familySpec = {
+    ...spec,
+    zones: {
+      bag: { visibility: "hidden" },
+      factory: { count: { ref: "factories" }, visibility: "public" },
+      patternLine: { perPlayer: true, count: 5, visibility: "public" },
+      floor: { perPlayer: true, visibility: "public" },
+    },
+  } as const;
+  type FamilyTypes = TypesFor<typeof familySpec>;
+  void familySpec;
+
+  test("counted zones get indexed ids", () => {
+    expectTypeOf<ZoneIdOf<FamilyTypes>>().toEqualTypeOf<
+      | "bag"
+      | `factory:${number}`
+      | `patternLine:${string}:${number}`
+      | `floor:${string}`
+    >();
+    expectTypeOf<ZoneDefOf<FamilyTypes>>().toEqualTypeOf<
+      "bag" | "factory" | "patternLine" | "floor"
+    >();
+  });
+
+  test("zonesOf takes def names and returns ids ops accept", () => {
+    const typed: GameImpl<FamilyTypes> = {
+      setup(tx) {
+        for (const f of tx.zonesOf("factory")) tx.moveTop("bag", f.id, 4);
+        // @ts-expect-error an unknown def
+        tx.zonesOf("factories");
+        // @ts-expect-error a counted zone needs its index
+        tx.shuffle("factory");
+        // @ts-expect-error indexes are numbers
+        tx.shuffle("factory:first");
+      },
+      zoneCounts: { factories: ({ players }) => 2 * players.length + 1 },
+    };
+    void typed;
+  });
+
+  test("bundles without the counted buckets still work", () => {
+    type Old = Omit<AnyTypes, "zones"> & {
+      zones: { shared: "deck"; perPlayer: "hand" };
+    };
+    expectTypeOf<Old>().toExtend<GameTypes>();
+    expectTypeOf<ZoneIdOf<Old>>().toEqualTypeOf<"deck" | `hand:${string}`>();
   });
 });

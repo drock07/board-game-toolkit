@@ -4,6 +4,7 @@ import { game as choose } from "./choose";
 import { game as decision } from "./decision";
 import { game as each } from "./each";
 import { game as exit } from "./exit";
+import { game as families } from "./families";
 import { game as loop } from "./loop";
 import { game as parallel } from "./parallel";
 import { game as pause } from "./pause";
@@ -24,4 +25,5 @@ export const demos: Record<string, { game: Game; players: string[] }> = {
   exit: { game: exit, players: ["p1"] },
   subflow: { game: subflow, players: ["p1"] },
   trigger: { game: trigger, players: ["p1"] },
+  families: { game: families, players: ["p1", "p2"] },
 } as unknown as Record<string, { game: Game; players: string[] }>;
