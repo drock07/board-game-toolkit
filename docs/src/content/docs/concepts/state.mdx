@@ -57,20 +57,25 @@ zones: {
   deck: { visibility: "hidden" },
   discard: { visibility: "top" },
   hand: { perPlayer: true, visibility: "owner" },
+  factory: { count: 5, visibility: "public" },
 },
 ```
 
 - A shared zone's id is its name: `deck`.
 - A **per-player** zone gets one zone per player, with ids like `hand:p1`
   and `hand:p2`. Each one's `owner` is that player.
+- A **counted** zone gets one zone per index, `factory:0` to `factory:4`,
+  each with its `index`. With `perPlayer` too, each player gets the set:
+  `row:p1:0`. `s.zonesOf("factory")` lists them in order. See
+  [Boards and zone families](/board-game-toolkit/guides/boards/).
 - `visibility` says who can see the entities in it: `"public"`, `"hidden"`,
   `"owner"`, `"top"`, or a custom rule. See [Views](/board-game-toolkit/concepts/views/).
 - `ordered: false` marks a zone whose order doesn't matter, as a hint for
   UIs and tools. It defaults to `true`; the engine keeps every zone's order
   either way.
 
-With a type bundle, zone ids are typed: `"hand:p1"` and `"deck"` are fine,
-`"dek"` is a compile error.
+With a type bundle, zone ids are typed: `"hand:p1"`, `"factory:2"` and
+`"deck"` are fine, `"dek"` is a compile error.
 
 ## Vars
 

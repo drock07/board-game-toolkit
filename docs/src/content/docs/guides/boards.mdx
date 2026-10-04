@@ -1,0 +1,111 @@
+---
+title: Boards and zone families
+description: Give a zone N instances, per game or per player, and model boards, factories and rows as zones, or keep a simple board in vars.
+sidebar:
+  order: 2
+---
+
+import Demo from "../../../components/Demo.astro";
+
+Many games need several copies of a zone: Azul's factories and each player's
+five pattern lines, Splendor's three card rows, Wingspan's three habitat rows
+per player. A zone with `count` is a **family**: one zone per index, alone
+or per player.
+
+## Declare a family
+
+```ts
+zones: {
+  bag: { visibility: "hidden" },
+  factory: { count: { ref: "factories" }, visibility: "public" },
+  patternLine: { perPlayer: true, count: 5, visibility: "public" },
+  floor: { perPlayer: true, visibility: "public" },
+},
+```
+
+| Declared                    | Zone ids                                           |
+| --------------------------- | -------------------------------------------------- |
+| `bag`                       | `bag`                                              |
+| `count: n`                  | `factory:0` … `factory:n-1`                        |
+| `perPlayer: true`           | `floor:p1`, `floor:p2`, …                          |
+| `perPlayer: true, count: 5` | `patternLine:p1:0` … `patternLine:p1:4`, and so on |
+
+`count` is a whole number, or a `{ ref }` to an `impl.zoneCounts` function
+that gets the seating and options, the same `{ players, options }` that
+`setup` gets:
+
+```ts
+zoneCounts: { factories: ({ players }) => 2 * players.length + 1 },
+```
+
+It runs once at `init`, before `setup`, so the zone set is fixed for the
+whole game. Each zone in a family carries its `def`, its `owner` (with
+`perPlayer`) and its `index` (with `count`).
+
+## Find the zones
+
+Rather than building id strings, ask for a family's zones with `zonesOf`. It
+works on `s` in conditions and validators and on `tx` in steps, in seat order
+and then index order, and takes an optional player:
+
+```ts
+for (const f of tx.zonesOf("factory")) tx.moveTop("bag", f.id, 4);
+const lines = s.zonesOf("patternLine", scope.player); // p1's five, in order
+```
+
+The ids it returns are typed, so they go straight into `tx.move` and the
+other ops. With a type bundle, a counted zone id needs its index:
+`"factory:2"` is fine, `"factory"` is a compile error.
+
+## Everything zones give you
+
+Because each space is a zone, the usual zone features apply per space:
+
+- **Visibility** per family, including `"owner"` for per-player families
+  and a `{ ref }` rule that can read the zone's `index`, for fog of war.
+- **Triggers**: `{ type: "moved", to: "patternLine" }` matches a move into
+  any zone of the family. The event's `to` names the exact one.
+- **Expressions**: `{ count: "patternLine:$player:$item" }` counts one line
+  inside an `each` over players nested in an `each` over a list of indexes.
+- **Events** that a host can animate as moves between spaces.
+
+<Demo name="families" />
+
+## Grids and graphs
+
+A grid is a family too: `cell: { count: 64, visibility: "public" }` for a
+chessboard, with `index = row * 8 + col`. Write the coordinate maths and the
+adjacency as plain functions in the impl:
+
+```ts
+const at = (row: number, col: number) => `cell:${row * 8 + col}`;
+const neighbors = (i: number) => {
+  const row = Math.floor(i / 8),
+    col = i % 8;
+  const out: number[] = [];
+  if (row > 0) out.push(i - 8);
+  if (row < 7) out.push(i + 8);
+  if (col > 0) out.push(i - 1);
+  if (col < 7) out.push(i + 1);
+  return out;
+};
+```
+
+Adjacency stays out of the spec on purpose. Square or hex, diagonals,
+walls and named graph nodes such as cities on a map are rules of the game,
+and a function says them more clearly than a topology format would. A graph
+board with named spaces can use one shared zone per space, with its edges in
+a constant.
+
+## When to keep a board in vars
+
+A family pays off when pieces **move** between spaces, need **per-space
+visibility**, or should produce events. When the board is only marks or
+values, a var is simpler:
+
+- [Tic-Tac-Toe](/board-game-toolkit/examples/tic-tac-toe/) keeps nine cells
+  in `vars.marks`. Marks never move or hide, and the win check wants a flat
+  array.
+- [Dungeon Crawl](/board-game-toolkit/examples/dungeon-crawl/) keeps its
+  rooms in `vars.grid`. Each room is a record of state (monster, treasure,
+  revealed), not a place pieces move through.

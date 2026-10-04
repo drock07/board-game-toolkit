@@ -9,12 +9,12 @@ import Source from "../../../components/Source.astro";
 
 Every game has two halves:
 
-|                         | Spec                                          | Impl                                                                    |
-| ----------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-| **What**                | The game's structure                          | The game's rules                                                        |
-| **Form**                | Plain JSON data                               | TypeScript functions                                                    |
-| **Holds**               | Players, zones, vars, the flow tree, triggers | `setup`, conditions, steps, actions, lists, locals, choices, visibility |
-| **Refers to the other** | By name: `step("deal", "dealSeven")`          | By key: `steps: { dealSeven(tx) {…} }`                                  |
+|                         | Spec                                          | Impl                                                                                |
+| ----------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **What**                | The game's structure                          | The game's rules                                                                    |
+| **Form**                | Plain JSON data                               | TypeScript functions                                                                |
+| **Holds**               | Players, zones, vars, the flow tree, triggers | `setup`, conditions, steps, actions, lists, locals, choices, visibility, zoneCounts |
+| **Refers to the other** | By name: `step("deal", "dealSeven")`          | By key: `steps: { dealSeven(tx) {…} }`                                              |
 
 ## The spec is data
 
@@ -62,6 +62,7 @@ The impl groups functions by what they do. Each kind gets different powers:
 | `lists`      | An `each` over a ref, `choose` options, or a `{ ref }` actor | A reader and the scope                                                                    | A JSON array                            |
 | `locals`     | A node with `locals` is entered                              | A reader and the scope                                                                    | The node's starting locals              |
 | `visibility` | A zone's custom visibility is checked                        | A reader, the entity and the viewer                                                       | `boolean`                               |
+| `zoneCounts` | Once, at `init`, for a zone with `count: { ref }`            | `{ players, options }`                                                                    | How many instances of the zone          |
 
 Only `setup`, steps, action `execute` and choices get a transaction. Everything
 else reads state and can't change it, so a condition can be checked as often

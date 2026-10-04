@@ -14,7 +14,10 @@ import type { Scope } from "./types.js";
 export type Expr =
   /** A path into state: `"vars.enemy.hp"`, `"local.rolls"`, `"scope.player"`. Missing paths are null. */
   | { readonly var: string }
-  /** The number of entities in a zone. `$player` is replaced with `scope.player`. */
+  /**
+   * The number of entities in a zone. `$player` is replaced with
+   * `scope.player` and `$item` with `scope.item`: `"patternLine:$player:$item"`.
+   */
   | { readonly count: string }
   | { readonly eq: readonly [Operand, Operand] }
   | { readonly ne: readonly [Operand, Operand] }
@@ -210,6 +213,14 @@ export function evalExpr(x: Operand, ctx: ExprContext): Json {
       if (ctx.scope.player === undefined)
         fail("$player needs an enclosing each over players");
       zone = zone.replaceAll("$player", ctx.scope.player!);
+    }
+    if (zone.includes("$item")) {
+      const { item } = ctx.scope;
+      if (typeof item !== "string" && typeof item !== "number")
+        return fail(
+          `$item needs an enclosing each over a ref whose items are strings or numbers, got ${JSON.stringify(item ?? null)}`,
+        );
+      zone = zone.replaceAll("$item", String(item));
     }
     return ctx.reader.count(zone);
   }

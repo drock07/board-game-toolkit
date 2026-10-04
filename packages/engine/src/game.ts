@@ -94,18 +94,17 @@ export function init<T extends GameTypes>(
   if (new Set(players).size !== players.length) {
     throw new RangeError(`Player ids must be unique: ${players.join(", ")}`);
   }
+  const ctx = { players, options: opts.options ?? null };
   const state = createGameState({
     game: spec.id,
     specVersion: spec.version,
     players,
     seed: opts.seed,
     vars: {},
-    zones: zonesFor(spec, players),
+    zones: zonesFor(game, ctx),
   });
   const rt = new Runtime(game, game.kinds, untyped(state));
-  rt.runTx(undefined, 0, (tx) =>
-    game.impl.setup(tx, { players, options: opts.options ?? null }),
-  );
+  rt.runTx(undefined, 0, (tx) => game.impl.setup(tx, ctx));
   if (rt.state.status === "running") {
     rt.start();
     rt.settle();

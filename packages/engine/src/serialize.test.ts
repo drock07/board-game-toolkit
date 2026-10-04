@@ -22,6 +22,8 @@ const spec = {
   zones: {
     deck: { visibility: "hidden" },
     hand: { perPlayer: true, visibility: { ref: "mine" } },
+    slot: { count: { ref: "slots" }, visibility: "public" },
+    row: { perPlayer: true, count: 2, visibility: "public" },
   },
   vars: { n: {}, secret: { visibility: "hidden" } },
   flow: loop(
@@ -61,6 +63,7 @@ const impl = {
   conditions: { tooMany: () => false, always: () => true },
   lists: { others: (s) => s.players.slice(1) },
   visibility: { mine: () => true },
+  zoneCounts: { slots: ({ players }) => players.length + 1 },
   steps: { deal: () => {} },
   actions: { go: { execute: () => {} } },
 } satisfies GameImpl<AnyTypes>;
@@ -125,6 +128,15 @@ describe("toJSON and fromJSON", () => {
       (s) =>
         ((s.zones as Record<string, unknown>).deck = { visibility: "secret" }),
       /spec\.zones\.deck\.visibility/,
+    ],
+    [
+      "a bad zone count",
+      (s) =>
+        ((s.zones as Record<string, unknown>).deck = {
+          visibility: "hidden",
+          count: "3",
+        }),
+      /spec\.zones\.deck\.count: expected a whole number or \{ ref \}/,
     ],
     [
       "a bad trigger",

@@ -42,17 +42,19 @@ zones: {
   deck: { visibility: "hidden" },
   discard: { visibility: "top" },
   hand: { perPlayer: true, visibility: "owner" },
+  factory: { count: { ref: "factories" }, visibility: "public" },
   monsters: { visibility: "hidden", revealType: true },
   board: { visibility: { ref: "inSight" } },
 },
 ```
 
-| Field        | Type                                                    | Meaning                                                                                                                                                            |
-| ------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `visibility` | `"public"`, `"hidden"`, `"owner"`, `"top"` or `{ ref }` | Who can see the zone's entities. `{ ref }` names an `impl.visibility` function `(s, entity, viewer) => boolean`. See [Views](/board-game-toolkit/concepts/views/). |
-| `perPlayer`  | `boolean`                                               | One zone per player, with ids `name:playerId`, each owned by its player.                                                                                           |
-| `revealType` | `boolean`                                               | Hidden entities in this zone still show their `type`.                                                                                                              |
-| `ordered`    | `boolean`                                               | Defaults to `true`. A hint that order doesn't matter; the engine keeps order either way.                                                                           |
+| Field        | Type                                                    | Meaning                                                                                                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `visibility` | `"public"`, `"hidden"`, `"owner"`, `"top"` or `{ ref }` | Who can see the zone's entities. `{ ref }` names an `impl.visibility` function `(s, entity, viewer) => boolean`. See [Views](/board-game-toolkit/concepts/views/).                                                                                              |
+| `perPlayer`  | `boolean`                                               | One zone per player, with ids `name:playerId`, each owned by its player.                                                                                                                                                                                        |
+| `count`      | `number` or `{ ref }`                                   | One zone per index, with ids `name:index`, or `name:playerId:index` with `perPlayer`. `{ ref }` names an `impl.zoneCounts` function `({ players, options }) => number`, run once at `init`. See [Boards and zone families](/board-game-toolkit/guides/boards/). |
+| `revealType` | `boolean`                                               | Hidden entities in this zone still show their `type`.                                                                                                                                                                                                           |
+| `ordered`    | `boolean`                                               | Defaults to `true`. A hint that order doesn't matter; the engine keeps order either way.                                                                                                                                                                        |
 
 ## Vars
 

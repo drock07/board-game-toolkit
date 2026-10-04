@@ -293,7 +293,12 @@ function checkSpecShape(spec: unknown): string[] {
           `"public", "hidden", "owner", "top" or { ref }`,
         ),
       },
-      { perPlayer: bool, ordered: bool, revealType: bool },
+      {
+        perPlayer: bool,
+        count: either(int, ref, "a whole number or { ref }"),
+        ordered: bool,
+        revealType: bool,
+      },
     );
   const pattern: Check = (v, at, o) => {
     const type = isObject(v) ? v.type : undefined;

@@ -4,7 +4,10 @@ import type { RngState } from "./rng.js";
 
 export type PlayerId = string;
 export type EntityId = string;
-/** "deck", or "hand:p2" for per-player zones (`<zoneName>:<playerId>`). */
+/**
+ * "deck"; "hand:p2" for per-player zones (`<zoneName>:<playerId>`);
+ * "factory:3" for counted zones; "patternLine:p2:0" for both.
+ */
 export type ZoneId = string;
 /** Unique within a game spec. */
 export type NodeId = string;
@@ -19,8 +22,16 @@ export interface GameTypes {
   vars: unknown;
   /** Entity type → props. */
   entities: object;
-  /** Zone definition names, split by whether they're per-player. */
-  zones: { shared: string; perPlayer: string };
+  /**
+   * Zone definition names, split by whether they're per-player and counted.
+   * The counted buckets are optional, so bundles written before them still work.
+   */
+  zones: {
+    shared: string;
+    perPlayer: string;
+    counted?: string;
+    perPlayerCounted?: string;
+  };
   /** Node id → that node's locals. Optional; untyped nodes stay `Json`. */
   locals: object;
 }
@@ -29,14 +40,41 @@ export interface GameTypes {
 export interface AnyTypes extends GameTypes {
   vars: Json;
   entities: Record<string, Json>;
-  zones: { shared: string; perPlayer: string };
+  zones: {
+    shared: string;
+    perPlayer: string;
+    counted: string;
+    perPlayerCounted: string;
+  };
   locals: Record<string, Json>;
 }
 
-/** A zone id: a shared zone's name, or `<name>:<playerId>` for per-player zones. */
+/** The names in one of a bundle's zone buckets; `never` for a missing bucket. */
+type ZoneBucket<
+  T extends GameTypes,
+  K extends keyof GameTypes["zones"],
+> = T["zones"] extends { [P in K]: infer N } ? N & string : never;
+
+/** Every zone definition name in a bundle. */
+export type ZoneDefOf<T extends GameTypes> =
+  | ZoneBucket<T, "shared">
+  | ZoneBucket<T, "perPlayer">
+  | ZoneBucket<T, "counted">
+  | ZoneBucket<T, "perPlayerCounted">;
+
+/** The ids of every non-shared zone instance. */
+type InstanceIdOf<T extends GameTypes> =
+  | `${ZoneBucket<T, "perPlayer">}:${PlayerId}`
+  | `${ZoneBucket<T, "counted">}:${number}`
+  | `${ZoneBucket<T, "perPlayerCounted">}:${PlayerId}:${number}`;
+
+/**
+ * A zone id: a shared zone's name, `<name>:<playerId>` for per-player zones,
+ * `<name>:<index>` for counted zones, or `<name>:<playerId>:<index>`.
+ */
 export type ZoneIdOf<T extends GameTypes> =
-  | T["zones"]["shared"]
-  | `${T["zones"]["perPlayer"]}:${PlayerId}`;
+  | ZoneBucket<T, "shared">
+  | InstanceIdOf<T>;
 
 export type EntityTypeOf<T extends GameTypes> = keyof T["entities"] & string;
 
@@ -49,11 +87,11 @@ export type EntityOf<T extends GameTypes> = {
   >;
 }[EntityTypeOf<T>];
 
-/** Zones by id: shared zones are always present; per-player ones by pattern. */
+/** Zones by id: shared zones are always present; the others by pattern. */
 export type ZonesOf<T extends GameTypes> = string extends T["zones"]["shared"]
   ? Record<ZoneId, Zone>
-  : { [K in T["zones"]["shared"]]: Zone } & {
-      [K in `${T["zones"]["perPlayer"]}:${PlayerId}`]: Zone;
+  : { [K in ZoneBucket<T, "shared">]: Zone } & {
+      [K in InstanceIdOf<T>]: Zone;
     };
 
 export interface GameState<T extends GameTypes = AnyTypes> {
@@ -113,6 +151,8 @@ export interface Zone {
   def: string;
   /** Set for per-player zones. */
   owner?: PlayerId;
+  /** Set for counted zones: `0` to `count - 1`. */
+  index?: number;
   /** Ordered: index 0 is the top. */
   items: EntityId[];
 }

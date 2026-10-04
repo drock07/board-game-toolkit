@@ -1,7 +1,22 @@
 import { OpError } from "./errors.js";
 import type { StateReader } from "./impl.js";
-import type { Json } from "./json.js";
-import type { GameState, GameTypes, NodeId } from "./types.js";
+import type { DeepReadonly, Json } from "./json.js";
+import type { GameState, GameTypes, NodeId, PlayerId, Zone } from "./types.js";
+
+/** A zone definition's instances, in seat order then index order. */
+export function zoneFamily(
+  state: DeepReadonly<GameState>,
+  def: string,
+  player?: PlayerId,
+): DeepReadonly<Zone>[] {
+  const seat = (z: DeepReadonly<Zone>) =>
+    z.owner === undefined ? -1 : state.players.indexOf(z.owner);
+  return Object.values(state.zones)
+    .filter(
+      (z) => z.def === def && (player === undefined || z.owner === player),
+    )
+    .sort((a, b) => seat(a) - seat(b) || (a.index ?? 0) - (b.index ?? 0));
+}
 
 /** Builds a `StateReader`. `local` resolves a frame's locals, if any are in scope. */
 export function createReader<T extends GameTypes>(
@@ -31,6 +46,7 @@ export function createReader<T extends GameTypes>(
       return id === undefined ? undefined : entity(id);
     },
     count: (zoneId) => zone(zoneId).items.length,
+    zonesOf: (def, player) => zoneFamily(s, def, player),
     local: (nodeId?: NodeId) => {
       if (!local) throw new OpError("No locals are in scope here");
       return local(nodeId) as never;
