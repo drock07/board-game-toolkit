@@ -1,136 +1,151 @@
-/**
- * Test tools: replays, golden recordings, bots in tests, and fuzzing.
- *
- * @module @drock07/board-game-toolkit-engine/testing
- */
-import {
-  apply,
-  init,
-  type ApplyResult,
-  type Game,
-  type InitOptions,
-} from "../game.js";
-import type { Json } from "../json.js";
-import { cyrb128 } from "../rng.js";
-import type { GameTypes, Input, Prompt, ReadonlyGameState } from "../types.js";
+// Testing helpers: a seeded random bot, fuzzing, and checks that views hide
+// what they should and that events replay to the new state and to each
+// player's new view.
+import { apply, check, init, legalInputs } from "../play.js";
+import { nextRandom, seedFrom } from "../random.js";
+import type {
+  GameDef,
+  GameEvent,
+  Input,
+  PlayerId,
+  State,
+  ViewEvent,
+} from "../types.js";
+import { replay, view, viewEvents } from "../views.js";
+import { canSee } from "../zones.js";
 
-export { checkInvariants } from "../invariants.js";
-export { createGameState } from "../state.js";
-export type { CreateStateOptions } from "../state.js";
-export { openTx, transact } from "../tx.js";
-export type { OpenTx, TxOptions, TxResult } from "../tx.js";
-export { deepFreeze, fuzz, playBots } from "./fuzz.js";
-export type {
-  FuzzFailure,
-  FuzzOptions,
-  FuzzReport,
-  PlayBotsOptions,
-  PlayBotsResult,
-} from "./fuzz.js";
-
-/** JSON with object keys sorted, so equal states stringify equally. */
-export function stableStringify(value: unknown): string {
-  return JSON.stringify(value, (_key, v: unknown) => {
-    if (v && typeof v === "object" && !Array.isArray(v)) {
-      return Object.fromEntries(
-        Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-      );
-    }
-    return v;
-  });
-}
-
-/** A short, stable hash of a state, for golden replay fixtures. */
-export function hashState<T extends GameTypes>(
-  state: ReadonlyGameState<T>,
-): string {
-  return cyrb128(stableStringify(state))
-    .map((n) => n.toString(16).padStart(8, "0"))
-    .join("");
-}
-
-export interface SimulateOptions extends InitOptions {
-  inputs: Input[];
-}
-
-/** Applies inputs in order and returns every result, starting with `init`'s. Throws on a rejected input. */
-export function simulate<T extends GameTypes>(
-  game: Game<T>,
-  opts: SimulateOptions,
-): ApplyResult<T>[] {
-  const results = [init(game, opts)];
-  opts.inputs.forEach((input, i) => {
-    const res = apply(game, results.at(-1)!.state, input);
-    if (!res.ok) {
-      throw new Error(
-        `Input ${i} was rejected: ${res.error.code}: ${res.error.message}`,
-      );
-    }
-    results.push(res);
-  });
-  return results;
-}
-
-/** A recorded game: replaying its inputs from its seed must reach the same state. */
-export interface GoldenReplay {
-  players: string[];
-  seed: string;
-  options?: Json;
-  inputs: Input[];
-  finalStateHash: string;
-}
-
-/**
- * Plays a game by asking `choose` for each input until it returns undefined
- * or `maxInputs` is reached, and records it as a golden replay.
- */
-export function record<T extends GameTypes>(
-  game: Game<T>,
-  opts: InitOptions & { maxInputs: number },
-  choose: (result: ApplyResult<T>, step: number) => Input | undefined,
-): { golden: GoldenReplay; results: ApplyResult<T>[] } {
-  const results = [init(game, opts)];
-  const inputs: Input[] = [];
-  for (let i = 0; i < opts.maxInputs; i++) {
-    const last = results.at(-1)!;
-    if (last.state.status === "finished") break;
-    const input = choose(last, i);
-    if (!input) break;
-    const res = apply(game, last.state, input);
-    if (!res.ok) {
-      throw new Error(
-        `Input ${i} was rejected: ${res.error.code}: ${res.error.message}`,
-      );
-    }
-    inputs.push(input);
-    results.push(res);
-  }
-  const golden: GoldenReplay = {
-    players: opts.players,
-    seed: opts.seed,
-    inputs,
-    finalStateHash: hashState(results.at(-1)!.state),
+export function randomBot(seed: string) {
+  let rng = seedFrom(seed);
+  return (legal: Input[]): Input => {
+    const [next, value] = nextRandom(rng);
+    rng = next;
+    return legal[Math.floor(value * legal.length)]!;
   };
-  if (opts.options !== undefined) golden.options = opts.options;
-  return { golden, results };
 }
 
-/** Throws unless the result has exactly one open prompt matching `expected`. */
-export function expectPrompt(
-  result: { prompts: Prompt[] },
-  expected: Partial<Prompt>,
-): Prompt {
-  const [prompt, ...rest] = result.prompts;
-  if (!prompt || rest.length) {
-    throw new Error(`Expected one open prompt, found ${result.prompts.length}`);
-  }
-  for (const [k, v] of Object.entries(expected)) {
-    const actual = prompt[k as keyof Prompt];
-    if (stableStringify(actual) !== stableStringify(v)) {
-      throw new Error(
-        `Prompt ${k}: expected ${JSON.stringify(v)}, got ${JSON.stringify(actual)}`,
-      );
+/** Every entity a player may not see must be a placeholder in their view. */
+export function checkViews<V>(game: GameDef<V>, state: State<V>): void {
+  for (const player of state.players) {
+    const v = view(game, state, player);
+    for (const e of Object.values(state.entities)) {
+      const shown = v.entities[e.ref]!;
+      const visible = canSee(game, e, player);
+      if (visible !== !("hidden" in shown))
+        throw new Error(
+          `${player}'s view ${visible ? "hides" : "shows"} ${e.id}`,
+        );
+      if ("hidden" in shown && ("props" in shown || "id" in shown))
+        throw new Error(`${player}'s view leaks ${e.id}`);
     }
   }
-  return prompt;
+}
+
+/** Applies an input that must be legal; throws with the reason otherwise. */
+export function applyOrThrow<V>(
+  game: GameDef<V>,
+  state: State<V>,
+  input: Input,
+): State<V> {
+  const out = apply(game, state, input);
+  if (!out.ok) throw new Error(out.reason);
+  return out.state;
+}
+
+/** JSON with object keys sorted, so key order never makes two values differ. */
+const json = (v: unknown): string =>
+  JSON.stringify(v, (_, x: unknown) =>
+    x && typeof x === "object" && !Array.isArray(x)
+      ? Object.fromEntries(
+          Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1)),
+        )
+      : x,
+  );
+
+/** Replaying `events` onto `before` gives `after`, and so does each player's share of them onto their view. */
+export function checkEvents<V>(
+  game: GameDef<V>,
+  before: State<V>,
+  events: readonly GameEvent<V>[],
+  after: State<V>,
+): void {
+  const pick = (s: State<V>) =>
+    json({
+      vars: s.vars,
+      zones: s.zones,
+      entities: s.entities,
+      status: s.status,
+      result: s.result,
+    });
+  if (pick(replay(before, events)) !== pick(after))
+    throw new Error("Replaying the events doesn't give the new state");
+  for (const player of before.players) {
+    const mine = viewEvents(game, events, player);
+    if (
+      json(replay(view(game, before, player), mine)) !==
+      json(view(game, after, player))
+    )
+      throw new Error(
+        `Replaying ${player}'s events doesn't give their new view`,
+      );
+    const carried = (ev: ViewEvent<V>) =>
+      "entity" in ev ? [ev.entity] : "entities" in ev ? ev.entities : [];
+    const leaked = mine.find(
+      (ev) =>
+        carried(ev).some((e) => "hidden" in e && ("props" in e || "id" in e)) ||
+        (ev.type === "custom" && ev.to && !ev.to.includes(player)),
+    );
+    if (leaked)
+      throw new Error(`${player}'s events leak a ${leaked.type} event`);
+  }
+}
+
+export interface FuzzOptions {
+  seeds: number;
+  players: PlayerId[];
+  maxInputs: number;
+}
+
+export interface FuzzFailure {
+  seed: string;
+  step: number;
+  message: string;
+}
+
+export function fuzz<V>(
+  game: GameDef<V>,
+  opts: FuzzOptions,
+): { runs: number; finished: number; failures: FuzzFailure[] } {
+  const failures: FuzzFailure[] = [];
+  let finished = 0;
+  for (let i = 0; i < opts.seeds; i++) {
+    const seed = `fuzz-${i}`;
+    const bot = randomBot(seed);
+    let s: State<V> = init(game, { players: opts.players, seed });
+    let step = 0;
+    try {
+      checkViews(game, s);
+      for (; step < opts.maxInputs && s.status === "running"; step++) {
+        const legal = legalInputs(game, s);
+        if (legal.length === 0) throw new Error("No legal input");
+        for (const input of legal) {
+          const ok = check(game, s, input);
+          if (ok !== true)
+            throw new Error(
+              `enumerate offered an input validate rejects: ${ok}`,
+            );
+        }
+        const out = apply(game, s, bot(legal));
+        if (!out.ok) throw new Error(out.reason);
+        checkEvents(game, s, out.events, out.state);
+        s = out.state;
+        if (JSON.stringify(JSON.parse(JSON.stringify(s))) !== JSON.stringify(s))
+          throw new Error("State is not plain JSON");
+        checkViews(game, s);
+      }
+      if (s.status === "finished") finished++;
+    } catch (e) {
+      failures.push({ seed, step, message: (e as Error).message });
+    }
+  }
+  return { runs: opts.seeds, finished, failures };
 }

@@ -1,288 +1,435 @@
-import type { Patch } from "immer";
-import type { DeepReadonly, Json } from "./json.js";
-import type { RngState } from "./rng.js";
-
 export type PlayerId = string;
 export type EntityId = string;
-/**
- * "deck"; "hand:p2" for per-player zones (`<zoneName>:<playerId>`);
- * "factory:3" for counted zones; "patternLine:p2:0" for both.
- */
 export type ZoneId = string;
-/** Unique within a game spec. */
-export type NodeId = string;
-export type FiberId = string;
-export type PromptId = string;
+/** An entity's public handle: `r12`. */
+export type Ref = string;
 
-/**
- * A game's types in one bundle. Build it with `TypesFor<typeof spec, {...}>`,
- * which reads the zone names from the spec and checks the rest is JSON.
- */
-export interface GameTypes {
-  vars: unknown;
-  /** Entity type → props. */
-  entities: object;
+/** A spec node of a custom kind: the engine only needs its kind and id. */
+export type CustomNode = { kind: string; id: string; [key: string]: unknown };
+
+export type Node =
+  | CustomNode
+  | AbilityNode
+  | EffectNode
+  | { kind: "seq"; id: string; children: Node[] }
+  | { kind: "step"; id: string; run: string }
+  /** Turns until `until` holds or `rounds` full passes are done. */
+  | {
+      kind: "turns";
+      id: string;
+      order: "clockwise" | "counterclockwise";
+      until?: string;
+      /** A query naming the first player. Defaults to the first seat. */
+      from?: string;
+      /** A query listing who may take a turn; others are skipped. */
+      among?: string;
+      rounds?: number;
+      body: Node;
+    }
+  /** Repeats the body until `until` holds, checked before each pass. */
+  /** Repeats the body until `until` holds (forever when absent), checked before each pass. */
+  | { kind: "loop"; id: string; until?: string; body: Node }
+  | { kind: "prompt"; id: string; actions: string[] }
+  /** Waits for every player to take one of the actions, in any order. */
+  | { kind: "everyone"; id: string; actions: string[] }
+  /** Waits for the first answer from any of `who` (a query; every player when absent). */
+  | { kind: "anyone"; id: string; who?: string; actions: string[] }
+  /** Runs `body` once per player, all at once, each on its own fiber. */
+  | { kind: "simultaneous"; id: string; body: Node }
+  /** Runs the first case whose condition holds, or `else`. */
+  | {
+      kind: "branch";
+      id: string;
+      cases: { when: string; then: Node }[];
+      else?: Node;
+    }
   /**
-   * Zone definition names, split by whether they're per-player and counted.
-   * The counted buckets are optional, so bundles written before them still work.
+   * The ways `body` may end early. An outcome with `when` is a guard, checked
+   * after every transaction; any outcome may be raised from inside by a step
+   * or action returning `{ exit }`. Raising cancels the body, runs `then`
+   * if there is one, and the node ends.
    */
-  zones: {
-    shared: string;
-    perPlayer: string;
-    counted?: string;
-    perPlayerCounted?: string;
-  };
-  /** Node id → that node's locals. Optional; untyped nodes stay `Json`. */
-  locals: object;
-}
-
-/** The untyped bundle: what the engine sees internally. */
-export interface AnyTypes extends GameTypes {
-  vars: Json;
-  entities: Record<string, Json>;
-  zones: {
-    shared: string;
-    perPlayer: string;
-    counted: string;
-    perPlayerCounted: string;
-  };
-  locals: Record<string, Json>;
-}
-
-/** The names in one of a bundle's zone buckets; `never` for a missing bucket. */
-type ZoneBucket<
-  T extends GameTypes,
-  K extends keyof GameTypes["zones"],
-> = T["zones"] extends { [P in K]: infer N } ? N & string : never;
-
-/** Every zone definition name in a bundle. */
-export type ZoneDefOf<T extends GameTypes> =
-  | ZoneBucket<T, "shared">
-  | ZoneBucket<T, "perPlayer">
-  | ZoneBucket<T, "counted">
-  | ZoneBucket<T, "perPlayerCounted">;
-
-/** The ids of every non-shared zone instance. */
-type InstanceIdOf<T extends GameTypes> =
-  | `${ZoneBucket<T, "perPlayer">}:${PlayerId}`
-  | `${ZoneBucket<T, "counted">}:${number}`
-  | `${ZoneBucket<T, "perPlayerCounted">}:${PlayerId}:${number}`;
-
-/**
- * A zone id: a shared zone's name, `<name>:<playerId>` for per-player zones,
- * `<name>:<index>` for counted zones, or `<name>:<playerId>:<index>`.
- */
-export type ZoneIdOf<T extends GameTypes> =
-  | ZoneBucket<T, "shared">
-  | InstanceIdOf<T>;
-
-export type EntityTypeOf<T extends GameTypes> = keyof T["entities"] & string;
-
-/** An entity of the game, as a union over its entity types, so narrowing on `type` narrows `props`. */
-export type EntityOf<T extends GameTypes> = {
-  [K in EntityTypeOf<T>]: Entity<
-    K,
-    T["entities"][K & keyof T["entities"]],
-    ZoneIdOf<T>
-  >;
-}[EntityTypeOf<T>];
-
-/** Zones by id: shared zones are always present; the others by pattern. */
-export type ZonesOf<T extends GameTypes> = string extends T["zones"]["shared"]
-  ? Record<ZoneId, Zone>
-  : { [K in ZoneBucket<T, "shared">]: Zone } & {
-      [K in InstanceIdOf<T>]: Zone;
+  | {
+      kind: "outcomes";
+      id: string;
+      outcomes: Record<string, { when?: string; then?: Node }>;
+      body: Node;
     };
 
-export interface GameState<T extends GameTypes = AnyTypes> {
-  meta: {
-    /** Spec id. */
-    game: string;
-    /** `spec.version`, so saves from an incompatible spec are rejected. */
-    specVersion: number;
-    /** Number of inputs applied so far. */
-    inputCount: number;
-    /** Monotonic; the next event's `seq`. */
-    eventCount: number;
-    /** Deterministic entity id counter. */
-    nextEntity: number;
-  };
-  /** Seating order. */
-  players: PlayerId[];
-  vars: T["vars"];
-  entities: Record<EntityId, EntityOf<T>>;
-  zones: ZonesOf<T>;
-  rng: RngState;
-  flow: FlowState;
-  status: "running" | "finished";
-  /** Set by `tx.end(result)`. */
-  result?: Json;
+export type Visibility = "public" | "hidden" | "owner";
+
+export interface ZoneDef {
+  visibility: Visibility;
+  perPlayer?: boolean;
+  /** Instances `0..count-1`; a `ref` names an `impl.zoneCounts` entry run at init. */
+  count?: number | { ref: string };
+  /** The entity type it holds. */
+  holds: string;
 }
 
 /**
- * A state as the engine hands it out. States share unchanged parts with the
- * states before them, so they must never be mutated; this type enforces it.
+ * An ability: live while an entity of type `of` is in a zone of family `in`
+ * (owned by that zone's owner), or, without them, game-wide (owned by `who`).
  */
-export type ReadonlyGameState<T extends GameTypes = AnyTypes> = DeepReadonly<
-  GameState<T>
-> & {
-  /** Phantom: keeps `T` inferable, which `DeepReadonly` alone loses. */
-  readonly __types?: T;
-};
-
-export interface Entity<
-  Type extends string = string,
-  Props = Json,
-  Z extends string = ZoneId,
-> {
-  /** `${type}#${n}`, with n from `meta.nextEntity`. */
-  id: EntityId;
-  type: Type;
-  props: Props;
-  /** Back-reference to the entity's zone, kept consistent by ops. */
-  zone: Z;
-  /** Overrides zone visibility for this entity when set. */
-  faceUp?: boolean;
+export interface AbilityNode {
+  kind: "ability";
+  id: string;
+  of?: string;
+  in?: string;
+  /** Effects only: whether it reacts before the effect resolves or after. */
+  timing: "before" | "after";
+  /** "everyone": while it runs, no other fiber moves or takes input. */
+  pause?: "everyone";
+  body: Node;
 }
 
-export interface Zone {
-  id: ZoneId;
-  /** Zone definition name in the spec. */
-  def: string;
-  /** Set for per-player zones. */
-  owner?: PlayerId;
-  /** Set for counted zones: `0` to `count - 1`. */
-  index?: number;
-  /** Ordered: index 0 is the top. */
-  items: EntityId[];
+/** An effect: a custom event with phases. Its resolution is `impl.effects[name]`. */
+export interface EffectNode {
+  kind: "effect";
+  id: string;
+  name: string;
 }
 
-/** Where to insert into a zone. A number is an index from the top. */
-export type Position = "top" | "bottom" | number;
-
-export type GameEvent<T extends GameTypes = AnyTypes> = {
-  seq: number;
-  input: number;
-} & GameEventBody<T>;
-
-export type GameEventBody<T extends GameTypes = AnyTypes> =
-  | { type: "created"; id: EntityId; entity: EntityOf<T>; at: number }
-  | {
-      type: "moved";
-      ids: EntityId[];
-      /** Source zone of each id, in the same order as `ids`. */
-      from: ZoneId[];
-      to: ZoneId;
-      /** Index in `to` where the moved block starts. */
-      at: number;
-      /** The entities' `faceUp` after the move; absent clears it. */
-      faceUp?: boolean;
-    }
-  /** `order` is the resulting order. */
-  | { type: "shuffled"; zone: ZoneId; order: EntityId[] }
-  | { type: "flipped"; id: EntityId; faceUp: boolean }
-  | { type: "destroyed"; id: EntityId; from: ZoneId }
-  /** Immer patches against `vars`, one event per transaction commit. */
-  | { type: "vars"; patches: Patch[] }
-  /** Immer patches against a frame's locals. */
-  | { type: "locals"; node: NodeId; patches: Patch[] }
-  | {
-      type: "custom";
-      name: string;
-      payload: Json;
-      visibleTo: PlayerId[] | "all";
-    }
-  | {
-      type: "flow";
-      kind: "enter" | "exit" | "prompt" | "resolve";
-      node: NodeId;
-      outcome?: string;
-    }
-  | { type: "ended"; result: Json };
-
-export type GameEventType = GameEventBody["type"];
-
-// ---------------------------------------------------------------------------
-// Flow runtime state (section 8.1)
-
-export interface FlowState {
-  fibers: Record<FiberId, Fiber>;
-  rootFiber: FiberId;
-  nextFiberId: number;
-  nextPromptId: number;
+export interface Spec {
+  players: { min: number; max: number };
+  zones: Record<string, ZoneDef>;
+  flow: Node;
+  abilities?: AbilityNode[];
+  effects?: EffectNode[];
 }
 
-export interface Fiber {
-  id: FiberId;
-  /** Set when spawned by a parallel frame. */
-  parent?: { fiber: FiberId; frame: number };
-  /** `[0]` is the outermost frame. */
-  stack: Frame[];
-  status: "runnable" | "blocked" | "done";
-  outcome?: string;
+// --- State ------------------------------------------------------------------
+
+export interface Entity<P = unknown> {
+  readonly id: EntityId;
+  /** The public handle views key it by. `shuffle` gives its zone's entities new ones. */
+  readonly ref: Ref;
+  readonly type: string;
+  readonly props: P;
+  readonly zone: ZoneId;
+  /** Overrides the zone's visibility for this entity when set. */
+  readonly faceUp?: boolean;
 }
 
-export interface Binding {
-  player?: PlayerId;
-  item?: Json;
-  iteration?: number;
+/** Anything that names a zone instance: `"deck"`, `"hand:ann"`. */
+export interface ZoneRef {
+  readonly id: ZoneId;
+}
+
+/** Anything that names an entity type. */
+export interface TypeRef {
+  readonly name: string;
 }
 
 export interface Frame {
-  node: NodeId;
-  /** "handling" means the frame is running an `on` flow. */
-  phase: "new" | "active" | "handling";
-  binding?: Binding;
-  locals?: Json;
-  /** Node-kind private state: child index, loop count, child fiber ids. */
-  data: Json;
-  /** Set while blocked. */
-  prompt?: Prompt;
-  /** The node's pending `Next`, applied on the fiber's next step. */
-  next?: Json;
-  /** Set on an interrupt frame (a trigger flow), with the trigger id. */
-  trigger?: string;
-  /** The event that fired the trigger, for `scope.event`. */
-  event?: GameEvent;
-  /** Fibers this frame spawned and is waiting on (parallel, parallel each). */
-  spawned?: { fibers: FiberId[]; join: "all" | "race" };
+  id: string;
+  /** The seq's next child; the turns' or loop's passes started. */
+  i: number;
+  /** Owned by the frame's kind. Must be JSON. */
+  data?: unknown;
+  /** Child fibers this frame spawned and waits on. */
+  children?: FiberId[];
 }
 
-// ---------------------------------------------------------------------------
-// Prompts and inputs (section 8.5)
+export type FiberId = string;
+export const ROOT: FiberId = "root";
 
-export interface Prompt {
-  /** `q${nextPromptId}`, unique for the life of the game. */
-  id: PromptId;
-  node: NodeId;
-  kind: "decision" | "choose" | "pause";
-  actors: PlayerId[];
-  /** Decision actions. */
-  actions?: { name: string; ends: boolean }[];
-  /** Choose options. */
-  options?: Json[];
-  min?: number;
-  max?: number;
-  label?: string;
-}
-
-export type Input =
-  | { prompt: PromptId; player: PlayerId; action: string; args?: Json }
-  | { prompt: PromptId; player: PlayerId; choose: Json[] }
-  | { prompt: PromptId; player: PlayerId; continue: true };
-
-// ---------------------------------------------------------------------------
-// Scope (section 7.5)
-
-export interface Scope {
-  /** Nearest each-over-players binding. */
+/** A child stack of frames, spawned by a frame of its parent fiber. */
+export interface Fiber {
+  id: FiberId;
+  parent: FiberId;
+  /** The spawning frame's index in the parent's stack. */
+  at: number;
+  /** The player this fiber acts for, when spawned per player. */
   player?: PlayerId;
-  /** Nearest each-over-ref binding. */
-  item?: Json;
-  /** Nearest loop's iteration index. */
-  iteration?: number;
-  /** The player whose input is being processed (actions, choices). */
-  actor?: PlayerId;
-  /** In trigger `when` conditions and trigger flows. */
-  event?: GameEvent;
+  stack: Frame[];
+}
+
+export interface State<V> {
+  players: PlayerId[];
+  vars: V;
+  rng: number;
+  entities: Record<EntityId, Entity>;
+  /** Zone id → entity ids, top first. */
+  zones: Record<ZoneId, EntityId[]>;
+  nextEntity: number;
+  nextRef: number;
+  flow: Frame[];
+  /** Child fibers by id, in creation order. The root fiber's stack is `flow`. */
+  fibers: Record<FiberId, Fiber>;
+  nextFiber: number;
+  status: "running" | "finished";
+  result?: unknown;
+  inputs: number;
+  /** Abilities that fired and haven't started yet, next first. */
+  pending: Pending[];
+}
+
+/** A matched ability, or a caused effect, waiting to run as an interrupt on `fiber`. */
+export type Pending = {
+  fiber: FiberId;
+  /** How many interrupt frames this one is nested in, plus one. */
+  depth: number;
+} & (
+  | { ability: string; self?: EntityId; owner?: PlayerId; event: GameEvent }
+  | { effect: string; data: unknown }
+);
+
+/** An effect frame's data: its (changeable) payload and where it is in its phases. */
+export interface EffectData {
+  data: unknown;
+  depth: number;
+  phase: "before" | "resolve" | "after" | "done";
+}
+
+/** What an ability frame shows its handler through `s.scope`. */
+export interface AbilityScope {
+  /** The entity carrying it; absent for a game-wide ability. */
+  self?: EntityId;
+  owner?: PlayerId;
+  event: GameEvent;
+  depth: number;
+}
+
+export type DeepReadonly<T> = T extends (infer U)[]
+  ? readonly DeepReadonly<U>[]
+  : T extends object
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+    : T;
+
+/** A zone family by definition name. */
+export interface FamilyRef {
+  readonly name: string;
+}
+
+export interface Reader<V> {
+  readonly players: readonly PlayerId[];
+  readonly vars: DeepReadonly<V>;
+  /** The player the flow is bound to here (whose turn, whose ability), if any. */
+  readonly actor: PlayerId | undefined;
+  /** The nearest enclosing frame's scope, e.g. an ability's `AbilityScope`. */
+  readonly scope: unknown;
+  /** The data of the nearest effect being run, if any. */
+  readonly effect: unknown;
+  /** The zone's entities, top first. */
+  entities(zone: ZoneRef): readonly Entity[];
+  count(zone: ZoneRef): number;
+  /** A family's instances in seat order then index order; only `player`'s when given. */
+  zones(family: FamilyRef, player?: PlayerId): ZoneRef[];
+  /** An entity by id. Throws on an unknown id. */
+  entity(id: EntityId): Entity;
+}
+
+export interface MoveOptions {
+  /** The moved entities' `faceUp`. Omitted clears any override. */
+  faceUp?: boolean;
+}
+
+export interface Tx<V> {
+  readonly players: readonly PlayerId[];
+  vars: V;
+  readonly actor: PlayerId | undefined;
+  readonly scope: unknown;
+  /** The nearest effect's data, as a draft: changes are kept when the transaction ends. */
+  readonly effect: unknown;
+  entities(zone: ZoneRef): readonly Entity[];
+  count(zone: ZoneRef): number;
+  zones(family: FamilyRef, player?: PlayerId): ZoneRef[];
+  entity(id: EntityId): Entity;
+  /** Removes an entity from the game. */
+  destroy(id: EntityId): void;
+  /** Changes some of an entity's props. Takes an id or anything with one. */
+  update(target: EntityId | { readonly id: EntityId }, patch: object): void;
+  /** Creates an entity at the bottom of `zone`. */
+  create(type: TypeRef, props: unknown, zone: ZoneRef): EntityId;
+  /** Moves entities to the top of `to`, keeping their order. */
+  move(
+    ids: EntityId | readonly EntityId[],
+    to: ZoneRef,
+    opts?: MoveOptions,
+  ): void;
+  /** Moves the top `count` (default 1) entities. Throws if there are fewer. */
+  moveTop(
+    from: ZoneRef,
+    to: ZoneRef,
+    count?: number,
+    opts?: MoveOptions,
+  ): EntityId[];
+  shuffle(zone: ZoneRef): void;
+  flip(id: EntityId, faceUp: boolean): void;
+  random: { int(min: number, max: number): number };
+  end(result?: unknown): void;
+  /** Logs a custom event, for everyone or only the players in `to`. */
+  emit(
+    event: { readonly name: string },
+    data?: unknown,
+    opts?: { to?: PlayerId[] },
+  ): void;
+  /** Causes a registered effect: logged now, run (before, resolve, after) once this transaction ends. */
+  cause(effect: { readonly name: string }, data: unknown): void;
+}
+
+export interface ActionImpl<V> {
+  validate?(s: Reader<V>, args: unknown, actor: PlayerId): true | string;
+  enumerate(s: Reader<V>, actor: PlayerId): unknown[];
+  /** May return a result for the waiting kind's `answered`. */
+  execute(tx: Tx<V>, args: unknown, actor: PlayerId): unknown;
+}
+
+export interface Impl<V> {
+  setup(tx: Tx<V>): void;
+  actions: Record<string, ActionImpl<V>>;
+  /** A step may return `{ exit }` to raise an outcome. */
+  steps: Record<string, (tx: Tx<V>) => unknown>;
+  conditions: Record<string, (s: Reader<V>) => boolean>;
+  /** Read-only functions of state that nodes consult, e.g. `turns.from`. */
+  queries: Record<string, (s: Reader<V>) => unknown>;
+  /** How many instances a counted zone has, from the player count. */
+  zoneCounts: Record<string, (players: number) => number>;
+  /** How each effect resolves, by name. */
+  effects: Record<string, (tx: Tx<V>, data: unknown) => void>;
+  /** Whether an event fires an ability for `self`, which is already in its zone (none if game-wide). */
+  abilities: Record<
+    string,
+    (s: Reader<V>, event: GameEvent<V>, self?: Entity) => boolean
+  >;
+  /** Who answers a game-wide ability, given the event that fired it. */
+  abilityOwners: Record<
+    string,
+    (s: Reader<V>, event: GameEvent<V>) => PlayerId | undefined
+  >;
+}
+
+/** What a kind tells the engine to do with the frame on top. */
+export type Next = { pass: Node } | "done" | "wait" | Exit | Spawn;
+
+/** Starts child fibers, each running `node` (for `player`, if given), and waits for all of them. */
+export interface Spawn {
+  spawn: { node: Node; player?: PlayerId }[];
+}
+
+/** Raises an outcome, which unwinds to the nearest frame that catches it. */
+export interface Exit {
+  exit: string;
+}
+export const isExit = (v: unknown): v is Exit =>
+  typeof v === "object" &&
+  v !== null &&
+  "exit" in v &&
+  typeof (v as Exit).exit === "string";
+
+/** An action that was just applied, with what its `execute` returned. */
+export interface Answer {
+  player: PlayerId;
+  action: string;
+  args: unknown;
+  result: unknown;
+}
+
+/** What a kind may read: the game, the state, and the game's conditions and queries. */
+export interface ReadCtx<V> {
+  readonly game: GameDef<V>;
+  readonly state: State<V>;
+  holds(condition: string): boolean;
+  query(name: string): unknown;
+}
+
+export interface KindCtx<V> extends ReadCtx<V> {
+  /** The state as the kind sees it; `transact` replaces it. */
+  state: State<V>;
+  transact<R>(body: (tx: Tx<V>) => R): R;
+  /** Queues the abilities `event` fires at `timing`, to run above this frame. */
+  fire(event: GameEvent, timing: "before" | "after"): void;
+}
+
+/** A node kind: how the engine runs nodes of this kind. Built-ins and custom kinds alike. */
+export interface Kind<N extends Node = Node> {
+  /** The node's child nodes, for indexing. */
+  children(node: N): Node[];
+  /**
+   * Called whenever the node's frame is on top: on entry, and again each time
+   * a child it passed to has ended. `frame.i` counts the passes so far.
+   */
+  run(node: N, frame: Frame, ctx: KindCtx<unknown>): Next;
+  /** For kinds that bind a player: whose turn it is while this frame is on the stack. */
+  actor?(node: N, frame: Frame, ctx: ReadCtx<unknown>): PlayerId | undefined;
+  /** For kinds that wait for input: the actions a player may take now. */
+  actions?(node: N, frame: Frame, player: PlayerId): string[];
+  /**
+   * For kinds that wait on several players at once: who may act now. Without
+   * it, the nearest frame that binds an `actor` decides, then the first seat.
+   */
+  actors?(node: N, frame: Frame, ctx: ReadCtx<unknown>): PlayerId[];
+  /**
+   * For kinds that wait: called after an action ran, with what `execute`
+   * returned. "wait" keeps the frame waiting; "done" ends it. Default: done.
+   */
+  answered?(node: N, frame: Frame, answer: Answer, ctx: KindCtx<unknown>): Next;
+  /** A guard: checked after every transaction, outermost frame first. An outcome name fires it. */
+  check?(node: N, frame: Frame, ctx: KindCtx<unknown>): string | undefined;
+  /** Whether this frame catches a raised outcome. */
+  catches?(node: N, frame: Frame, outcome: string): boolean;
+  /** What this frame shows the nodes under it through `s.scope`. */
+  scope?(node: N, frame: Frame): unknown;
+  /** Called on the catching frame once everything above it is cancelled. */
+  exited?(node: N, frame: Frame, outcome: string, ctx: KindCtx<unknown>): Next;
+}
+
+export interface GameDef<V> {
+  spec: Spec;
+  impl: Impl<V>;
+  kinds: Record<string, Kind>;
+}
+
+export interface Input {
+  player: PlayerId;
+  action: string;
+  args: unknown;
+}
+
+// --- Events -----------------------------------------------------------------
+
+/**
+ * What one transaction did, in order. An event that touches an entity carries
+ * the entity as it is afterwards (`E` is `Entity`, or in a view `Entity |
+ * HiddenEntity`), so replaying is a fold and filtering is `canSee`.
+ */
+export type GameEvent<V = unknown, E = Entity> =
+  /** Added at the bottom of its zone. */
+  | { type: "created"; entity: E }
+  /** Moved to the top of `to`, keeping their order; `from` is each one's old zone. */
+  | { type: "moved"; from: ZoneId[]; to: ZoneId; entities: E[] }
+  /** The zone's entities in their new order, top first, with new refs. */
+  | { type: "shuffled"; zone: ZoneId; entities: E[] }
+  | { type: "flipped"; entity: E }
+  | { type: "updated"; entity: E }
+  /** The entity as it was when destroyed. */
+  | { type: "destroyed"; entity: E }
+  /** The vars after the transaction, when it changed them. */
+  | { type: "vars"; vars: V }
+  | { type: "custom"; name: string; data: unknown; to?: PlayerId[] }
+  | { type: "ended"; result: unknown };
+
+/** An event as a player may see it. */
+export type ViewEvent<V = unknown> = GameEvent<V, Entity | HiddenEntity>;
+
+export type Applied<V> =
+  | { ok: true; state: State<V>; events: GameEvent<V>[] }
+  | { ok: false; reason: string };
+
+/** An entity a viewer can't see: where it is, and nothing that tells it apart. */
+export interface HiddenEntity {
+  readonly ref: Ref;
+  readonly zone: ZoneId;
+  readonly hidden: true;
+}
+
+/** The state as a player may see it. Entities and zone lists are keyed by `ref`. */
+export interface View<V> {
+  player: PlayerId;
+  vars: V;
+  zones: Record<ZoneId, Ref[]>;
+  entities: Record<Ref, Entity | HiddenEntity>;
+  status: "running" | "finished";
+  result?: unknown;
 }
