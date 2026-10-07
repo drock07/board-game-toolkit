@@ -1,80 +1,61 @@
-import {
-  describeCond,
-  type FlowNode,
-  type Game,
-  type GameEvent,
-  type GameState,
-  type Json,
-  type NodeId,
-} from "@drock07/board-game-toolkit-engine";
+import type { ViewEvent } from "@drock07/board-game-toolkit-engine";
+import type { SpecNode } from "@drock07/board-game-toolkit-engine/kinds";
+import type { GraphGame } from "@drock07/board-game-toolkit-react/devtools";
 
 export interface FlowRow {
-  id: NodeId;
+  id: string;
   depth: number;
-  /** What kind of node, plus its actions or options. */
+  /** What kind of node, plus its label or actions. */
   meta: string;
-  /** Shown before the id: the outcome an `on` flow handles, or "trigger". */
+  /** Shown before the id: a branch case, an outcome, or "ability"/"effect". */
   via?: string;
-  parent?: NodeId;
+  parent?: string;
 }
 
-function metaOf(node: FlowNode): string {
+function metaOf(node: SpecNode): string {
+  const n = node as { label?: unknown; actions?: unknown };
+  if (typeof n.label === "string") return `${node.kind} · “${n.label}”`;
+  if (Array.isArray(n.actions)) return (n.actions as string[]).join(" · ");
+  return node.kind;
+}
+
+/** A node's children with the role each plays, where the kind gives them one. */
+function childrenOf(
+  game: GraphGame,
+  node: SpecNode,
+): { node: SpecNode; via?: string }[] {
   switch (node.kind) {
-    case "decision":
-      return Object.keys(node.actions).join(" · ");
-    case "each":
-      return node.mode === "parallel" ? "each · parallel" : "each";
-    case "parallel":
-      return `parallel · ${node.join}`;
-    case "use":
-      return "subflow";
-    case "exit":
-      return `exit → ${node.outcome}`;
+    case "branch": {
+      const n = node as Extract<SpecNode, { kind: "branch" }>;
+      return [
+        ...n.cases.map((c) => ({ node: c.then, via: c.when })),
+        ...(n.else ? [{ node: n.else, via: "else" }] : []),
+      ];
+    }
+    case "outcomes": {
+      const n = node as Extract<SpecNode, { kind: "outcomes" }>;
+      return [
+        { node: n.body },
+        ...Object.entries(n.outcomes).flatMap(([name, o]) =>
+          o.then ? [{ node: o.then, via: `on ${name}` }] : [],
+        ),
+      ];
+    }
     default:
-      return node.kind;
+      return (game.kinds[node.kind]?.children(node) ?? []).map((c) => ({
+        node: c,
+      }));
   }
 }
 
-function childrenOf(node: FlowNode): { node: FlowNode; via?: string }[] {
-  const out: { node: FlowNode; via?: string }[] = [];
-  switch (node.kind) {
-    case "seq":
-    case "parallel":
-      out.push(...node.children.map((n) => ({ node: n })));
-      break;
-    case "loop":
-    case "each":
-      out.push({ node: node.body });
-      break;
-    case "branch":
-      out.push(
-        ...node.cases.map((c) => ({ node: c.then, via: describeCond(c.when) })),
-      );
-      if (node.else) out.push({ node: node.else, via: "else" });
-      break;
-    case "decision":
-      for (const [name, action] of Object.entries(node.actions))
-        if (action.then) out.push({ node: action.then, via: name });
-      break;
-    case "use":
-      if ("body" in node) out.push({ node: node.body as FlowNode });
-      break;
-    default:
-      break;
-  }
-  for (const [outcome, flow] of Object.entries(node.on ?? {}))
-    out.push({ node: flow, via: `on ${outcome}` });
-  return out;
-}
-
-/** Every node of the game's flow and triggers, depth first. */
-export function flowRows(game: Game): FlowRow[] {
+/** Every node of the game's flow, abilities and effects, depth first. */
+export function flowRows(game: GraphGame): FlowRow[] {
   const rows: FlowRow[] = [];
   const walk = (
-    node: FlowNode,
+    node: SpecNode,
     depth: number,
     via?: string,
-    parent?: NodeId,
+    parent?: string,
   ) => {
     rows.push({
       id: node.id,
@@ -83,29 +64,13 @@ export function flowRows(game: Game): FlowRow[] {
       ...(via && { via }),
       ...(parent && { parent }),
     });
-    for (const c of childrenOf(node)) walk(c.node, depth + 1, c.via, node.id);
+    for (const c of childrenOf(game, node))
+      walk(c.node, depth + 1, c.via, node.id);
   };
-  walk(game.flow, 0);
-  for (const t of game.triggers) walk(t.def.flow, 0, `trigger ${t.def.id}`);
+  walk(game.spec.flow, 0);
+  for (const a of game.spec.abilities ?? []) walk(a, 0, "ability");
+  for (const e of game.spec.effects ?? []) walk(e, 0, "effect");
   return rows;
-}
-
-export interface FlowActivity {
-  /** Nodes with a frame on some fiber. */
-  active: Set<NodeId>;
-  /** Nodes waiting for input. */
-  waiting: Set<NodeId>;
-}
-
-export function flowActivity(state: GameState): FlowActivity {
-  const active = new Set<NodeId>();
-  const waiting = new Set<NodeId>();
-  for (const fiber of Object.values(state.flow.fibers)) {
-    for (const frame of fiber.stack) active.add(frame.node);
-    const top = fiber.stack.at(-1);
-    if (fiber.status === "blocked" && top?.prompt) waiting.add(top.node);
-  }
-  return { active, waiting };
 }
 
 const short = (v: unknown) => {
@@ -117,41 +82,40 @@ const short = (v: unknown) => {
       : s;
 };
 
-const ids = (list: string[]) =>
+/** An entity as an event shows it: its id, or its ref when hidden. */
+const name = (e: { ref: string; id?: string }) => e.id ?? `?${e.ref}`;
+
+const names = (list: { ref: string; id?: string }[]) =>
   list.length > 3
-    ? `${list.slice(0, 2).join(", ")} +${list.length - 2}`
-    : list.join(", ");
+    ? `${list.slice(0, 2).map(name).join(", ")} +${list.length - 2}`
+    : list.map(name).join(", ");
 
 /** A one-line description of an event, for the inspector's feed. */
-export function describeEvent(e: GameEvent): string {
+export function describeEvent(e: ViewEvent): string {
   switch (e.type) {
     case "created":
-      return `created ${e.id} in ${e.entity.zone}`;
+      return `created ${name(e.entity)} in ${e.entity.zone}`;
     case "moved":
-      return `moved ${ids(e.ids)}: ${[...new Set(e.from)].join(", ")} → ${e.to}`;
+      return `moved ${names(e.entities)}: ${[...new Set(e.from)].join(", ")} → ${e.to}`;
     case "shuffled":
       return `shuffled ${e.zone}`;
     case "flipped":
-      return `flipped ${e.id} face ${e.faceUp ? "up" : "down"}`;
+      return `flipped ${name(e.entity)}`;
+    case "updated":
+      return `updated ${name(e.entity)}`;
     case "destroyed":
-      return `destroyed ${e.id}`;
+      return `destroyed ${name(e.entity)}`;
     case "vars":
-    case "locals": {
-      const [p, ...rest] = e.patches;
-      const where = e.type === "vars" ? "vars" : e.node;
-      if (!p) return `${where} unchanged`;
-      const path = [where, ...p.path].join(".");
-      const what =
-        p.op === "remove"
-          ? `delete ${path}`
-          : `${path} = ${short(p.value as Json)}`;
-      return rest.length ? `${what} (+${rest.length})` : what;
-    }
-    case "custom":
-      return `${e.name} ${short(e.payload)}`;
-    case "flow":
-      return `${e.kind} ${e.node}${e.outcome ? ` → ${e.outcome}` : ""}`;
+      return `vars = ${short(e.vars)}`;
+    case "effect":
+      return `${e.name} ${short(e.data)}`;
     case "ended":
       return `ended ${short(e.result)}`;
+    case "flow": {
+      const w = e.waiting
+        .map((x) => `${x.actors.join(", ")}${x.label ? ` (${x.label})` : ""}`)
+        .join("; ");
+      return `flow: ${w ? `waiting on ${w}` : "waiting on no one"}`;
+    }
   }
 }

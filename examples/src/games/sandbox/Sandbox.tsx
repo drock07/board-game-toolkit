@@ -5,15 +5,18 @@ import { GameFrame } from "../../site/GameFrame";
 import { CardBack, PlayingCard } from "../../ui/cards";
 import { findInput, zoneCards } from "../../ui/inputs";
 import { Button, Stat, wait } from "../../ui/kit";
+import { deck as deckZone, discardPile, hand as handZone } from "./game";
 
 export default function Sandbox() {
+  // #region host
   const g = useGame(sandbox, { players: ["p1"] });
   useGameEvent(g, "moved", () => wait(120));
   useGameEvent(g, "shuffled", () => wait(300));
+  // #endregion host
 
-  const deck = zoneCards(g.view, "deck");
-  const hand = zoneCards(g.view, "hand");
-  const discard = zoneCards(g.view, "discard");
+  const deck = zoneCards(g.view, deckZone);
+  const hand = zoneCards(g.view, handZone);
+  const discard = zoneCards(g.view, discardPile);
   const draw = findInput(g.legal, "draw");
   const shuffleBack = findInput(g.legal, "shuffleBack");
   const top = discard[0]?.entity;
@@ -53,7 +56,7 @@ export default function Sandbox() {
               // A few offset backs suggest a stack
               deck.slice(0, 4).map((c, i) => (
                 <div
-                  key={c.id}
+                  key={c.ref}
                   className="absolute"
                   style={{ top: -i * 2, left: i * 2 }}
                 >
@@ -65,7 +68,7 @@ export default function Sandbox() {
             )}
           </div>
           <figcaption className="font-mono text-xs text-label">
-            deck · hidden · {deck[0]?.id ?? "empty"}
+            deck · hidden · {deck[0]?.ref ?? "empty"}
           </figcaption>
         </figure>
         <figure className="flex flex-col items-center gap-2">
@@ -95,7 +98,7 @@ export default function Sandbox() {
             {hand.map((c) =>
               c.entity ? (
                 <motion.button
-                  key={c.id}
+                  key={c.ref}
                   type="button"
                   layout
                   initial={{ opacity: 0, y: -30 }}
@@ -106,7 +109,7 @@ export default function Sandbox() {
                     const input = findInput(
                       g.legal,
                       "discard",
-                      (a) => a.card === c.id,
+                      (a) => a.card === c.entity?.id,
                     );
                     if (input) g.submit(input);
                   }}

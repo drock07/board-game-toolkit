@@ -1,6 +1,6 @@
 ---
 title: Tic-Tac-Toe
-description: "Take turns until the board is decided. Shows each over players from a random seat, and a minimax bot."
+description: "Take turns until the board is decided. Shows turns from a random seat, an endless session loop, and a minimax bot."
 tableOfContents: false
 sidebar:
   order: 3
@@ -10,35 +10,43 @@ import Example from "../../../components/Example.astro";
 import Source from "../../../components/Source.astro";
 
 Two players alternate until someone makes a line or the board fills. The
-[Quickstart](/board-game-toolkit/start/quickstart/) builds this game step by step.
+[Quickstart](/board-game-toolkit/start/quickstart/) builds this game step by
+step; this page covers what it doesn't.
 
 <Example slug="tic-tac-toe" />
 
 ## How it works
 
-**Turns are an `each` over players.** It starts from a random seat
-(`from: "random"`, drawn from the seeded RNG) and goes clockwise. `repeat: true`
-starts another pass after the last player, and `until: "boardDecided"` stops it
-as soon as the condition holds after a turn. See
-[`each`](/board-game-toolkit/reference/flow/each/).
+**The board is vars, not zones.** Nine cells don't move or hide, so they're
+data. There are no entity types or zones at all.
 
-**Each turn is a decision for the current player.** `actor: "current"` is the
-player bound by the nearest `each`, so only they get the prompt.
+<Source file="games/tic-tac-toe/game.ts" region="types" />
 
-<Source file="games/tic-tac-toe/spec.ts" region="spec" />
+**A session loops forever.** Each pass of the outer `loop` is one game: a step
+clears the board and draws a random starter, `turns` runs until the board is
+decided, a step records the result, and a prompt labelled "Play again" waits.
 
-**The board is vars, not zones.** Nine cells fit naturally in a var. Zones are
-for things that move and can be hidden, like cards.
+<Source file="games/tic-tac-toe/game.ts" region="rules" />
 
-**The computer is a bot.** A bot is a function from its own view and prompt to
-one of its legal inputs. This one scores every legal placement with minimax.
-The host runs it after a short delay, and the engine checks its input like
-anyone else's. See [Writing a bot](/board-game-toolkit/guides/bots/).
+- **`from: (s) => s.vars.starter`**: `turns` starts from the seat a step drew
+  with `tx.random.pick`, then goes on in seat order. The draw is seeded, so a
+  replay gets the same starter.
+- **`until`**: checked before each turn, so the game stops right after the
+  move that makes a line, not at the end of a round.
+- **The last prompt**: `again` has no args and changes nothing. Answering it
+  ends the `seq`, and the loop starts the next game.
 
-`placeMark` lists its legal arguments with `enumerate`, which is how the bot
-(and the page) know which cells are open:
+**The computer is a bot.** A bot is a function from its legal inputs and its
+own view to one of those inputs. This one scores every legal placement with
+minimax and picks among the best with its own seeded `random`:
 
-<Source file="games/tic-tac-toe/impl.ts" region="actions" />
+<Source file="games/tic-tac-toe/bots.ts" region="bot" />
+
+The page gives the second seat to the bot as its `controller`. The host runs
+it when its seat may act, after a short delay, and the engine checks its input
+like anyone else's. See [Bots](/board-game-toolkit/guides/bots/).
+
+<Source file="games/tic-tac-toe/TicTacToe.tsx" region="host" />
 
 ## Source
 

@@ -1,68 +1,177 @@
 ---
-title: Card effects
-description: Describe what cards do as data, resolve them in one transaction, and let the flow react mid-turn.
+title: Card effects and reactions
+description: Cards as data, effects that happen in phases, and abilities that react before or after, from a card or as a rule, without leaking hidden hands.
 sidebar:
   order: 7
 ---
 
 import Source from "../../../components/Source.astro";
 
-Deck-builders and card battlers have many cards that do a few kinds of thing:
-deal damage, gain block, draw. [TowerBattler](/board-game-toolkit/examples/tower-battler/)
-keeps the effects as data on each card.
+Card games come in two layers. Most cards do a few kinds of thing: deal
+damage, gain block, draw. A few react to what happens: a Shield that blocks
+an attack, Thorns that strike back, a Bomb that goes off when it's drawn.
+This page covers both: cards as data first, then effects and the abilities
+that react to them. [Effects and abilities](/board-game-toolkit/concepts/effects/)
+explains the model; this page is the patterns.
 
-## Effects are props
+## Cards as data
 
-Each card's props list its effects:
+[Tower Battler](/board-game-toolkit/examples/tower-battler/) keeps what each
+card does in its props:
 
-```ts
-type Effect =
-  | { type: "dealDamage"; amount: number }
-  | { type: "gainBlock"; amount: number }
-  | { type: "draw"; count: number };
+<Source file="games/tower-battler/game.ts" region="card" />
 
-interface Card {
-  name: string;
-  cost: number;
-  description: string;
-  effects: Effect[];
-}
-```
+Props are JSON, so the card list could come from a file, and a new card
+needs no new code as long as it combines effects that exist. Playing a card
+resolves its effects, in order, inside the action's transaction:
 
-Because props are JSON, the card list can come from a file, and new cards need
-no new code as long as they combine existing effects.
+<Source file="games/tower-battler/game.ts" region="playCard" />
 
-## Resolve them in one transaction
+Each change is an event, in order: the card moving to the discard pile, the
+vars changing, cards drawn. A UI plays them back in that order. And the
+fight's [outcomes](/board-game-toolkit/concepts/outcomes/) have guards on
+both health totals, checked after every transaction, so a card that brings
+the enemy to 0 ends the fight right there, mid-turn, without `playCard`
+knowing anything about winning.
 
-Playing a card resolves every effect inside the action's transaction:
+That's all many games need. Reach for effects when cards must **react** to
+each other.
 
-<Source file="games/tower-battler/impl.ts" region="playCard" />
+## Effects
 
-Each change becomes an event, in order: the card moving to the discard pile,
-vars patches for damage and block, and moves for drawn cards. The UI plays
-them back in that order. See [Animating events](/board-game-toolkit/guides/animating-events/).
+An **effect** is something that happens, with data. Rules code causes one
+with `tx.cause(effect, data)`; it runs when that transaction ends, in three
+phases: abilities `on: effect.before`, then the effect's `resolve`, then
+abilities `on: effect`.
 
-## Let the flow react
+The small game this page builds is a duel: a Strike causes an Attack, and an
+Attack that isn't blocked causes Damage.
 
-The rounds loop has guards on both health totals:
+<Source file="snippets/cardEffects.ts" region="effects" />
 
-<Source file="games/tower-battler/spec.ts" />
+- **`resolve`** applies the effect with its data as it is by then. A
+  reaction before it may have changed the data: `blocked` is set by a
+  Shield.
+- **One effect can cause another.** `attack` causes `damage` from its
+  `resolve`, so reactions to damage run whether it came from an Attack or
+  from a Bomb.
+- Each effect is also an `effect` event, so a UI can show it. Tower
+  Battler's enemy attack is an effect with no abilities at all, there for
+  the UI to animate with `useGameEffect`:
 
-Guards are checked after every transaction. A card that brings the enemy to
-0 ends the fight right there, in the middle of the player's turn, without
-the action needing to know about winning. See
-[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+<Source file="games/tower-battler/game.ts" region="enemyAttack" />
 
-## Tell the UI what happened
+## Abilities a card carries
 
-Some things deserve an animation but aren't a state change, or are a summary
-of several. `tx.emit` adds a custom event:
+An **ability** reacts to an effect. One carried by a card is live while the
+card is in a zone of a given family, and is answered by the card's owner,
+the owner of the zone it's in. The [effects demo](/board-game-toolkit/reference/flow/effects/)
+has two: a Shield that halves an Attack before it lands, and Thorns that
+strike back after.
 
-<Source file="games/tower-battler/impl.ts" region="enemyAttack" />
+<Source file="demos/effects.ts" region="game" />
 
-## Effects that need a choice
+- **`of`**, **`in`**, **`where`**: the entity type, the zone family it's
+  live in, and which entities of that type carry it.
+- **`on`**: `attack.before` reacts before the Attack resolves, and may
+  change its data through `t.data(tx)`. `attack` reacts after.
+- **`then`** builds the handler, any node. A `step` just runs; a `prompt`
+  asks the owner.
 
-If an effect needs the player to pick something ("discard a card", "choose a
-target"), give the action a `then` flow with a `choose`, as Crazy Eights does
-for the wild color. Store the pending effect in locals or vars so the choice
-knows what it's for.
+### When a card enters a zone
+
+`on: "enters"` fires when the card arrives in its zone, by any route: drawn,
+dealt, stolen, created there. The duel's Bomb goes off when it enters a
+hand:
+
+<Source file="snippets/cardEffects.ts" region="bomb" />
+
+The deal is a `step` in the flow, so a Bomb dealt goes off during the deal,
+before the first turn. A Bomb drawn mid-turn goes off inside that turn's
+draw. The turn doesn't know Bombs exist.
+
+`t.self(tx)` is the card carrying the ability and `t.owner(tx)` its owner.
+
+### Chains
+
+A reaction that causes an effect nests: that effect's abilities run inside
+it, before anything else queued. Thorns answers Damage with Damage:
+
+<Source file="snippets/cardEffects.ts" region="thorns" />
+
+The Strike causes an Attack, which causes Damage, which fires Thorns, which
+causes Damage back, all from one Strike. The returned Damage has no `from`,
+so it doesn't fire Thorns again. A chain more than 32 deep throws
+`AbilityLoopError`, which usually means an ability is setting itself off.
+
+When one event fires several abilities, they queue and run one at a time: in
+seat order from the current player, then in the order they're declared.
+Each is checked again when its turn comes, so a Shield that's already
+blocked an Attack isn't asked again.
+
+## Hidden hands and reactions
+
+A Shield is the classic "before" reaction, and the obvious way to write it
+is as an ability of Shield cards in your hand:
+
+<Source file="snippets/cardEffects.ts" region="leaky" />
+
+It works, and it leaks. `actors()` and `view.waiting` say who the game is
+waiting on, and every player can see them. Strike someone holding a Shield,
+and the game waits on them; strike someone without one, and it moves on.
+Everyone now knows who holds a Shield. The duel's test checks exactly that.
+
+The fix is to ask **every time**. Write the Shield as a **game-wide**
+ability, a rule carried by no card, that always asks the target, and check
+the hand in `validate`:
+
+<Source file="snippets/cardEffects.ts" region="shield" />
+
+- **No `of` or `in`**: it's a rule of the game, live all the time.
+- **`who: (s, a) => a.target`** names who answers it: the Attack's target,
+  Shield or not.
+- **`block`** is legal only with a Shield in hand; **`take`** always is. A
+  target without a Shield is asked too, and can only take it, so being asked
+  gives nothing away.
+
+The rule of thumb: a reaction from a hidden zone that would ask its owner
+only sometimes should be a game-wide ability that asks every time. A
+reaction that doesn't ask anyone, like the Bomb's step, doesn't leak through
+who's waiting.
+
+## The duel
+
+With the effects and abilities declared, the turn is plain: draw, then play
+a card or pass. Every card's rule lives in its own declaration, listed in
+`abilities`:
+
+<Source file="snippets/cardEffects.ts" region="flow" />
+
+## Reaction windows in the flow
+
+Not every reaction needs an ability. When the reaction is part of the
+game's rhythm, a window in the flow is simpler.
+[Plus Two](/board-game-toolkit/examples/plus-two/) opens one after every
+turn: anyone but the newest stacker may stack a +2, and the victim may take
+the penalty.
+
+<Source file="games/plus-two/game.ts" region="window" />
+
+The window asks every player but the stacker, whether they hold a +2 or not,
+so it gives nothing away, for the same reason the game-wide Shield doesn't.
+
+## Reactions and the rest of the flow
+
+- **In a simultaneous round**, a reaction holds up only the fiber that
+  caused it, unless it has `pause: "everyone"`. See
+  [Simultaneous turns](/board-game-toolkit/guides/simultaneous-turns/).
+- **Outcomes wait for reactions.** If a guard fires while reactions are
+  running, they finish first, and then the outcome's handler runs. A Bomb
+  that knocks a player out still resolves fully before the game ends.
+
+## See also
+
+- [Effects and abilities](/board-game-toolkit/concepts/effects/): the model.
+- The [effects reference](/board-game-toolkit/reference/flow/effects/), with
+  a live demo.
+- [Hidden information](/board-game-toolkit/guides/hidden-information/).

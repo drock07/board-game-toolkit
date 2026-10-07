@@ -3,9 +3,9 @@ import clsx from "clsx";
 import { motion } from "motion/react";
 import { minimaxBot, ticTacToe } from ".";
 import { GameFrame } from "../../site/GameFrame";
-import { continueInput, findInput } from "../../ui/inputs";
+import { findInput } from "../../ui/inputs";
 import { Button, Hint, Overlay, Stat, wait } from "../../ui/kit";
-import { markOf, type Mark } from "./impl";
+import { markOf, type Mark } from "./game";
 
 const NAMES = { p1: "You", p2: "Computer" };
 
@@ -45,19 +45,21 @@ function MarkIcon({ mark, className }: { mark: Mark; className?: string }) {
 }
 
 export default function TicTacToe() {
+  // #region host
   const g = useGame(ticTacToe, {
     players: ["p1", { id: "p2", controller: minimaxBot }],
   });
   useGameEvent(g, "vars", () => wait(150));
+  // #endregion host
 
   const { vars, players } = g.view;
-  const marks = vars.marks ?? [];
+  const { marks } = vars;
   const moves = marks.filter(Boolean).length;
   const line = new Set(vars.line ?? []);
-  const prompt = g.prompts[0];
-  const over = prompt?.node === "again";
+  const myMove = g.legal.some((i) => i.action === "placeMark");
+  const over = vars.winner !== null || vars.tie;
   const me = markOf(players, "p1");
-  const again = continueInput(g.legal);
+  const again = findInput(g.legal, "again");
 
   let result = "";
   if (vars.winner === "p1") result = "You win!";
@@ -72,19 +74,19 @@ export default function TicTacToe() {
         <>
           <Stat label="You">
             <MarkIcon mark={me} className="size-5.5" />
-            <span className="font-sans">{vars.wins?.p1 ?? 0}</span>
+            <span className="font-sans">{vars.wins.p1 ?? 0}</span>
           </Stat>
           <Stat label="Computer">
             <MarkIcon mark={me === "x" ? "o" : "x"} className="size-5.5" />
-            <span className="font-sans">{vars.wins?.p2 ?? 0}</span>
+            <span className="font-sans">{vars.wins.p2 ?? 0}</span>
           </Stat>
-          <Stat label="Ties">{vars.ties ?? 0}</Stat>
+          <Stat label="Ties">{vars.ties}</Stat>
           <Stat label="Moves">{moves}/9</Stat>
         </>
       }
       actions={
         <Hint>
-          {prompt?.node === "place"
+          {myMove
             ? "Your move — click an empty cell"
             : over
               ? result

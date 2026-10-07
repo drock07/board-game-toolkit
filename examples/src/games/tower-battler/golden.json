@@ -5,33 +5,6 @@
   "seed": "golden",
   "inputs": [
     {
-      "prompt": "q1",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q2",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q3",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#6"
-      }
-    },
-    {
-      "prompt": "q4",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q5",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -39,75 +12,13 @@
       }
     },
     {
-      "prompt": "q6",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#11"
+        "card": "card#1"
       }
     },
     {
-      "prompt": "q7",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q8",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q9",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q10",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q11",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q12",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q13",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q14",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q15",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q16",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -115,33 +26,32 @@
       }
     },
     {
-      "prompt": "q17",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q18",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#9"
-      }
-    },
-    {
-      "prompt": "q19",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q20",
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#6"
+        "card": "card#3"
       }
     },
     {
-      "prompt": "q21",
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#2"
+      }
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -149,104 +59,22 @@
       }
     },
     {
-      "prompt": "q22",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q23",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#5"
-      }
-    },
-    {
-      "prompt": "q24",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q25",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q26",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q27",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#6"
-      }
-    },
-    {
-      "prompt": "q28",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q29",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q30",
       "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
+      "action": "again"
     },
     {
-      "prompt": "q31",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q32",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#4"
-      }
-    },
-    {
-      "prompt": "q33",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q34",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q35",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q36",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -254,285 +82,10 @@
       }
     },
     {
-      "prompt": "q37",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q38",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q39",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q40",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q41",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q42",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q43",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q44",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#9"
-      }
-    },
-    {
-      "prompt": "q45",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q46",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q47",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#8"
-      }
-    },
-    {
-      "prompt": "q48",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q49",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q50",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#9"
-      }
-    },
-    {
-      "prompt": "q51",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q52",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#5"
-      }
-    },
-    {
-      "prompt": "q53",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q54",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q55",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q56",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q57",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#6"
-      }
-    },
-    {
-      "prompt": "q58",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q59",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q60",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q61",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#11"
-      }
-    },
-    {
-      "prompt": "q62",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q63",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q64",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q65",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#11"
-      }
-    },
-    {
-      "prompt": "q66",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q67",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#5"
-      }
-    },
-    {
-      "prompt": "q68",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q69",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q70",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#9"
-      }
-    },
-    {
-      "prompt": "q71",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q72",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q73",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#8"
-      }
-    },
-    {
-      "prompt": "q74",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q75",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q76",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q77",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -540,59 +93,13 @@
       }
     },
     {
-      "prompt": "q78",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q79",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#1"
+        "card": "card#2"
       }
     },
     {
-      "prompt": "q80",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q81",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q82",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q83",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q84",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q85",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q86",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -600,46 +107,10 @@
       }
     },
     {
-      "prompt": "q87",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q88",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q89",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q90",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q91",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q92",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q93",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -647,25 +118,6 @@
       }
     },
     {
-      "prompt": "q94",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q95",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q96",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q97",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -673,127 +125,10 @@
       }
     },
     {
-      "prompt": "q98",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q99",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#5"
-      }
-    },
-    {
-      "prompt": "q100",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q101",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q102",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q103",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#6"
-      }
-    },
-    {
-      "prompt": "q104",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q105",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q106",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q107",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q108",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q109",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#5"
-      }
-    },
-    {
-      "prompt": "q110",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q111",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#6"
-      }
-    },
-    {
-      "prompt": "q112",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q113",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q114",
-      "player": "p1",
-      "action": "endTurn"
-    },
-    {
-      "prompt": "q115",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q116",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -801,7 +136,13 @@
       }
     },
     {
-      "prompt": "q117",
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -809,12 +150,133 @@
       }
     },
     {
-      "prompt": "q118",
       "player": "p1",
       "action": "endTurn"
     },
     {
-      "prompt": "q119",
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#7"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#7"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -822,13 +284,425 @@
       }
     },
     {
-      "prompt": "q120",
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#0"
+        "card": "card#6"
       }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#11"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#12"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#11"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#2"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#8"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#6"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#12"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#6"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#7"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#7"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#2"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#2"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#10"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#12"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#12"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#6"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#11"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#6"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#7"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "endTurn"
     }
   ],
-  "finalStateHash": "126162b45f98204b9315d28cb231110c"
+  "finalStateHash": "2388760f8438b1a0e90aa9159df25d41"
 }

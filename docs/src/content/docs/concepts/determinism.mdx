@@ -1,15 +1,15 @@
 ---
-title: Determinism and replays
+title: Determinism and saves
 description: A game is a pure function of its seed and inputs. The seeded RNG, replays, saves, and the rules that keep it that way.
 sidebar:
-  label: Determinism
+  label: Determinism and saves
   order: 8
 ---
 
 import Source from "../../../components/Source.astro";
 
 Given the same game, players, seed and inputs, the engine always produces the
-same state, byte for byte. That one property gives you a lot:
+same state. That one property gives you a lot:
 
 - **Replays**: store the inputs, rebuild the game.
 - **Saves**: store the state, or just the inputs.
@@ -23,65 +23,51 @@ same state, byte for byte. That one property gives you a lot:
 Randomness comes from a generator whose state is part of the game state. In
 rules code it's `tx.random`:
 
-| Method           | Returns                             |
-| ---------------- | ----------------------------------- |
-| `int(n)`         | A whole number from `0` to `n - 1`. |
-| `float()`        | A number in `[0, 1)`.               |
-| `pick(array)`    | One element.                        |
-| `shuffle(array)` | A shuffled copy.                    |
-| `roll(die)`      | One of a die's faces.               |
+| Method           | Returns                                 |
+| ---------------- | --------------------------------------- |
+| `int(n)`         | A whole number from `0` to `n - 1`.     |
+| `float()`        | A number in `[0, 1)`.                   |
+| `pick(array)`    | One element.                            |
+| `shuffle(array)` | A shuffled copy.                        |
+| `roll(die)`      | One of a die's faces, typed by the die. |
 
-`tx.shuffle(zone)` uses the same generator. The engine ships dice:
-`D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` and `Fudge`. A die is just
-`{ faces: [...] }`, so you can define your own:
+`tx.shuffle(zone)` uses the same generator. The engine ships `D4` to `D100`
+and `Fudge`; see [Dice](/board-game-toolkit/guides/dice/). The `seed` passed
+to `init` is any string. Same seed, same game.
 
-```ts
-import { D6 } from "@drock07/board-game-toolkit-engine";
+## Replays and saves
 
-const COLOR_DIE = { faces: ["red", "blue", "green"] };
+<Source file="snippets/highCard.test.ts" region="determinism" title={false} />
 
-tx.random.roll(D6); // 1–6
-tx.random.roll(COLOR_DIE); // "red" | "blue" | "green"
-```
+- **`replayInputs(game, { players, seed }, inputs)`** plays the inputs from
+  the start. An input that doesn't replay throws a `SaveError` naming it,
+  which usually means the log is from a different version of the game.
+- **`save(game, state)`** writes the state as JSON, stamped with the game's
+  **spec hash**: a hash of its zones and flow. **`load(game, text)`** reads it
+  back, and refuses a save from a game whose spec hash differs, so a save
+  never loads into a flow it doesn't fit.
 
-The `seed` passed to `init` is any string. Same seed, same game.
+A save works anywhere: mid-turn, in the middle of a reaction, with several
+fibers running. The flow's position is part of the state.
 
-## Replays
+The spec hash doesn't cover rules code. If you change what an action does
+but not the flow, old saves still load, and play on under the new rules.
 
-`replay` rebuilds a state from its seed and inputs:
+## The spec
 
-<Source file="snippets/concepts.test.ts" region="replay" title={false} />
-
-## Saves
-
-State is plain JSON, so a save is `JSON.stringify(state)`:
-
-<Source file="snippets/concepts.test.ts" region="save" title={false} />
-
-A state records its game's `spec.id` and `spec.version`. `apply` refuses a
-state from a different game or version, so bump `version` when a change to the
-spec would break old saves.
-
-Saving inputs instead of states is smaller, survives rule fixes that don't
-change behavior, and doubles as a replay. See
-[Saving and replays](/board-game-toolkit/guides/saving-and-replays/).
+`rules` derives a JSON **spec** from your definition: the zones, the flow's
+nodes and their settings, the abilities and effects, with names in place of
+functions. `game.spec` is it; `toJSON(spec)` and `fromJSON(text)` write and
+read it, for tools that draw or diff a game. A spec can't run on its own,
+because the rules code it names lives in your module.
 
 ## Keeping it deterministic
 
-The engine can only guarantee determinism if the rules cooperate:
+The engine does its part. Yours is:
 
-- **Use `tx.random`, never `Math.random`.**
-- **Don't read the clock.** No `Date.now()` or `new Date()` in rules.
-- **Don't keep state outside the game.** Module-level variables, caches that
-  change results, or anything else that survives between calls.
-- **Iterate in a fixed order.** Object key order is fine (it's
-  deterministic in JavaScript), but don't depend on anything like `Set`
-  iteration over values built in a random order.
-
-The toolkit's own repo enforces the first two with ESLint
-(`no-restricted-globals` for `Date`, `no-restricted-properties` for
-`Math.random`) on rules files. It's worth doing in yours.
-
-Bots get their own generator (`ctx.random`), separate from the game's, so a
-bot's choices don't disturb the game's dice. The game depends only on the
-inputs the bots produce.
+- **Use `tx.random`**, never `Math.random`, for anything random.
+- **Don't read the clock** or anything else outside the state in rules code.
+  The repo's ESLint config bans `Date` in game code for this reason.
+- **Keep vars and props JSON**: no `Date`, `Map`, class instances or
+  `undefined` in arrays. `fuzz` fails if a state isn't plain JSON.
+- **Keep rules code pure**: no side effects outside `tx`, no async.

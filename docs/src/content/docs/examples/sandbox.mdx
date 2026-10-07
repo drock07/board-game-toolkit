@@ -1,6 +1,6 @@
 ---
 title: Card Pool Sandbox
-description: "Zones, visibility and ops: draw, discard and shuffle a deck with one decision that never ends."
+description: "Zones, visibility and transaction ops: draw, discard and shuffle a deck at a table that never closes."
 tableOfContents: false
 sidebar:
   order: 2
@@ -10,35 +10,53 @@ import Example from "../../../components/Example.astro";
 import Source from "../../../components/Source.astro";
 
 The smallest example: a deck, a hand and a discard pile, and three things you
-can do with them. There's no winning, so it's a good place to watch how state,
-views and events work before any real rules get in the way.
+can do with them. There's no winning, so it's a good place to watch state,
+views and events before any real rules get in the way.
 
 <Example slug="sandbox" />
 
 ## How it works
 
-**Cards are entities in zones.** `setup` creates 52 cards in the `deck` zone
-and shuffles it. Every entity is in exactly one zone, and the only way to move
-it is an op on a transaction: `moveTop`, `move` or `shuffle` here. See
-[State: entities, zones and vars](/board-game-toolkit/concepts/state/).
+**Cards are entities in zones.** The game uses the shared playing-card entity
+type and declares three zones for it. The deck is `"hidden"`; the hand and the
+discard pile are public, the default.
 
-**The deck is hidden.** Its zone has `visibility: "hidden"`, so your view
-shows its cards as opaque, positional ids like `?deck#0`. Shuffling reveals
-nothing, and a drawn card shows its face only once it lands in the public hand.
-See [Views and hidden information](/board-game-toolkit/concepts/views/).
+<Source file="games/sandbox/game.ts" region="types" />
 
-**The flow is one decision that never ends.** Each action sets
-`ends: false`, so after any of them the decision prompts again. Each action is
-a transaction, and each op inside it becomes an event that the page plays back.
-See [`decision`](/board-game-toolkit/reference/flow/decision/).
+Everything lives in zones, so the vars are empty. See
+[The model](/board-game-toolkit/concepts/model/).
 
-<Source file="games/sandbox/spec.ts" />
+**A hidden card is a placeholder.** Your view shows each deck card as only its
+ref and zone, with no id or props. A shuffle gives every card in the deck a new
+ref, so it reveals nothing, and a drawn card shows its face only once it lands
+in the public hand. See [Views](/board-game-toolkit/concepts/views/).
 
-The whole rules file is three actions. Each has a `validate` that explains why
-it can't run, and `discard` has an `enumerate` that lists its legal arguments,
-so the host can tell which cards are playable:
+**Each action is a transaction of ops.**
 
-<Source file="games/sandbox/impl.ts" />
+<Source file="games/sandbox/game.ts" region="actions" />
+
+- **`draw`**: `tx.moveTop(deck, hand)` moves the deck's top card to the hand.
+  Its `validate` keeps it out of the legal inputs when the deck is empty, with
+  a reason a UI can show.
+- **`discard`**: `enumerate` lists one input per card in hand, so the page
+  knows which cards are playable. `validate` checks every input, including
+  ones `enumerate` didn't offer.
+- **`shuffleBack`**: two ops in one transaction, a `move` and a `shuffle`.
+  Each op is its own event, in order.
+
+**The flow is a loop around one prompt.** The prompt ends after any action,
+and the loop asks again, forever:
+
+<Source file="games/sandbox/game.ts" region="rules" />
+
+`setup` creates 52 cards in the deck with `createDeck` and shuffles it with
+the seeded RNG.
+
+**The page paces the events.** As each `moved` or `shuffled` event plays back,
+the host waits for the handler's promise, so cards move one at a time. See
+[Animating events](/board-game-toolkit/guides/animating-events/).
+
+<Source file="games/sandbox/Sandbox.tsx" region="host" />
 
 ## Source
 

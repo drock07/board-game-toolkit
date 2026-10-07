@@ -1,6 +1,6 @@
 ---
 title: Plus Two
-description: "+2 cards stack across players. Shows a trigger interrupting the turn and a race between responses."
+description: "+2 cards stack across players. Shows an anyone window where the first answer wins, and a loop that goes round again on every stack."
 tableOfContents: false
 sidebar:
   order: 10
@@ -16,24 +16,39 @@ stack another on it, passing the growing penalty on, or the victim takes it.
 
 ## How it works
 
-**A trigger opens the response window.** The `plusTwo` trigger watches for a
-card moving from a hand to the discard pile. When its `when` condition holds,
-it interrupts whatever made the move, even another window, and runs its flow.
-See [Triggers](/board-game-toolkit/reference/spec/triggers/) and
-[Reactions and interrupts](/board-game-toolkit/guides/reactions/).
+**The penalty is vars.** Hands are per-player zones with `"owner"`
+visibility. Who stacked last, who the penalty targets and how big it is are
+public, so they're vars.
 
-**The first answer wins.** The window is a `parallel` with `join: "race"`: the
-other players get a `stack` prompt and the victim gets a `takePenalty` prompt,
-all at once. The first answer ends the race and cancels the other branch. See
-[`parallel`](/board-game-toolkit/reference/flow/parallel/).
+<Source file="games/plus-two/game.ts" region="types" />
 
-<Source file="games/plus-two/spec.ts" />
+**Each turn is a prompt, then the window.** Playing a card that's a +2 adds
+to the penalty and names the next seat as the victim. After the prompt, the
+turn runs the penalty window:
 
-**The window reads its event.** In a trigger, `scope.event` is the event that
-fired it. The window's locals work out who stacked and who's next, and the
-`responders` and `victim` lists use them to pick the actors:
+<Source file="games/plus-two/game.ts" region="rules" />
 
-<Source file="games/plus-two/impl.ts" region="window" />
+**The window is an `anyone` in a loop.**
+
+<Source file="games/plus-two/game.ts" region="window" />
+
+- **`anyone`** waits for the first answer from any player `who` names, here
+  everyone but the newest stacker. The first answer ends it.
+- **`loop({ until })`** runs while a penalty is pending. When there's none,
+  the loop ends before the first pass, so a turn without a +2 has no window.
+  A stack goes round again with a bigger penalty, and the turn continues once
+  someone takes it.
+
+**Each action's legality decides who may do what.** `anyone` offers both
+actions to everyone it waits on. `stackPlusTwo` is legal only with a +2 in
+hand, and `accept` only for the victim:
+
+<Source file="games/plus-two/game.ts" region="accept" />
+
+**The window doesn't give hands away.** `actors()` and `view.waiting` are
+public. The window waits on every player but the stacker, whether they hold a
++2 or not, so who it waits on says nothing about anyone's hand. See
+[Hidden information](/board-game-toolkit/guides/hidden-information/).
 
 ## Source
 

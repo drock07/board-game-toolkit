@@ -1,6 +1,6 @@
 ---
 title: Dungeon Crawl
-description: "Explore a dungeon of monsters, treasure and traps. Shows subflows, raised outcomes and outermost-first guards."
+description: "Explore a dungeon of monsters, treasure and traps. Shows nested outcomes, an action that raises one, and flow pieces reused as plain constants."
 tableOfContents: false
 sidebar:
   order: 6
@@ -9,31 +9,57 @@ sidebar:
 import Example from "../../../components/Example.astro";
 import Source from "../../../components/Source.astro";
 
-Walk a generated grid, fight monsters, grab treasure and dodge traps until you
-beat the boss or fall.
+Walk a 5×5 grid, fight monsters, grab treasure and dodge traps until you beat
+the dragon or fall.
 
 <Example slug="dungeon-crawl" />
 
 ## How it works
 
-**Combat and traps are subflows.** The spec defines them once under
-`subflows` and uses them from the room `branch` with `subflow("combat",
-"combat")`. Their node ids get the use's id as a prefix, like
-`combat.playerAttack`. See [`subflow`](/board-game-toolkit/reference/flow/subflow/).
+**The dungeon is vars.** The grid, the player and the log are data. `combat`
+and `trap` hold the current room's rolls: a step sets them when the room
+starts, and `leaveRoom` clears them however the room ends.
 
-**Guards decide the game wherever the flow is.** The `run` seq's exits turn a
-dead player into `defeat` and a dead boss into `victory`, and its `on` map
-runs a flow for each. Guards are checked outermost first, so killing the boss
-in a fight wins the game rather than just ending the fight. See
-[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+<Source file="games/dungeon-crawl/game.ts" region="types" />
 
-<Source file="games/dungeon-crawl/spec.ts" />
+**The run ends wherever the flow is.** The whole run is wrapped in
+`outcomes` with two guards:
 
-**Fleeing raises an outcome.** `tx.exit("fled")` ends the nearest node that
-handles `fled`: the `fight` loop, whose `on.fled` logs the escape. The rest of
-the handler still runs.
+<Source file="games/dungeon-crawl/game.ts" region="run" />
 
-<Source file="games/dungeon-crawl/impl.ts" region="flee" />
+- **`defeat`** holds at zero hp. Guards are checked after every transaction,
+  so dying mid-fight or to a trap ends the run at once, however deep the flow
+  is.
+- **`victory`** holds when the dragon's hp is 0.
+- **Outermost first.** The killing blow on the dragon also makes the fight's
+  own `killed` guard hold. The run's guards are checked first, so it counts
+  as victory, not just the end of a fight.
+- Each `then` is a step that records the result. Then the `outcomes` node
+  ends, and the session's "Play again" prompt waits.
+
+See [Outcomes](/board-game-toolkit/concepts/outcomes/).
+
+**Rooms are flow pieces in constants.** A node is a plain value, so `combat`,
+`trap` and `treasureRoom` are built once as constants and used in the room
+`branch`. There's nothing else to declare. See
+[Reusing flow](/board-game-toolkit/guides/reusing-flow/).
+
+<Source file="games/dungeon-crawl/game.ts" region="combat" />
+
+**Fleeing raises an outcome.** The fight's `fled` outcome has no guard. The
+`flee` action raises it by returning `{ exit: "fled" }` on a good roll, which
+cancels the fight's loop and runs the outcome's `then`:
+
+<Source file="games/dungeon-crawl/game.ts" region="flee" />
+
+**A trap is a turn that stays open.** Each failed attempt to dismantle it
+costs hp, and the turn waits for another. `dismantle` returns `"end"` on a
+success, and `skip` returns it to walk away:
+
+<Source file="games/dungeon-crawl/game.ts" region="trap" />
+
+Moving between rooms is a `turn` too: `useItem` drinks a potion and keeps the
+turn open, and `move` returns `"end"`.
 
 ## Source
 

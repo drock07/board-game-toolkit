@@ -1,0 +1,140 @@
+---
+title: Effects and abilities
+description: Every option of effect and ability, how they run, and in what order.
+sidebar:
+  order: 12
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+An **effect** is something that happens, like an attack or a card being
+drawn; an **ability** reacts to it, before or after. They aren't nodes you
+place in the flow: the engine runs them as frames when an effect is caused
+or an ability fires. This page lists every option; for the ideas, read
+[Effects and abilities](/board-game-toolkit/concepts/effects/).
+
+## Demo
+
+An attack hits you for 6. A Shield in play halves it before it resolves;
+Thorns in play strikes back afterwards. Move the cards between your hand
+and play to see each one react.
+
+<Demo name="effects" />
+
+## effect
+
+`effect<T>(name, def?)` declares an effect with data of type `T`, on the
+core:
+
+| Option    | Type                   | What it is                                                             |
+| --------- | ---------------------- | ---------------------------------------------------------------------- |
+| `name`    | `string`               | Unique among the core's effects. The first argument.                   |
+| `resolve` | `(tx, data) => void`   | What the effect does, with its data as the `before` abilities left it. |
+| `to`      | `(data) => PlayerId[]` | Who sees it in their events. Everyone when absent.                     |
+
+The handle it returns names the effect for `tx.cause(effect, data)`,
+`on: effect` and `useGameEffect`, and `effect.before` names its
+before-phase for `on`.
+
+Rules code causes one with `tx.cause(effect, data)`. The effect event is
+logged at once; the effect runs when the transaction ends, in three
+phases:
+
+1. **Before**: abilities `on: effect.before` run, and may change the data.
+2. **Resolve**: `resolve(tx, data)` runs with the data as it is now.
+3. **After**: abilities `on: effect` run.
+
+An effect with no `resolve` and no abilities is still useful: it's a typed
+event, and with `to`, one only some players see.
+
+<Source file="snippets/flowEffects.ts" region="effects" />
+
+<Source file="snippets/flowEffects.test.ts" region="whisper" />
+
+Declare effects before `rules`: a game gets every effect declared on its
+core up to then. Causing one it doesn't have throws `RulesError`.
+
+## ability, carried by entities
+
+An ability carried by entities of one type, live while one is in a zone of
+one family:
+
+| Option  | Type                                    | What it is                                                                                              |
+| ------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `of`    | entity type                             | The type that carries it.                                                                               |
+| `where` | `(self) => boolean`                     | Narrows which entities of the type carry it. Optional.                                                  |
+| `in`    | zone family                             | Where it's live: it fires only for an entity in a zone of this family.                                  |
+| `on`    | `effect`, `effect.before` or `"enters"` | What sets it off: an effect after it resolves, before it resolves, or this entity arriving in its zone. |
+| `when`  | `(s, { self, owner, data }) => boolean` | Whether it fires. Optional.                                                                             |
+| `pause` | `"everyone"`                            | Holds every other fiber while it runs. Optional.                                                        |
+| `then`  | `(t) => Node`                           | The handler: any node, from a `step` to a `prompt` or a whole `seq`.                                    |
+
+`"enters"` fires when the entity arrives in a zone of the family by any
+route: moved there, or created there.
+
+The **owner** is the player whose zone the entity is in, for a per-player
+zone; in a shared zone there's no owner. The handler runs bound to the
+owner, so a `prompt` in it asks them.
+
+<Source file="snippets/flowEffects.ts" region="trap" />
+
+## ability, game-wide
+
+Leave out `of` and `in` for an ability that's a rule of the game, carried
+by nothing:
+
+| Option  | Type                                 | What it is                                                                                                                       |
+| ------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `on`    | `effect` or `effect.before`          | What sets it off.                                                                                                                |
+| `who`   | `(s, data) => PlayerId \| undefined` | Who answers its prompts. Without it, they go to the player the flow is bound to there: whose turn it is, or else the first seat. |
+| `when`  | `(s, data) => boolean`               | Whether it fires. Optional.                                                                                                      |
+| `pause` | `"everyone"`                         | As above.                                                                                                                        |
+| `then`  | `(t) => Node`                        | The handler.                                                                                                                     |
+
+A game-wide ability is how a reaction keeps hidden cards hidden. Asking
+who holds a Potion would tell everyone they hold one, so this one always
+asks the target, and the Potion is checked in `validate`:
+
+<Source file="snippets/flowEffects.ts" region="dodge" />
+
+<Source file="snippets/flowEffects.ts" region="rules" />
+
+<Source file="snippets/flowEffects.test.ts" region="trap" />
+
+Pass every ability to `rules` in `abilities`.
+
+## The handler's `t`
+
+`then(t)` builds the handler once, when `rules` lowers it. `t` reads the
+running ability from any reader or transaction inside the handler:
+
+- **`t.self(s)`**: the entity carrying it (carried abilities only).
+- **`t.owner(s)`**: its owner, or `undefined`.
+- **`t.data(s)`**: the effect's data; `undefined` for `"enters"`. It's
+  live: in a transaction, changes to it are kept, so a before-ability can
+  change what resolves, as `drink` does.
+
+## When abilities run
+
+- **Checked twice.** An ability matches when its event happens: the
+  entity is in its zone and `when` holds. It runs when its turn comes, and
+  only if it still matches then.
+- **Queued in order.** Abilities set off together run one at a time: by
+  event, then by owner in seat order from the player the flow is bound to
+  (unowned first), then in the order you listed them.
+- **Depth first.** A handler that causes an effect nests: that effect and
+  its abilities run inside it, before the next queued one. A chain more
+  than 32 deep throws `AbilityLoopError`.
+- **On the fiber that caused it.** In `simultaneous`, a reaction holds
+  only the fiber it started on, unless it has `pause: "everyone"`.
+- **Through outcomes.** If a guard fires while reactions are running, they
+  finish first, then the outcome's handler runs.
+
+## See also
+
+- [Card effects and reactions](/board-game-toolkit/guides/card-effects/):
+  the patterns.
+- [Animating events](/board-game-toolkit/guides/animating-events/): showing
+  effects with `useGameEffect`.
+- [Hidden information](/board-game-toolkit/guides/hidden-information/).

@@ -1,6 +1,5 @@
 ---
 // A reference page's live demo and its source.
-import { TabItem, Tabs } from "@astrojs/starlight/components";
 import Playground from "./Playground";
 import Source from "./Source.astro";
 
@@ -20,11 +19,4 @@ const file = `demos/${name}.ts`;
   </p>
 </div>
 
-<Tabs>
-  <TabItem label="spec">
-    <Source file={file} region="spec" title={`${name}.ts`} />
-  </TabItem>
-  <TabItem label="impl">
-    <Source file={file} region="impl" title={`${name}.ts`} />
-  </TabItem>
-</Tabs>
+<Source file={file} region="game" title={`${name}.ts`} />

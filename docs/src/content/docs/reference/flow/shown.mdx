@@ -1,0 +1,101 @@
+---
+title: What nodes show
+description: What the flow tells players about itself, in view.waiting and view.shown, how to read it, and how it reaches them as events.
+sidebar:
+  order: 13
+---
+
+import Source from "../../../../components/Source.astro";
+
+A UI needs to say "Waiting for bob: Play your card", "Round 2", "1 roll
+left". None of that is in your vars: it's in the flow. A view carries two
+things about it, `view.waiting` and `view.shown`, so you don't have to
+copy turn numbers into vars.
+
+## view.waiting
+
+What the flow is waiting on: one entry per open prompt, as
+`{ label?, actors }`.
+
+- **`label`** is the waiting node's `label` option, when it has one.
+- **`actors`** are the players who may answer it.
+
+There's an entry for every open `prompt`, `turn` and `anyone`, including
+prompts inside a running ability, in fiber order. In `everyone` or
+`simultaneous` that's one entry per player still deciding. Every player
+gets the same `waiting`: who the game waits on is public. A node waiting
+on no one has no entry, and once the game has ended, `waiting` is empty.
+
+A UI finds its prompt by label, and who it's waiting on by `actors`:
+
+<Source file="games/sealed-bids/SealedBids.tsx" region="waiting" />
+
+## view.shown
+
+What running nodes publish, by kind name. The built-ins that show
+something:
+
+| Read with               | Shows                     | What it is                                                                                                  |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `turnsNode.shown(view)` | `{ player, turn, round }` | Whose turn it is; turns and rounds started, from 1. See [turns](/board-game-toolkit/reference/flow/turns/). |
+| `turnNode.shown(view)`  | `{ answers, counts }`     | Answers this turn, in total and per action. See [turn](/board-game-toolkit/reference/flow/turn/).           |
+| `loopNode.shown(view)`  | `{ pass }`                | Passes started, from 1. See [loop](/board-game-toolkit/reference/flow/loop/).                               |
+
+Each reader returns `undefined` when no node of its kind is running, so
+write `turnsNode.shown(view)?.round`. They're exported from the engine
+next to `defaultNodes`.
+
+- **Innermost wins.** With nested loops, `loopNode.shown(view)` is the
+  inner loop's.
+- **Your own fibers.** In `simultaneous`, each player sees what the shared
+  flow shows plus what their own fiber shows, not other players' fibers.
+- **Public.** Everything in `shown` goes to every player who can see that
+  fiber, so a kind must never show hidden information.
+
+<Source file="snippets/flowShown.test.ts" region="fibers" />
+
+## Reading shown in rules code
+
+Readers and transactions have `shown` too, for the frames around the code
+that's running: its own fiber's and the ones it was spawned from, innermost
+winning. So a `validate` reads the turn's counts the same way a UI does.
+Roll Five stops holding dice after the last roll:
+
+<Source file="games/roll-five/game.ts" region="hold" />
+
+## Flow events
+
+`waiting` and `shown` change as the flow moves, so `apply` logs a **flow
+event** at the end of an input whenever either one changed. `viewEvents`
+gives each player their share: `{ type: "flow", waiting, shown }`, with
+`shown` merged for that player. Replaying a player's events onto their old
+view gives exactly their new one, flow included:
+
+<Source file="snippets/flowShown.test.ts" region="events" />
+
+A host that sends each client its events, like the
+[server guide's](/board-game-toolkit/guides/server/), keeps clients' prompts
+and turn counters current without sending whole views.
+
+## What a custom kind shows
+
+A node kind publishes through its `show(node, frame, ctx)`: return JSON,
+or `undefined` for nothing. The engine calls it for every frame of the
+kind, puts the result under the kind's name in `shown`, and lets the
+innermost frame win. Pass the kind to `defineNode` and its `shown` reader
+is typed:
+
+<Source file="snippets/flowShown.ts" region="kind" />
+
+<Source file="snippets/flowShown.test.ts" region="custom" />
+
+`show` runs whenever a view or a flow event is made, so keep it a cheap
+function of the node and its frame. See
+[Writing a node kind](/board-game-toolkit/guides/node-kinds/) for the rest
+of the interface.
+
+## See also
+
+- [Views](/board-game-toolkit/concepts/views/): everything else a view
+  holds.
+- [Events](/board-game-toolkit/concepts/events/).

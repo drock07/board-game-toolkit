@@ -1,0 +1,99 @@
+---
+title: The model
+description: Entity types, zones, vars, actions and rules, and how one definition gives you a typed game.
+sidebar:
+  order: 1
+---
+
+import Source from "../../../components/Source.astro";
+
+A game is one definition, written in TypeScript. You declare the things in
+the box, bind your state's type, write actions, and put them in a flow. Every
+declaration is a typed value, a **handle**, so the rest of your code is
+checked against it.
+
+This page walks through High Card, the running example of these concept
+pages: everyone is dealt a card from a hidden deck, plays it face up in turn,
+and the highest card wins the round.
+
+## The box: entity types and zones
+
+<Source file="snippets/highCard.ts" region="box" />
+
+- **`entity<P>(name)`** declares an entity type. Entities are the things that
+  move and hide: cards, tokens, tiles. `P` is the type of their props.
+- **`zone(name, { holds, visibility })`** declares a place entities live. A
+  zone holds one entity type, and says who may see what's in it: everyone
+  (`"public"`, the default), no one (`"hidden"`), its owner (`"owner"`), or
+  only its top entity (`"top"`).
+- **`perPlayer: true`** gives each player their own instance:
+  `hand.of("bob")`. `count: n` gives a numbered set: `factory.at(2)`. Both
+  together make `line.of("bob", 3)`. These are **zone families**.
+
+The rule of thumb: if it moves or hides, it's an entity in a zone. Everything
+else is a var.
+
+## Vars
+
+<Source file="snippets/highCard.ts" region="vars" />
+
+Vars are the game's own state: scores, whose round it is, the board in a
+grid game. They must be JSON, and they're the same for every player, so
+anything secret belongs in a zone instead. See
+[State](/board-game-toolkit/concepts/state/).
+
+## The core
+
+`define<Vars>({ zones })` binds the vars type and the zones, and returns the
+game's **core**. `.withNodes(defaultNodes)` adds the built-in flow builders.
+
+<Source file="snippets/highCard.ts" region="core" />
+
+Everything below is written with the core's functions, so it's all typed by
+`Vars`.
+
+## Actions
+
+<Source file="snippets/highCard.ts" region="actions" />
+
+An action is something a player can do.
+
+- **`enumerate(s, actor)`** lists the args that could be legal for the actor.
+  It's how bots, fuzzing and UIs find moves, and it types the args.
+- **`validate(s, args, actor)`** returns `true` or a reason. It's checked for
+  every input, so a player can't play a card they don't hold.
+- **`execute(tx, args, actor)`** changes the state through `tx`, a
+  transaction. Every change becomes an event.
+
+The handle builds typed inputs: `playCard.by("ann", { id: "card#3" })`.
+
+## Rules and the flow
+
+`rules` puts it together: the player count, a `setup` that creates the
+starting state, and the **flow**.
+
+<Source file="snippets/highCard.ts" region="rules" />
+
+The flow is a tree of nodes. A `loop` repeats rounds until the deck runs low;
+each round is a `seq` of a dealing `step`, `turns` of a `prompt`, and a
+scoring `step`. The last step ends the game with `tx.end(result)`. See
+[Flow](/board-game-toolkit/concepts/flow/).
+
+## Playing it
+
+The game is a plain value. You play it with three functions:
+
+<Source file="snippets/highCard.test.ts" region="play" />
+
+- **`init(game, { players, seed })`** creates the starting state.
+- **`actors`** and **`legalInputs`** say who may act and what they may do.
+- **`apply(game, state, input)`** returns `{ ok: true, state, events }`, or
+  `{ ok: false, reason }` for an illegal input. It never changes the state it
+  was given.
+
+## What you don't write
+
+There's no separate list of names to keep in sync. `rules` derives the game's
+**spec**, a JSON description of its zones and flow that tools and saves use,
+from the handles and builders. If you want to see it, `game.spec` is there;
+see [Determinism and saves](/board-game-toolkit/concepts/determinism/).

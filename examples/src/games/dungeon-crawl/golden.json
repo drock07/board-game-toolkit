@@ -5,7 +5,6 @@
   "seed": "golden",
   "inputs": [
     {
-      "prompt": "q1",
       "player": "p1",
       "action": "move",
       "args": {
@@ -14,64 +13,66 @@
       }
     },
     {
-      "prompt": "q2",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q3",
+      "player": "p1",
+      "action": "flee"
+    },
+    {
       "player": "p1",
       "action": "attack"
     },
     {
-      "prompt": "q4",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q5",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q6",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q7",
       "player": "p1",
       "action": "move",
       "args": {
         "row": 0,
-        "col": 1
+        "col": 2
       }
     },
     {
-      "prompt": "q8",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q9",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q10",
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 1,
-        "col": 1
+        "row": 0,
+        "col": 3
       }
     },
     {
-      "prompt": "q11",
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
@@ -80,41 +81,18 @@
       }
     },
     {
-      "prompt": "q12",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q13",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q14",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q15",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q16",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q17",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 1,
-        "col": 1
+        "row": 0,
+        "col": 2
       }
     },
     {
-      "prompt": "q18",
       "player": "p1",
       "action": "move",
       "args": {
@@ -123,26 +101,30 @@
       }
     },
     {
-      "prompt": "q19",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q20",
       "player": "p1",
       "action": "attack"
     },
     {
-      "prompt": "q21",
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 1,
-        "col": 1
+        "row": 0,
+        "col": 2
       }
     },
     {
-      "prompt": "q22",
       "player": "p1",
       "action": "move",
       "args": {
@@ -151,87 +133,18 @@
       }
     },
     {
-      "prompt": "q23",
       "player": "p1",
       "action": "attack"
     },
     {
-      "prompt": "q24",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q25",
       "player": "p1",
       "action": "attack"
     },
     {
-      "prompt": "q26",
       "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 1
-      }
+      "action": "again"
     },
     {
-      "prompt": "q27",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q28",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q29",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q30",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q31",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q32",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q33",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q34",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q35",
       "player": "p1",
       "action": "move",
       "args": {
@@ -240,12 +153,22 @@
       }
     },
     {
-      "prompt": "q36",
       "player": "p1",
-      "continue": true
+      "action": "flee"
     },
     {
-      "prompt": "q37",
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
@@ -254,7 +177,148 @@
       }
     },
     {
-      "prompt": "q38",
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 2,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 2,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "useItem",
+      "args": {
+        "index": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 4,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "useItem",
+      "args": {
+        "index": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 4,
+        "col": 1
+      }
+    },
+    {
       "player": "p1",
       "action": "useItem",
       "args": {
@@ -262,202 +326,121 @@
       }
     },
     {
-      "prompt": "q39",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 1,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q40",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q41",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q42",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q43",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q44",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q45",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q46",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q47",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q48",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q49",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q50",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 0
-      }
-    },
-    {
-      "prompt": "q51",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q52",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
+        "row": 4,
         "col": 2
       }
     },
     {
-      "prompt": "q53",
       "player": "p1",
-      "action": "attack"
+      "action": "dismantle"
     },
     {
-      "prompt": "q54",
       "player": "p1",
-      "action": "move",
+      "action": "skip"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "useItem",
       "args": {
-        "row": 1,
-        "col": 2
+        "index": 0
       }
     },
     {
-      "prompt": "q55",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 0,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q56",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
+        "row": 4,
         "col": 1
       }
     },
     {
-      "prompt": "q57",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 1,
-        "col": 1
+        "row": 4,
+        "col": 0
       }
     },
     {
-      "prompt": "q58",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q59",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q60",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q61",
       "player": "p1",
       "action": "attack"
     },
     {
-      "prompt": "q62",
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 4,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 1
+      }
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
@@ -466,12 +449,10 @@
       }
     },
     {
-      "prompt": "q63",
       "player": "p1",
-      "continue": true
+      "action": "flee"
     },
     {
-      "prompt": "q64",
       "player": "p1",
       "action": "move",
       "args": {
@@ -480,12 +461,90 @@
       }
     },
     {
-      "prompt": "q65",
       "player": "p1",
-      "continue": true
+      "action": "dismantle"
     },
     {
-      "prompt": "q66",
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 4,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 4,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 4,
+        "col": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 3,
+        "col": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
       "player": "p1",
       "action": "useItem",
       "args": {
@@ -493,288 +552,166 @@
       }
     },
     {
-      "prompt": "q67",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 4,
+        "row": 0,
         "col": 3
       }
     },
     {
-      "prompt": "q68",
       "player": "p1",
       "action": "skip"
     },
     {
-      "prompt": "q69",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q70",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 4,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q71",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 4,
-        "col": 3
-      }
-    },
-    {
-      "prompt": "q72",
-      "player": "p1",
-      "action": "dismantle"
-    },
-    {
-      "prompt": "q73",
-      "player": "p1",
-      "action": "skip"
-    },
-    {
-      "prompt": "q74",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q75",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 4,
+        "row": 0,
         "col": 4
       }
     },
     {
-      "prompt": "q76",
       "player": "p1",
-      "action": "attack"
+      "action": "continue"
     },
     {
-      "prompt": "q77",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q78",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q79",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q80",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q81",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 1,
-        "col": 0
+        "row": 0,
+        "col": 3
       }
     },
     {
-      "prompt": "q82",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q83",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q84",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q85",
       "player": "p1",
       "action": "dismantle"
     },
     {
-      "prompt": "q86",
       "player": "p1",
       "action": "dismantle"
     },
     {
-      "prompt": "q87",
       "player": "p1",
-      "action": "skip"
+      "action": "continue"
     },
     {
-      "prompt": "q88",
       "player": "p1",
-      "continue": true
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 3
+      }
     },
     {
-      "prompt": "q89",
+      "player": "p1",
+      "action": "dismantle"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
         "row": 2,
-        "col": 1
+        "col": 3
       }
     },
     {
-      "prompt": "q90",
       "player": "p1",
-      "continue": true
+      "action": "attack"
     },
     {
-      "prompt": "q91",
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "flee"
+    },
+    {
+      "player": "p1",
+      "action": "attack"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
         "row": 3,
-        "col": 1
+        "col": 3
       }
     },
     {
-      "prompt": "q92",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q93",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q94",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q95",
-      "player": "p1",
-      "action": "dismantle"
-    },
-    {
-      "prompt": "q96",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q97",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q98",
       "player": "p1",
       "action": "flee"
     },
     {
-      "prompt": "q99",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q100",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q101",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q102",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q103",
       "player": "p1",
       "action": "move",
       "args": {
-        "row": 0,
-        "col": 1
+        "row": 4,
+        "col": 3
       }
     },
     {
-      "prompt": "q104",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q105",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q106",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q107",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q108",
       "player": "p1",
       "action": "dismantle"
     },
     {
-      "prompt": "q109",
       "player": "p1",
       "action": "dismantle"
     },
     {
-      "prompt": "q110",
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
       "player": "p1",
       "action": "skip"
     },
     {
-      "prompt": "q111",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q112",
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "skip"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
@@ -783,56 +720,14 @@
       }
     },
     {
-      "prompt": "q113",
       "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 1
-      }
+      "action": "flee"
     },
     {
-      "prompt": "q114",
-      "player": "p1",
-      "action": "useItem",
-      "args": {
-        "index": 0
-      }
-    },
-    {
-      "prompt": "q115",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q116",
       "player": "p1",
       "action": "attack"
     },
     {
-      "prompt": "q117",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 0,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q118",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 1
-      }
-    },
-    {
-      "prompt": "q119",
       "player": "p1",
       "action": "move",
       "args": {
@@ -841,12 +736,10 @@
       }
     },
     {
-      "prompt": "q120",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q121",
       "player": "p1",
       "action": "move",
       "args": {
@@ -855,26 +748,69 @@
       }
     },
     {
-      "prompt": "q122",
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
       "player": "p1",
       "action": "dismantle"
     },
     {
-      "prompt": "q123",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q124",
       "player": "p1",
       "action": "move",
       "args": {
         "row": 2,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "useItem",
+      "args": {
+        "index": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
         "col": 1
       }
     },
     {
-      "prompt": "q125",
+      "player": "p1",
+      "action": "continue"
+    },
+    {
       "player": "p1",
       "action": "move",
       "args": {
@@ -883,7 +819,6 @@
       }
     },
     {
-      "prompt": "q126",
       "player": "p1",
       "action": "move",
       "args": {
@@ -892,51 +827,30 @@
       }
     },
     {
-      "prompt": "q127",
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "move",
+      "args": {
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
       "player": "p1",
       "action": "dismantle"
     },
     {
-      "prompt": "q128",
-      "player": "p1",
-      "action": "dismantle"
-    },
-    {
-      "prompt": "q129",
       "player": "p1",
       "action": "skip"
     },
     {
-      "prompt": "q130",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q131",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 3
-      }
-    },
-    {
-      "prompt": "q132",
-      "player": "p1",
-      "action": "flee"
-    },
-    {
-      "prompt": "q133",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q134",
-      "player": "p1",
-      "action": "attack"
-    },
-    {
-      "prompt": "q135",
       "player": "p1",
       "action": "move",
       "args": {
@@ -945,107 +859,9 @@
       }
     },
     {
-      "prompt": "q136",
       "player": "p1",
       "action": "flee"
-    },
-    {
-      "prompt": "q137",
-      "player": "p1",
-      "action": "useItem",
-      "args": {
-        "index": 0
-      }
-    },
-    {
-      "prompt": "q138",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 3
-      }
-    },
-    {
-      "prompt": "q139",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 3
-      }
-    },
-    {
-      "prompt": "q140",
-      "player": "p1",
-      "action": "dismantle"
-    },
-    {
-      "prompt": "q141",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q142",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q143",
-      "player": "p1",
-      "action": "dismantle"
-    },
-    {
-      "prompt": "q144",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q145",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 1,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q146",
-      "player": "p1",
-      "action": "dismantle"
-    },
-    {
-      "prompt": "q147",
-      "player": "p1",
-      "action": "skip"
-    },
-    {
-      "prompt": "q148",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q149",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 2
-      }
-    },
-    {
-      "prompt": "q150",
-      "player": "p1",
-      "action": "move",
-      "args": {
-        "row": 2,
-        "col": 1
-      }
     }
   ],
-  "finalStateHash": "2647f90d98f28e09582c3348a14e6423"
+  "finalStateHash": "70ac6338a1f3a05b23ca05fce73de054"
 }

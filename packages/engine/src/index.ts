@@ -1,131 +1,132 @@
 /**
- * The engine: define a game from a spec and an impl, run it with `init` and
- * `apply`, and build each player's view.
+ * The engine: declare a game with `define`, run it with `init` and
+ * `apply`, and show it with `view` and `viewEvents`.
  *
  * @module @drock07/board-game-toolkit-engine
  */
-export { randomBot } from "./bots.js";
-export type { Bot, BotContext } from "./bots.js";
+
+// Authoring
+export { define } from "./define/define.js";
+export { entity, zone } from "./define/handles.js";
+export type {
+  AnyZone,
+  Before,
+  CountedZone,
+  Effect,
+  EntityType,
+  PerPlayerCountedZone,
+  PerPlayerZone,
+  SharedZone,
+  ZoneFamily,
+  ZoneRef,
+} from "./define/handles.js";
+export { defaultNodes, loopNode, turnNode, turnsNode } from "./define/nodes.js";
+export type {
+  Ability,
+  Action,
+  ActionDef,
+  ActionLike,
+  ActionResult,
+  ActionsIn,
+  AnyoneBuilder,
+  BranchBuilder,
+  Core,
+  EveryoneBuilder,
+  Fired,
+  Game,
+  GameInput,
+  Input,
+  InputOf,
+  LoopBuilder,
+  Node,
+  NodeBuilders,
+  OutcomesBuilder,
+  PlainActionDef,
+  PromptBuilder,
+  Reader,
+  Scoped,
+  SeqBuilder,
+  SimultaneousBuilder,
+  StepBuilder,
+  Trigger,
+  TurnBuilder,
+  TurnsBuilder,
+  Tx,
+  WaitOptions,
+} from "./define/types.js";
+export type { LoopShown } from "./kinds/flow.js";
+export type { TurnShown } from "./kinds/turn.js";
+export type { TurnsShown } from "./kinds/turns.js";
+
+// Running and viewing
 export {
-  branch,
-  choose,
-  decision,
-  each,
-  exit,
-  loop,
-  parallel,
-  pause,
-  seq,
-  step,
-  subflow,
-} from "./builders.js";
-export type { CompiledGame, CompiledNode } from "./compile.js";
-export { D10, D100, D12, D20, D4, D6, D8, Fudge } from "./dice.js";
+  actors,
+  apply,
+  check,
+  current,
+  init,
+  legalInputs,
+  replay,
+  view,
+  viewEvents,
+} from "./define/play.js";
+export type { InitOptions } from "./play.js";
+export { viewEntities } from "./views.js";
+export { canSee } from "./zones.js";
+
+// Errors
 export {
+  AbilityLoopError,
   FlowEndedWithoutEndError,
   FlowStuckError,
   GameDefinitionError,
-  OpError,
+  RulesError,
   UnhandledOutcomeError,
 } from "./errors.js";
-export { describeCond } from "./expr.js";
-export type { Expr, Operand } from "./expr.js";
+
+// Saving and loading
+export { stableStringify } from "./json.js";
+export type { Json, JsonCompatible } from "./json.js";
 export {
-  apply,
-  defineGame,
-  init,
-  legalInputs,
-  prompts,
-  replay,
-} from "./game.js";
-export type {
-  ApplyError,
-  ApplyResult,
-  DefineGameOptions,
-  Game,
-  InitOptions,
-  ReplayOptions,
-  TypesOfGame,
-} from "./game.js";
-export type {
-  ActionDef,
-  CheckImpl,
-  CheckTypes,
-  GameImpl,
-  RefsIn,
-  SetupContext,
-  SpecRefs,
-  SpecZones,
-  StateReader,
-  TypeDecl,
-  TypesFor,
-  TypesOf,
-  ZoneInstance,
-} from "./impl.js";
-export { MAX_STEPS } from "./interpreter.js";
-export type {
-  InputError,
-  InputErrorCode,
-  KindCtx,
-  Next,
-  NodeKind,
-  PromptSpec,
-} from "./interpreter.js";
-export { jsonEqual } from "./json.js";
-export type {
-  DeepReadonly,
-  IsJsonCompatible,
-  Json,
-  JsonCompatible,
-  JsonObject,
-} from "./json.js";
-export { reduceEvents } from "./reduce.js";
-export { seededRandom } from "./rng.js";
-export type { Die, Random, RngState } from "./rng.js";
-export {
+  FORMAT_VERSION,
+  SAVE_FORMAT,
   SPEC_FORMAT,
-  SPEC_FORMAT_VERSION,
+  SaveError,
   fromJSON,
+  hashJson,
+  load,
+  replayInputs,
+  save,
+  specHash,
   toJSON,
 } from "./serialize.js";
-export type { SpecDocument } from "./serialize.js";
-export type * from "./spec.js";
-export type { MoveOptions, Tx } from "./tx.js";
+
+// Bots
+export { randomBot } from "./testing/index.js";
+
+// Randomness
+export { D10, D100, D12, D20, D4, D6, D8, Fudge } from "./dice.js";
+export { seededRandom } from "./rng.js";
+export type { Die, Random, RngState } from "./rng.js";
+
+// The engine's data
 export type {
-  AnyTypes,
-  Binding,
+  Applied,
+  DeepReadonly,
+  EffectRef,
   Entity,
   EntityId,
-  EntityOf,
-  EntityTypeOf,
-  Fiber,
-  FiberId,
-  FlowState,
-  Frame,
+  Exit,
   GameEvent,
-  GameEventBody,
-  GameEventType,
-  GameState,
-  GameTypes,
-  Input,
-  NodeId,
-  PlayerId,
-  Position,
-  Prompt,
-  PromptId,
-  ReadonlyGameState,
-  Scope,
-  Zone,
-  ZoneDefOf,
-  ZoneId,
-  ZoneIdOf,
-  ZonesOf,
-} from "./types.js";
-export { canSee, isHidden, view, viewEvents } from "./view.js";
-export type {
   HiddenEntity,
-  PlayerView,
-  ViewEntity,
-  Viewer,
-  VisibleEntity,
-} from "./view.js";
+  MoveOptions,
+  PlayerId,
+  Ref,
+  Spec,
+  State,
+  View,
+  ViewEvent,
+  Visibility,
+  Waiting,
+  ZoneId,
+} from "./types.js";

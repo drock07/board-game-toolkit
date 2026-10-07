@@ -1,12 +1,14 @@
-import type { Bot } from "@drock07/board-game-toolkit-engine";
+import type { GameInput } from "@drock07/board-game-toolkit-engine";
+import type { SyncBot } from "@drock07/board-game-toolkit-engine/testing";
 import {
   isFull,
   markOf,
   winningLine,
   type Cell,
   type Mark,
-  type Types,
-} from "./impl";
+  type ticTacToe,
+  type Vars,
+} from "./game";
 
 const other = (m: Mark): Mark => (m === "x" ? "o" : "x");
 
@@ -38,22 +40,21 @@ function search(marks: Cell[], toMove: Mark, me: Mark): number {
 
 /**
  * Plays perfectly: scores each legal placement with minimax and takes the
- * best, breaking ties with its own RNG. Continues past the end-of-game pause.
+ * best, breaking ties with its own RNG. Plays again when asked.
  */
-export const minimaxBot: Bot<Types> = (
-  view,
-  prompt,
-  { player, legal, random },
+// #region bot
+export const minimaxBot: SyncBot<Vars, GameInput<typeof ticTacToe>> = (
+  legal,
+  { view, player, random },
 ) => {
-  if (prompt.node !== "place") return random.pick(legal);
+  const places = legal.filter((i) => i.action === "placeMark");
+  if (!places.length) return random.pick(legal);
   const me = markOf(view.players, player);
   let best = -Infinity;
-  let choices: typeof legal = [];
-  for (const input of legal) {
-    if (!("args" in input)) continue;
-    const { index } = input.args as { index: number };
-    const marks = [...(view.vars.marks ?? [])];
-    marks[index] = me;
+  let choices: typeof places = [];
+  for (const input of places) {
+    const marks = [...view.vars.marks];
+    marks[input.args.index] = me;
     const score = minimax(marks, other(me), me);
     if (score > best) {
       best = score;
@@ -64,3 +65,4 @@ export const minimaxBot: Bot<Types> = (
   }
   return random.pick(choices);
 };
+// #endregion bot

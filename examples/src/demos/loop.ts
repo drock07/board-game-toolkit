@@ -1,62 +1,35 @@
-// Three rounds, then a summary. Demonstrates loop with times, and iteration.
-import {
-  decision,
-  defineGame,
-  loop,
-  pause,
-  seq,
-  step,
-  type GameImpl,
-  type GameSpec,
-  type TypesFor,
-} from "@drock07/board-game-toolkit-engine";
+// A loop: repeats its body until `until` holds (forever without it). Here
+// three rounds of a bet, then a summary.
+import { defaultNodes, define } from "@drock07/board-game-toolkit-engine";
 
-// #region spec
-export const spec = {
-  id: "demo-loop",
-  version: 1,
-  players: { min: 1, max: 1 },
-  zones: {},
-  vars: { round: {}, score: {} },
+const { rules, action, loop, seq, step, prompt } = define<{
+  round: number;
+  score: number;
+}>().withNodes(defaultNodes);
+
+// #region game
+export const game = rules({
+  players: 1,
+  setup: (tx) => void (tx.vars = { round: 0, score: 0 }),
   flow: loop(
-    "session",
-    seq("game", [
-      step("reset", "reset"),
+    {},
+    seq(
+      step((tx) => void (tx.vars = { round: 0, score: 0 })),
       loop(
-        "rounds",
-        seq("round", [
-          step("startRound", "startRound"),
-          decision("bet", { actor: "p1" }, { low: {}, high: {} }),
-        ]),
-        { times: 3 },
+        { until: (s) => s.vars.round === 3 },
+        seq(
+          step((tx) => void tx.vars.round++),
+          prompt(
+            { label: "Bet" },
+            action("low", { execute: (tx) => void (tx.vars.score += 1) }),
+            action("high", {
+              execute: (tx) => void (tx.vars.score += tx.random.int(3)),
+            }),
+          ),
+        ),
       ),
-      pause("summary", { label: "Play again" }),
-    ]),
+      prompt({ label: "Play again" }, action("again", { execute: () => {} })),
+    ),
   ),
-} as const satisfies GameSpec;
-// #endregion spec
-
-type Types = TypesFor<typeof spec, { vars: { round: number; score: number } }>;
-
-// #region impl
-export const impl = {
-  setup(tx) {
-    tx.vars = { round: 0, score: 0 };
-  },
-  steps: {
-    reset(tx) {
-      tx.vars = { round: 0, score: 0 };
-    },
-    startRound(tx) {
-      // The nearest loop's pass, from 0
-      tx.vars.round = tx.scope.iteration! + 1;
-    },
-  },
-  actions: {
-    low: { execute: (tx) => void (tx.vars.score += 1) },
-    high: { execute: (tx) => void (tx.vars.score += tx.random.int(3)) },
-  },
-} satisfies GameImpl<Types>;
-// #endregion impl
-
-export const game = defineGame({ spec, impl });
+});
+// #endregion game

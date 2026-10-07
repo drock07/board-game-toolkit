@@ -1,0 +1,61 @@
+---
+title: anyone
+description: Waits for the first answer from any of a set of players.
+sidebar:
+  order: 9
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+`anyone` is a race or an interruption: whoever grabs the coin first,
+anyone who wants to stack a +2, a player calling "Uno!". It waits on several
+players at once and ends at the first answer. You write
+`anyone(opts, ...actions)`.
+
+| Option    | Type                | Default      | What it is                                                  |
+| --------- | ------------------- | ------------ | ----------------------------------------------------------- |
+| `who`     | `(s) => PlayerId[]` | Every player | Who it waits on. Read whenever the engine asks who may act. |
+| `label`   | `string`            |              | What players are told it's waiting for. In `view.waiting`.  |
+| `actions` | handles             |              | The actions any of them may take.                           |
+
+## Demo
+
+A coin lands; whoever grabs it first scores.
+
+<Demo name="anyone" />
+
+## Who and legality
+
+`anyone` offers every action to everyone in `who`. Which of them may
+actually take which action is up to the actions themselves: their
+`validate` gets the `actor`, and returns a reason when that player can't.
+
+Plus Two's reaction window waits on everyone but the last stacker. Any of
+them may stack a +2 they hold; only the current victim may take the
+penalty:
+
+<Source file="games/plus-two/game.ts" region="window" />
+
+<Source file="games/plus-two/game.ts" region="accept" />
+
+This split keeps hands hidden. **Everyone in `who` is an actor**, in
+`actors()` and in `view.waiting`, whether or not they have a legal input
+right now. So decide `who` from public facts, never from hidden cards: a
+`who` of "players holding a +2" would tell the table who holds one.
+
+## Behavior
+
+- **First answer wins.** The first legal input from any of them ends the
+  `anyone`. Returning `{ exit: "name" }` raises an outcome instead.
+- **One entry in `view.waiting`**, with all of `who` as its `actors`.
+- **An empty `who` waits on no one.** It doesn't end: the flow is stuck
+  there, with no actors and no legal inputs. Make sure `who` can't be
+  empty, or skip the `anyone` with a `branch` when it would be.
+
+## See also
+
+- [everyone](/board-game-toolkit/reference/flow/everyone/): one answer
+  from each player instead of the first from any.
+- [Hidden information](/board-game-toolkit/guides/hidden-information/).
+- [Plus Two](/board-game-toolkit/examples/plus-two/).

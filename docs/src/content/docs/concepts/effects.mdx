@@ -1,0 +1,100 @@
+---
+title: Effects and abilities
+description: Effects are things that happen, in phases; abilities react to them, before or after, from a card or as a rule.
+sidebar:
+  order: 7
+---
+
+import Source from "../../../components/Source.astro";
+
+Card games are full of reactions: a Shield that blocks an attack, Thorns that
+strike back, a Bomb that goes off when it's drawn. You could write each one
+into every rule that might set it off, but then a card's rule lives in many
+places. **Effects** and **abilities** keep each card's rule on the card.
+
+- An **effect** is something that happens: an Attack, Damage, a card being
+  drawn. Rules code causes one with `tx.cause(effect, data)`.
+- An **ability** reacts to an effect, before it resolves or after. It's
+  carried by an entity while that entity is in a zone, or it's a game-wide
+  rule.
+
+<Source file="demos/effects.ts" region="game" />
+
+## Effects
+
+`effect<T>(name, { resolve?, to? })` declares an effect with data of type
+`T`:
+
+- **`resolve(tx, data)`** applies it, if it does anything itself.
+- **`to(data)`** lists the players who see it in their events; everyone does
+  when it's absent.
+
+An effect caused with `tx.cause(attack, { damage: 6 })` runs when the
+transaction that caused it ends, in three phases:
+
+1. **Before**: abilities `on: attack.before` run. They may change the data:
+   the Shield halves `damage`.
+2. **Resolve**: `resolve` runs with the data as it is now.
+3. **After**: abilities `on: attack` run.
+
+Each effect is also an `effect` event, logged when it's caused, so a UI can
+show it with `useGameEffect(g, attack, (data) => …)`. An effect is any custom
+event: one with no `resolve` and no abilities is just a typed, whisperable
+notification.
+
+Declare effects before `rules`: a game includes every effect declared on its
+core so far. Causing one declared later is a clear error.
+
+## Abilities
+
+An ability carried by entities:
+
+- **`of`**, **`in`**: the entity type, and the zone family it's live in. The
+  Shield works while it's in play, not in your hand.
+- **`where(self)`**: narrows which entities of the type carry it.
+- **`on`**: the effect, `effect.before` to react before it resolves, or
+  `"enters"` for when this entity arrives in its zone, by any route.
+- **`when(s, t)`**: whether it fires, from the state and what fired it.
+- **`then(t)`**: builds the handler, any flow node. It runs answered by the
+  entity's owner (the owner of the zone it's in), so it can be a `prompt`
+  that asks them. `t.self(s)`, `t.owner(s)` and `t.data(s)` read the running
+  ability's entity, owner and data. In a transaction, the data is live:
+  changes to it are kept, and the effect resolves with them.
+
+A **game-wide** ability leaves out `of` and `in`, and names who answers it
+with `who(s, data)`.
+
+## How reactions run
+
+- **One at a time.** When an event fires several abilities, they queue and
+  run in turn: by seat order from the current player, then in declaration
+  order. Each is checked again when its turn comes, so a Shield that's
+  already blocked the attack isn't asked again.
+- **Depth first.** A reaction that causes an effect nests: that effect's
+  abilities run inside it, before the next queued one. A chain more than 32
+  deep throws `AbilityLoopError`: an ability is probably triggering itself.
+- **On the fiber that caused it.** In a simultaneous round, a reaction pauses
+  only the fiber that caused it; the other players keep going. An ability
+  with `pause: "everyone"` holds every fiber while it runs.
+- **Through an outcome.** If a guard fires while reactions are running, they
+  finish first, and then the outcome's handler runs.
+
+## Keeping hidden cards hidden
+
+`actors()` and `view.waiting` say who the game is waiting on. An ability
+carried by a card in a **hidden** zone, like a Shield in your hand, reveals
+that you hold it the moment it asks you. To keep it secret, write the
+reaction as a game-wide ability that always asks the target, whether they
+hold a Shield or not, and check the hand in `validate`:
+
+- `who: (s, attack) => attack.target` asks the target every time.
+- Its prompt offers "block" (legal only with a Shield in hand) and "take".
+
+Either way, the rule stays in one place.
+
+## See also
+
+- The [effect and ability reference](/board-game-toolkit/reference/flow/effects/)
+  with a live demo.
+- [Card effects and reactions](/board-game-toolkit/guides/card-effects/): the
+  patterns, from a damage effect to a Bomb that goes off when drawn.

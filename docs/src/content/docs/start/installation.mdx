@@ -60,7 +60,7 @@ yarn add @drock07/board-game-toolkit-engine @drock07/board-game-toolkit-react
 </Tabs>
 
 Listing the engine as well lets you import from it directly, which you will:
-the builders, `defineGame` and the types all come from the engine.
+`define`, the handles, the node builders and the types all come from the engine.
 
 For rules, a server or tests without a UI, the engine alone is enough:
 
@@ -90,12 +90,13 @@ yarn add @drock07/board-game-toolkit-engine
 
 ## Entry points
 
-| Import                                       | Contents                                                                    |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| `@drock07/board-game-toolkit-engine`         | `defineGame`, `init`, `apply`, flow builders, views, dice, types.           |
-| `@drock07/board-game-toolkit-engine/testing` | `fuzz`, `playBots`, `simulate`, `record`, `hashState` and other test tools. |
-| `@drock07/board-game-toolkit-react`          | `useGame`, `useGameEvent`, `GameHost`.                                      |
-| `@drock07/board-game-toolkit-react/devtools` | `FlowGraph` and `FiberInspector`.                                           |
+| Import                                       | Contents                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| `@drock07/board-game-toolkit-engine`         | `define`, `entity`, `zone`, `init`, `apply`, views, saves, dice, types.   |
+| `@drock07/board-game-toolkit-engine/testing` | `fuzz`, `playBots`, `record`, `hashState` and other test tools.           |
+| `@drock07/board-game-toolkit-engine/kinds`   | What a custom node kind is written against: `Kind`, `defineNode`, `node`. |
+| `@drock07/board-game-toolkit-react`          | `useGame`, `useGameEvent`, `useGameEffect`, `GameHost`.                   |
+| `@drock07/board-game-toolkit-react/devtools` | `FlowGraph` and `FiberInspector`.                                         |
 
 The [Engine API](/board-game-toolkit/api/engine/readme/) and
 [React API](/board-game-toolkit/api/react/readme/) references list everything

@@ -1,363 +1,113 @@
-import { GameDefinitionError } from "./errors.js";
-import { checkExpr } from "./expr.js";
-import type { GameSpec } from "./spec.js";
+// Saving and loading. A spec is JSON already, and so is a state; these add a
+// format marker, and stamp a save with a hash of the spec so a state from an
+// incompatible build of the game fails clearly instead of deep in the flow.
+import { stableStringify } from "./json.js";
+import { apply, init, type InitOptions } from "./play.js";
+import { cyrb128 } from "./rng.js";
+import type { GameDef, Input, Spec, State } from "./types.js";
 
-/** Identifies spec JSON written by `toJSON`. */
 export const SPEC_FORMAT = "board-game-toolkit/spec";
-export const SPEC_FORMAT_VERSION = 1;
+export const SAVE_FORMAT = "board-game-toolkit/save";
+export const FORMAT_VERSION = 2;
 
-export interface SpecDocument {
-  format: typeof SPEC_FORMAT;
+/** Reading a spec or a save failed: not one, a newer format, or from another build of the game. */
+export class SaveError extends Error {
+  override name = "SaveError";
+}
+
+/** A short, stable hash of any JSON value. */
+export function hashJson(value: unknown): string {
+  return cyrb128(stableStringify(value))
+    .map((n) => n.toString(16).padStart(8, "0"))
+    .join("");
+}
+
+/**
+ * A hash of the game's spec: its zones, flow, abilities and effects by
+ * node id. A save only loads into a game with the same hash. Changes inside
+ * rules code (a step's body, an action's `execute`) don't change it.
+ */
+export function specHash<V>(game: GameDef<V>): string {
+  return hashJson(game.spec);
+}
+
+interface Document<T> {
+  format: string;
   formatVersion: number;
-  spec: GameSpec;
+  body: T;
 }
 
-/**
- * A spec as JSON text, ready to save, diff or load with `fromJSON`. Specs are
- * already plain data, so this is a wrapper with a format marker.
- */
-export function toJSON(spec: GameSpec): string {
-  const doc: SpecDocument = {
-    format: SPEC_FORMAT,
-    formatVersion: SPEC_FORMAT_VERSION,
-    spec,
-  };
-  return JSON.stringify(doc, null, 2) + "\n";
-}
-
-/**
- * Reads spec JSON written by `toJSON` and checks its shape. Pass the result
- * to `defineGame` with an impl, which checks refs and flow rules as usual.
- * Throws `GameDefinitionError` listing every problem, with its path.
- */
-export function fromJSON(text: string): GameSpec {
+function read<T>(text: string, format: string): T {
   let doc: unknown;
   try {
     doc = JSON.parse(text);
-  } catch (err) {
-    throw new GameDefinitionError(
-      `Spec JSON doesn't parse: ${(err as Error).message}`,
-    );
+  } catch (e) {
+    throw new SaveError(`Not JSON: ${(e as Error).message}`);
   }
-  if (!isObject(doc) || doc.format !== SPEC_FORMAT) {
-    throw new GameDefinitionError(
-      `Not a spec document: expected "format": "${SPEC_FORMAT}"`,
+  const d = doc as Partial<Document<T>> | null;
+  if (!d || typeof d !== "object" || d.format !== format)
+    throw new SaveError(`Not a ${format} document`);
+  if (d.formatVersion !== FORMAT_VERSION)
+    throw new SaveError(
+      `${format} version ${JSON.stringify(d.formatVersion)} isn't supported (this engine reads ${FORMAT_VERSION})`,
     );
-  }
-  if (doc.formatVersion !== SPEC_FORMAT_VERSION) {
-    throw new GameDefinitionError(
-      `Unsupported spec format version ${JSON.stringify(doc.formatVersion)} (this engine reads ${SPEC_FORMAT_VERSION})`,
-    );
-  }
-  const problems = checkSpecShape(doc.spec);
-  if (problems.length) {
-    throw new GameDefinitionError(
-      `Invalid spec JSON:\n  ${problems.join("\n  ")}`,
-    );
-  }
-  return doc.spec as GameSpec;
+  return d.body as T;
 }
 
-// ---------------------------------------------------------------------------
-// Shape checking. Each check pushes "path: problem" messages.
+const write = <T>(format: string, body: T): string =>
+  JSON.stringify({ format, formatVersion: FORMAT_VERSION, body }) + "\n";
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null && !Array.isArray(v);
-
-type Check = (v: unknown, at: string, out: string[]) => void;
-
-const str: Check = (v, at, out) => {
-  if (typeof v !== "string" || !v) out.push(`${at}: expected a string`);
-};
-const bool: Check = (v, at, out) => {
-  if (typeof v !== "boolean") out.push(`${at}: expected true or false`);
-};
-const int: Check = (v, at, out) => {
-  if (!Number.isInteger(v)) out.push(`${at}: expected a whole number`);
-};
-const oneOf =
-  (...values: string[]): Check =>
-  (v, at, out) => {
-    if (typeof v !== "string" || !values.includes(v))
-      out.push(
-        `${at}: expected one of ${values.map((x) => `"${x}"`).join(", ")}`,
-      );
-  };
-const ref: Check = (v, at, out) => {
-  if (!isObject(v) || typeof v.ref !== "string" || Object.keys(v).length !== 1)
-    out.push(`${at}: expected { ref: string }`);
-};
-const either =
-  (a: Check, b: Check, what: string): Check =>
-  (v, at, out) => {
-    const x: string[] = [];
-    a(v, at, x);
-    if (!x.length) return;
-    const y: string[] = [];
-    b(v, at, y);
-    if (y.length) out.push(`${at}: expected ${what}`);
-  };
-const record =
-  (each: Check): Check =>
-  (v, at, out) => {
-    if (!isObject(v)) {
-      out.push(`${at}: expected an object`);
-      return;
-    }
-    for (const [k, x] of Object.entries(v)) each(x, `${at}.${k}`, out);
-  };
-
-/** Checks an object's fields: required, optional, and no others. */
-function fields(
-  v: unknown,
-  at: string,
-  out: string[],
-  required: Record<string, Check>,
-  optional: Record<string, Check> = {},
-) {
-  if (!isObject(v)) {
-    out.push(`${at}: expected an object`);
-    return;
-  }
-  for (const [k, check] of Object.entries(required)) {
-    if (v[k] === undefined) out.push(`${at}: missing "${k}"`);
-    else check(v[k], `${at}.${k}`, out);
-  }
-  for (const [k, x] of Object.entries(v)) {
-    if (k in required || x === undefined) continue;
-    const check = optional[k];
-    if (check) check(x, `${at}.${k}`, out);
-    else out.push(`${at}: unknown field "${k}"`);
-  }
+/** The spec as a JSON document, for tools that draw or diff a game. It can't run without its rules code. */
+export function toJSON(spec: Spec): string {
+  return write(SPEC_FORMAT, spec);
 }
 
-function checkSpecShape(spec: unknown): string[] {
-  const out: string[] = [];
-  if (!isObject(spec)) return ["spec: expected an object"];
-  const zones = isObject(spec.zones) ? spec.zones : {};
-  const vars = isObject(spec.vars) ? spec.vars : undefined;
-
-  const cond: Check = (v, at, o) => {
-    if (typeof v === "string") return;
-    o.push(
-      ...checkExpr(v, at, {
-        zones: zones as never,
-        ...(vars && { vars: vars as never }),
-      }),
-    );
-  };
-  const actor: Check = either(
-    oneOf("current", "any"),
-    either(str, ref, "a player id or { ref }"),
-    `"current", "any", a player id or { ref }`,
-  );
-  const node: Check = (v, at, o) => {
-    if (!isObject(v)) {
-      o.push(`${at}: expected a flow node`);
-      return;
-    }
-    const common = {
-      locals: str,
-      exits: record(cond),
-      on: record(node),
-    };
-    const req = { kind: str, id: str };
-    const kind = v.kind;
-    const opt = (extra: Record<string, Check>) => ({ ...common, ...extra });
-    switch (kind) {
-      case "seq":
-        fields(v, at, o, { ...req, children: list(node) }, common);
-        break;
-      case "parallel":
-        fields(
-          v,
-          at,
-          o,
-          { ...req, children: list(node), join: oneOf("all", "race") },
-          common,
-        );
-        break;
-      case "loop":
-        fields(
-          v,
-          at,
-          o,
-          { ...req, body: node },
-          opt({ until: cond, while: cond, times: int }),
-        );
-        break;
-      case "each":
-        fields(
-          v,
-          at,
-          o,
-          { ...req, over: over, body: node },
-          opt({
-            mode: oneOf("sequential", "parallel"),
-            until: cond,
-            repeat: bool,
-          }),
-        );
-        break;
-      case "branch":
-        fields(
-          v,
-          at,
-          o,
-          {
-            ...req,
-            cases: list((c, a, x) =>
-              fields(c, a, x, { when: cond, then: node }),
-            ),
-          },
-          opt({ else: node }),
-        );
-        break;
-      case "step":
-        fields(v, at, o, { ...req, run: str }, common);
-        break;
-      case "decision":
-        fields(
-          v,
-          at,
-          o,
-          {
-            ...req,
-            actor,
-            actions: record((a, p, x) =>
-              fields(a, p, x, {}, { ends: bool, then: node }),
-            ),
-          },
-          opt({ endWhen: cond }),
-        );
-        break;
-      case "choose":
-        fields(
-          v,
-          at,
-          o,
-          {
-            ...req,
-            actor,
-            options: either(
-              str,
-              list(() => {}),
-              "a list name or an array",
-            ),
-            apply: str,
-          },
-          opt({ min: int, max: int }),
-        );
-        break;
-      case "pause":
-        fields(v, at, o, req, opt({ actor, label: str }));
-        break;
-      case "exit":
-        fields(v, at, o, { ...req, outcome: str }, common);
-        break;
-      case "use":
-        fields(v, at, o, { ...req, subflow: str }, common);
-        break;
-      default:
-        // A custom kind (see `defineGame`'s `kinds`): only its id is checked here
-        str(v.id, `${at}.id`, o);
-        str(kind, `${at}.kind`, o);
-    }
-  };
-  const over: Check = (v, at, o) => {
-    if (isObject(v) && "ref" in v) ref(v, at, o);
-    else
-      fields(
-        v,
-        at,
-        o,
-        { players: oneOf("clockwise", "counterclockwise") },
-        {
-          from: either(
-            oneOf("first", "random"),
-            ref,
-            `"first", "random" or { ref }`,
-          ),
-        },
-      );
-  };
-  const zone: Check = (v, at, o) =>
-    fields(
-      v,
-      at,
-      o,
-      {
-        visibility: either(
-          oneOf("public", "hidden", "owner", "top"),
-          ref,
-          `"public", "hidden", "owner", "top" or { ref }`,
-        ),
-      },
-      {
-        perPlayer: bool,
-        count: either(int, ref, "a whole number or { ref }"),
-        ordered: bool,
-        revealType: bool,
-      },
-    );
-  const pattern: Check = (v, at, o) => {
-    const type = isObject(v) ? v.type : undefined;
-    if (type === "moved")
-      fields(v, at, o, { type: str }, { from: str, to: str, entityType: str });
-    else if (type === "created" || type === "destroyed" || type === "flipped")
-      fields(v, at, o, { type: str }, { entityType: str });
-    else if (type === "custom") fields(v, at, o, { type: str, name: str });
-    else if (type === "flow")
-      fields(v, at, o, { type: str, kind: oneOf("enter", "exit"), node: str });
-    else
-      o.push(
-        `${at}: expected an event pattern (moved, created, destroyed, flipped, custom or flow)`,
-      );
-  };
-  const trigger: Check = (v, at, o) =>
-    fields(
-      v,
-      at,
-      o,
-      { id: str, on: pattern, flow: node },
-      { when: cond, priority: int },
-    );
-
-  fields(
-    spec,
-    "spec",
-    out,
-    {
-      id: str,
-      version: int,
-      players: (v, at, o) => fields(v, at, o, { min: int, max: int }),
-      zones: record(zone),
-      flow: node,
-    },
-    {
-      vars: record((v, at, o) =>
-        fields(
-          v,
-          at,
-          o,
-          {},
-          { visibility: oneOf("public", "hidden", "owner") },
-        ),
-      ),
-      subflows: record(node),
-      triggers: list(trigger),
-      triggerOrder: oneOf("fifo", "lifo"),
-    },
-  );
-  return out;
+/** Reads a spec written by `toJSON`. */
+export function fromJSON(text: string): Spec {
+  const spec = read<Spec>(text, SPEC_FORMAT);
+  if (!spec || typeof spec !== "object" || !spec.flow || !spec.zones)
+    throw new SaveError("The document has no spec");
+  return spec;
 }
 
-function list(each: Check): Check {
-  return (v, at, out) => {
-    if (!Array.isArray(v)) {
-      out.push(`${at}: expected an array`);
-      return;
-    }
-    v.forEach((x, i) => each(x, `${at}[${i}]`, out));
-  };
+interface Save<V> {
+  spec: string;
+  state: State<V>;
+}
+
+/** A state as a JSON document, stamped with the game's spec hash. */
+export function save<V>(game: GameDef<V>, state: State<V>): string {
+  return write<Save<V>>(SAVE_FORMAT, { spec: specHash(game), state });
+}
+
+/** Reads a save written by `save` for this game. */
+export function load<V>(game: GameDef<V>, text: string): State<V> {
+  const body = read<Save<V>>(text, SAVE_FORMAT);
+  if (body?.spec !== specHash(game))
+    throw new SaveError(
+      "This save is from a different version of the game (its spec hash doesn't match)",
+    );
+  return body.state;
+}
+
+/**
+ * Plays `inputs` from the start, as a host would to rebuild a game from its
+ * log. Every input must be legal; the first that isn't throws a `SaveError`
+ * with its index and reason.
+ */
+export function replayInputs<V>(
+  game: GameDef<V>,
+  opts: InitOptions,
+  inputs: readonly Input[],
+): State<V> {
+  let s = init(game, opts);
+  inputs.forEach((input, i) => {
+    const out = apply(game, s, input);
+    if (!out.ok)
+      throw new SaveError(
+        `Input ${i} (${input.action} by ${input.player}) was rejected: ${out.reason}`,
+      );
+    s = out.state;
+  });
+  return s;
 }

@@ -1,70 +1,109 @@
-// A sketch of an authoritative game room, for the "Running on a server" guide.
-// Transport-free: `onSend` stands in for a WebSocket, HTTP response or similar.
+// The server guide's room: the engine running on a server, sending each
+// client only its own view and events. No network here: `send` stands in
+// for whatever transport you use, and the test plays the clients.
 import {
   apply,
   init,
   legalInputs,
+  replayInputs,
   view,
   viewEvents,
-  type AnyTypes,
   type Game,
-  type GameEvent,
-  type GameTypes,
-  type Input,
+  type InputOf,
   type PlayerId,
-  type PlayerView,
-  type ReadonlyGameState,
+  type State,
+  type View,
+  type ViewEvent,
 } from "@drock07/board-game-toolkit-engine";
 
-// #region room
-/** What the room sends a client: their view, their events since the last update, and their legal inputs. */
-export interface Update<T extends GameTypes = AnyTypes> {
-  view: PlayerView<T>;
-  events: GameEvent<T>[];
-  /** Listing moves needs the full state, so the server does it. */
-  legal: Input[];
-}
+// #region messages
+/** What the server sends a client. */
+export type ServerMessage<V, I> =
+  /** On joining or reconnecting: the whole view, and what they may do. */
+  | { type: "welcome"; view: View<V>; legal: I[] }
+  /** After each input: their share of its events, and what they may do now. */
+  | { type: "update"; events: ViewEvent<V>[]; legal: I[] }
+  /** Their input was refused. */
+  | { type: "rejected"; reason: string };
+// #endregion messages
 
-/** One game on the server. The full state never leaves this object. */
-export class GameRoom<T extends GameTypes = AnyTypes> {
-  private state: ReadonlyGameState<T>;
-  /** Every accepted input: with the seed, a complete record of the game. */
-  readonly inputs: Input[] = [];
-  onSend: (player: PlayerId, update: Update<T>) => void = () => {};
+/** Picks an input from a seat's legal ones, on the server. */
+export type ServerBot<I> = (legal: readonly I[]) => I;
+
+// #region room
+export class Room<V, H> {
+  private state: State<V>;
+  /** The game's log: replaying it from the seed rebuilds the state. */
+  readonly inputs: InputOf<H>[] = [];
 
   constructor(
-    private readonly game: Game<T>,
-    private readonly players: PlayerId[],
+    private readonly game: Game<V, H>,
+    readonly players: PlayerId[],
     readonly seed: string,
+    private readonly send: (
+      to: PlayerId,
+      message: ServerMessage<V, InputOf<H>>,
+    ) => void,
+    private readonly bots: Record<PlayerId, ServerBot<InputOf<H>>> = {},
   ) {
-    this.state = init(game, { players, seed }).state;
+    this.state = init(game, { players, seed });
   }
 
-  /** A player's current view, e.g. when they connect or reconnect. */
-  viewFor(player: PlayerId): PlayerView<T> {
-    return view(this.game, this.state, player);
+  /** A client connected (or reconnected) as `player`. */
+  join(player: PlayerId): void {
+    this.send(player, {
+      type: "welcome",
+      view: view(this.game, this.state, player),
+      legal: legalInputs(this.game, this.state, player),
+    });
   }
 
-  /**
-   * Handles an input from an authenticated connection. Returns an error
-   * message for the client, or undefined once every player has been updated.
-   */
-  receive(from: PlayerId, input: Input): string | undefined {
-    // The connection decides who the player is, never the message
-    if (input.player !== from) return "You can only act for yourself";
-    const before = this.state;
-    const res = apply(this.game, before, input);
-    if (!res.ok) return res.error.message;
-    this.state = res.state;
+  /** A client sent an input. `sender` comes from the connection, never the message. */
+  receive(sender: PlayerId, input: InputOf<H>): void {
+    if (input.player !== sender)
+      return this.send(sender, { type: "rejected", reason: "Not your seat" });
+    const reason = this.play(input);
+    if (reason) this.send(sender, { type: "rejected", reason });
+    this.runBots();
+  }
+
+  /** Applies an input and sends every player their share of what happened. */
+  private play(input: InputOf<H>): string | undefined {
+    const out = apply(this.game, this.state, input);
+    if (!out.ok) return out.reason;
+    this.state = out.state;
     this.inputs.push(input);
-    for (const player of this.players) {
-      this.onSend(player, {
-        view: view(this.game, res.state, player),
-        events: viewEvents(this.game, before, res.events, player),
-        legal: legalInputs(this.game, res.state, player),
+    for (const p of this.players) {
+      this.send(p, {
+        type: "update",
+        events: viewEvents(this.game, out.events, p),
+        legal: legalInputs(this.game, this.state, p),
       });
     }
     return undefined;
+  }
+
+  /** Bot seats answer on the server, like any client, until a person must act. */
+  private runBots(): void {
+    for (let moved = true; moved && this.state.status === "running"; ) {
+      moved = false;
+      for (const [p, bot] of Object.entries(this.bots)) {
+        const legal = legalInputs(this.game, this.state, p);
+        if (legal.length && !this.play(bot(legal))) moved = true;
+      }
+    }
+  }
+
+  /** Rebuilds a room from its stored log, e.g. after the server restarts. */
+  static restore<V, H>(
+    game: Game<V, H>,
+    log: { players: PlayerId[]; seed: string; inputs: InputOf<H>[] },
+    send: (to: PlayerId, message: ServerMessage<V, InputOf<H>>) => void,
+  ): Room<V, H> {
+    const room = new Room(game, log.players, log.seed, send);
+    room.state = replayInputs(game, log, log.inputs);
+    room.inputs.push(...log.inputs);
+    return room;
   }
 }
 // #endregion room

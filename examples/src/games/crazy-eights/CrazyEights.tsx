@@ -4,6 +4,7 @@ import { GameFrame } from "../../site/GameFrame";
 import { NAMES, useCrazyEightsTable } from "./Table";
 
 export default function CrazyEights() {
+  // #region host
   const g = useGame(crazyEights, {
     players: [
       "p1",
@@ -11,6 +12,7 @@ export default function CrazyEights() {
       { id: "p3", controller: simpleBot },
     ],
   });
+  // #endregion host
   const { stats, table, actions } = useCrazyEightsTable(g);
   return (
     <GameFrame

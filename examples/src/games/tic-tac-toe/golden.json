@@ -6,7 +6,6 @@
   "seed": "golden",
   "inputs": [
     {
-      "prompt": "q1",
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -14,60 +13,6 @@
       }
     },
     {
-      "prompt": "q2",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 8
-      }
-    },
-    {
-      "prompt": "q3",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 0
-      }
-    },
-    {
-      "prompt": "q4",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 6
-      }
-    },
-    {
-      "prompt": "q5",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 2
-      }
-    },
-    {
-      "prompt": "q6",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 7
-      }
-    },
-    {
-      "prompt": "q7",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q8",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 2
-      }
-    },
-    {
-      "prompt": "q9",
       "player": "p1",
       "action": "placeMark",
       "args": {
@@ -75,39 +20,20 @@
       }
     },
     {
-      "prompt": "q10",
       "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 0
-      }
-    },
-    {
-      "prompt": "q11",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 1
-      }
-    },
-    {
-      "prompt": "q12",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 7
-      }
-    },
-    {
-      "prompt": "q13",
-      "player": "p1",
       "action": "placeMark",
       "args": {
         "index": 6
       }
     },
     {
-      "prompt": "q14",
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 8
+      }
+    },
+    {
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -115,15 +41,31 @@
       }
     },
     {
-      "prompt": "q15",
       "player": "p1",
       "action": "placeMark",
       "args": {
-        "index": 5
+        "index": 0
       }
     },
     {
-      "prompt": "q16",
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 4
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 2
+      }
+    },
+    {
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -131,121 +73,13 @@
       }
     },
     {
-      "prompt": "q17",
       "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q18",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 1
-      }
-    },
-    {
-      "prompt": "q19",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 7
-      }
-    },
-    {
-      "prompt": "q20",
-      "player": "p2",
       "action": "placeMark",
       "args": {
         "index": 0
       }
     },
     {
-      "prompt": "q21",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 2
-      }
-    },
-    {
-      "prompt": "q22",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 8
-      }
-    },
-    {
-      "prompt": "q23",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 4
-      }
-    },
-    {
-      "prompt": "q24",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 5
-      }
-    },
-    {
-      "prompt": "q25",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 6
-      }
-    },
-    {
-      "prompt": "q26",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q27",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 3
-      }
-    },
-    {
-      "prompt": "q28",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 1
-      }
-    },
-    {
-      "prompt": "q29",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 4
-      }
-    },
-    {
-      "prompt": "q30",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 5
-      }
-    },
-    {
-      "prompt": "q31",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 6
-      }
-    },
-    {
-      "prompt": "q32",
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -253,28 +87,24 @@
       }
     },
     {
-      "prompt": "q33",
       "player": "p1",
       "action": "placeMark",
       "args": {
-        "index": 2
+        "index": 1
       }
     },
     {
-      "prompt": "q34",
       "player": "p1",
-      "continue": true
+      "action": "again"
     },
     {
-      "prompt": "q35",
       "player": "p2",
       "action": "placeMark",
       "args": {
-        "index": 0
+        "index": 6
       }
     },
     {
-      "prompt": "q36",
       "player": "p1",
       "action": "placeMark",
       "args": {
@@ -282,7 +112,6 @@
       }
     },
     {
-      "prompt": "q37",
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -290,15 +119,13 @@
       }
     },
     {
-      "prompt": "q38",
       "player": "p1",
       "action": "placeMark",
       "args": {
-        "index": 2
+        "index": 0
       }
     },
     {
-      "prompt": "q39",
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -306,60 +133,6 @@
       }
     },
     {
-      "prompt": "q40",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 6
-      }
-    },
-    {
-      "prompt": "q41",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q42",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 1
-      }
-    },
-    {
-      "prompt": "q43",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 2
-      }
-    },
-    {
-      "prompt": "q44",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 4
-      }
-    },
-    {
-      "prompt": "q45",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 7
-      }
-    },
-    {
-      "prompt": "q46",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 0
-      }
-    },
-    {
-      "prompt": "q47",
       "player": "p1",
       "action": "placeMark",
       "args": {
@@ -367,68 +140,10 @@
       }
     },
     {
-      "prompt": "q48",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 5
-      }
-    },
-    {
-      "prompt": "q49",
       "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 6
-      }
+      "action": "again"
     },
     {
-      "prompt": "q50",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q51",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 7
-      }
-    },
-    {
-      "prompt": "q52",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 8
-      }
-    },
-    {
-      "prompt": "q53",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 0
-      }
-    },
-    {
-      "prompt": "q54",
-      "player": "p1",
-      "action": "placeMark",
-      "args": {
-        "index": 1
-      }
-    },
-    {
-      "prompt": "q55",
-      "player": "p2",
-      "action": "placeMark",
-      "args": {
-        "index": 2
-      }
-    },
-    {
-      "prompt": "q56",
       "player": "p1",
       "action": "placeMark",
       "args": {
@@ -436,7 +151,52 @@
       }
     },
     {
-      "prompt": "q57",
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 7
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 2
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 8
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 6
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 7
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 6
+      }
+    },
+    {
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -444,15 +204,27 @@
       }
     },
     {
-      "prompt": "q58",
       "player": "p1",
       "action": "placeMark",
       "args": {
-        "index": 6
+        "index": 1
       }
     },
     {
-      "prompt": "q59",
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 8
+      }
+    },
+    {
       "player": "p2",
       "action": "placeMark",
       "args": {
@@ -460,10 +232,178 @@
       }
     },
     {
-      "prompt": "q60",
       "player": "p1",
-      "continue": true
+      "action": "placeMark",
+      "args": {
+        "index": 4
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 5
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 8
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 4
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 3
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 2
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 6
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 7
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 1
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 2
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 6
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 4
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 0
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 3
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 5
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 7
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 8
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 5
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 8
+      }
+    },
+    {
+      "player": "p1",
+      "action": "placeMark",
+      "args": {
+        "index": 4
+      }
+    },
+    {
+      "player": "p2",
+      "action": "placeMark",
+      "args": {
+        "index": 0
+      }
     }
   ],
-  "finalStateHash": "30d7fa5f639b3c7163fd055c59b32c64"
+  "finalStateHash": "de290ed4deca1e5c4e51e40bbef9494a"
 }

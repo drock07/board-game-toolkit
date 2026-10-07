@@ -9,5 +9,5 @@ test.each(Object.entries(demos))("the %s demo fuzzes clean", (_, demo) => {
     players: demo.players,
   });
   expect(report.failures).toEqual([]);
-  expect(report.warnings).toEqual([]);
+  expect(report.inputs).toBeGreaterThan(30);
 });

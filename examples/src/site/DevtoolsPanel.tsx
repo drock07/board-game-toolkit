@@ -1,7 +1,8 @@
-import type { Game, GameState } from "@drock07/board-game-toolkit-engine";
+import type { State } from "@drock07/board-game-toolkit-engine";
 import {
   FiberInspector,
   FlowGraph,
+  type GraphGame,
 } from "@drock07/board-game-toolkit-react/devtools";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/20/solid";
@@ -12,12 +13,14 @@ import { XMarkIcon } from "@heroicons/react/20/solid";
  */
 export function DevtoolsPanel({
   onClose,
+  title,
   game,
   state,
 }: {
   onClose: () => void;
-  game: Game;
-  state: GameState;
+  title: string;
+  game: GraphGame;
+  state: State<unknown>;
 }) {
   return (
     <section
@@ -26,9 +29,7 @@ export function DevtoolsPanel({
     >
       <TabGroup className="flex min-h-0 flex-1 flex-col">
         <div className="flex h-12 shrink-0 items-stretch gap-5 border-b border-line px-5">
-          <h2 className="flex items-center eyebrow">
-            Devtools · {game.spec.id}
-          </h2>
+          <h2 className="flex items-center eyebrow">Devtools · {title}</h2>
           <TabList className="flex items-stretch gap-5">
             {["Flow graph", "Fibers"].map((t) => (
               <Tab
@@ -50,10 +51,10 @@ export function DevtoolsPanel({
         </div>
         <TabPanels className="min-h-0 flex-1 overflow-auto bg-page p-5">
           <TabPanel className="focus:outline-none">
-            <FlowGraph game={game} flow={state.flow} />
+            <FlowGraph game={game} state={state} />
           </TabPanel>
           <TabPanel className="max-w-4xl focus:outline-none">
-            <FiberInspector flow={state.flow} />
+            <FiberInspector game={game} state={state} />
           </TabPanel>
         </TabPanels>
       </TabGroup>

@@ -1,6 +1,6 @@
 ---
 title: Roll Five
-description: "Thirteen rounds of rolling and holding five dice. Shows locals that reset each round and a decision that stays open."
+description: "Thirteen rounds of rolling and holding five dice. Shows a turn that stays open across rolls, with per-action limits and counts the UI reads."
 tableOfContents: false
 sidebar:
   order: 5
@@ -16,25 +16,45 @@ them in one of thirteen categories.
 
 ## How it works
 
-**The rounds are a `loop` with `times: 13`.** Each round is one decision with
-three actions. `roll` and `toggleHold` set `ends: false`; `score` ends the
-turn.
+**The dice are vars.** Five dice and which are held don't move between places
+or hide, so they're data, cleared when you score. Nothing in vars counts your
+rolls; the turn does that.
 
-<Source file="games/roll-five/spec.ts" />
+<Source file="games/roll-five/game.ts" region="types" />
 
-**The dice live in the decision's locals.** `locals: "freshDice"` names a
-function that builds the node's state each time the node is entered, so every
-round starts with fresh dice and nothing needs resetting. Actions read and
-write them with `tx.local("turn")`. See
-[State: entities, zones and vars](/board-game-toolkit/concepts/state/).
+**Each round is one `turn` node.** It holds a single prompt open across
+several answers:
 
-<Source file="games/roll-five/impl.ts" region="locals" />
+<Source file="games/roll-five/game.ts" region="turn" />
+
+- **`limits: { roll: MAX_ROLLS }`**: `roll` stops being offered after three.
+- **`first: ["roll"]`**: rolling is the only way to start a turn.
+- **`score`** returns `"end"`, which closes the turn. `roll` and `toggleHold`
+  return nothing, so the turn waits for the next answer.
+
+The rounds are `turns({ rounds: CATEGORIES.length }, …)`, thirteen passes for
+one player, inside a session loop that clears the sheet and waits on "Play
+again". See [`turn`](/board-game-toolkit/reference/flow/turn/).
 
 **The dice come from the seeded RNG.** `tx.random.roll(D6)` draws from the
-RNG stored in state, so replaying the same seed and inputs rolls the same
-numbers. See [Determinism and replays](/board-game-toolkit/concepts/determinism/).
+generator stored in the state, so the same seed and inputs roll the same
+numbers. Held dice keep their faces. See
+[Dice](/board-game-toolkit/guides/dice/).
 
-<Source file="games/roll-five/impl.ts" region="roll" />
+<Source file="games/roll-five/game.ts" region="roll" />
+
+**Rules read the turn's counts too.** The turn keeps how many times each
+action was taken in its own frame and publishes them as what it shows.
+`toggleHold` reads them with `turnNode.shown(s)`: after the last roll,
+holding a die would change nothing, so it isn't legal.
+
+<Source file="games/roll-five/game.ts" region="hold" />
+
+**The UI reads the same counts.** `turnNode.shown(g.view)` gives the page the
+roll count for "Roll 2/3". It's `undefined` between games, when no turn is
+running. See [What nodes show](/board-game-toolkit/reference/flow/shown/).
+
+<Source file="games/roll-five/RollFive.tsx" region="shown" />
 
 ## Source
 

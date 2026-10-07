@@ -1,45 +1,37 @@
 import {
   apply,
   init,
-  replay,
-  type ApplyResult,
-  type Input,
-  type Prompt,
+  legalInputs,
+  replayInputs,
+  view,
+  type GameInput,
+  type State,
 } from "@drock07/board-game-toolkit-engine";
-import { hashState, record } from "@drock07/board-game-toolkit-engine/testing";
+import {
+  applyOrThrow,
+  hashState,
+  playBots,
+  type SyncBot,
+} from "@drock07/board-game-toolkit-engine/testing";
 import { describe, expect, test } from "vitest";
-import { blackjack } from ".";
-import { handTotal, type Types } from "./impl";
+import { blackjack, hit, next, placeBet, stand } from ".";
+import type { PlayingCard } from "../shared/cards";
+import { dealer, handTotal, player, shoe, type Vars } from "./game";
 
-type Result = ApplyResult<Types>;
+type S = State<Vars>;
 
-function ok(res: ReturnType<typeof apply<Types>>): Result {
-  if (!res.ok) throw new Error(`${res.error.code}: ${res.error.message}`);
-  return res;
-}
-
-const prompt = (r: Result): Prompt => r.prompts[0]!;
-const input = (r: Result, rest: Partial<Input>): Input =>
-  ({ prompt: prompt(r).id, player: "p1", ...rest }) as Input;
-const cards = (r: Result, zone: "player" | "dealer") =>
-  r.state.zones[zone].items.map((id) => r.state.entities[id]!.props);
-
-function start(seed: string) {
-  return init(blackjack, { players: ["p1"], seed });
-}
-
-function bet(r: Result, amount: number) {
-  return ok(
-    apply(
-      blackjack,
-      r.state,
-      input(r, { action: "placeBet", args: { amount } }),
-    ),
-  );
-}
+const players = ["p1"];
+const start = (seed: string) => init(blackjack, { players, seed });
+/** What the game waits on, by its prompt's label. */
+const waiting = (s: S) => view(blackjack, s, "p1").waiting[0]?.label;
+/** A hand's cards in deal order (zones list the top first). */
+const cards = (s: S, zone: typeof player) =>
+  s.zones[zone.id]!.map((id) => s.entities[id]!.props as PlayingCard);
+const bet = (s: S, amount: number) =>
+  applyOrThrow(blackjack, s, placeBet.by("p1", { amount }));
 
 /** The first seed (from a fixed list) whose first hand matches `pred` after betting. */
-function findSeed(pred: (r: Result) => boolean, amount = 10): string {
+function findSeed(pred: (s: S) => boolean, amount = 10): string {
   for (let i = 0; i < 2000; i++) {
     const seed = `bj-${i}`;
     if (pred(bet(start(seed), amount))) return seed;
@@ -49,86 +41,64 @@ function findSeed(pred: (r: Result) => boolean, amount = 10): string {
 
 describe("blackjack", () => {
   test("starts by asking p1 to bet", () => {
-    const r = start("a");
-    expect(r.state.vars).toEqual({ bankroll: 100, bet: 0, result: null });
-    expect(r.prompts).toMatchObject([
-      { node: "bet", actors: ["p1"], actions: [{ name: "placeBet" }] },
-    ]);
-    expect(r.state.zones.shoe.items).toHaveLength(52);
+    const s = start("a");
+    expect(s.vars).toEqual({ bankroll: 100, bet: 0, result: null });
+    expect(waiting(s)).toBe("Place a bet");
+    expect(
+      new Set(legalInputs(blackjack, s, "p1").map((i) => i.action)),
+    ).toEqual(new Set(["placeBet"]));
+    expect(s.zones[shoe.id]).toHaveLength(52);
   });
 
   test("rejects bets outside the bankroll", () => {
-    const r = start("a");
+    const s = start("a");
     for (const amount of [0, 101, 2.5]) {
-      expect(
-        apply(
-          blackjack,
-          r.state,
-          input(r, { action: "placeBet", args: { amount } }),
-        ),
-      ).toMatchObject({
+      expect(apply(blackjack, s, placeBet.by("p1", { amount }))).toEqual({
         ok: false,
-        error: {
-          code: "validation_failed",
-          message: "Bet a whole amount from 1 to 100",
-        },
+        reason: "Bet a whole amount from 1 to 100",
       });
     }
   });
 
   test("deals two cards each, with the dealer's second face down", () => {
-    const r = bet(start("a"), 10);
-    expect(r.state.vars.bankroll).toBe(90);
-    expect(cards(r, "player")).toHaveLength(2);
-    const dealer = r.state.zones.dealer.items.map(
-      (id) => r.state.entities[id]!,
-    );
-    expect(dealer.map((e) => e.faceUp)).toEqual([undefined, false]);
+    const s = bet(start("a"), 10);
+    expect(s.vars.bankroll).toBe(90);
+    expect(cards(s, player)).toHaveLength(2);
+    const dealt = s.zones[dealer.id]!.map((id) => s.entities[id]!);
+    expect(dealt.map((e) => e.faceUp)).toEqual([undefined, false]);
+    // The view hides the hole card even though the dealer's zone is public
+    const v = view(blackjack, s, "p1");
+    const [up, hole] = v.zones[dealer.id]!;
+    expect(v.entities[hole!]).toMatchObject({ hidden: true });
+    expect(v.entities[up!]).toMatchObject({ type: "card" });
   });
 
   test("a natural ends play before any input (guard on entry)", () => {
     const seed = findSeed(
-      (r) =>
-        r.state.vars.result !== null &&
-        cards(r, "player").length === 2 &&
-        handTotal(cards(r, "player")) === 21,
+      (s) => s.vars.result !== null && cards(s, player).length === 2,
     );
-    const r = bet(start(seed), 10);
-    expect(prompt(r).node).toBe("next");
-    expect(["blackjack", "push"]).toContain(r.state.vars.result);
-    expect(
-      r.events.some((e) => e.type === "flow" && e.node === "playerTurn"),
-    ).toBe(false);
+    const s = bet(start(seed), 10);
+    expect(handTotal(cards(s, player))).toBe(21);
+    expect(waiting(s)).toBe("Deal again");
+    expect(["blackjack", "push"]).toContain(s.vars.result);
     // The hole card is revealed at settle
     expect(
-      r.state.zones.dealer.items.every(
-        (id) => r.state.entities[id]!.faceUp !== false,
-      ),
+      s.zones[dealer.id]!.every((id) => s.entities[id]!.faceUp !== false),
     ).toBe(true);
   });
 
-  test("hitting to 21 ends the turn (endWhen); busting skips the dealer (guard)", () => {
+  test("hitting to 21 ends the turn (until); busting skips the dealer (guard)", () => {
     let busted = false;
     for (let i = 0; i < 200 && !busted; i++) {
-      let r = bet(start(`hit-${i}`), 10);
-      while (prompt(r).node === "playerTurn") {
-        r = ok(apply(blackjack, r.state, input(r, { action: "hit" })));
-      }
-      const total = handTotal(cards(r, "player"));
-      expect(prompt(r).node).toBe("next");
+      let s = bet(start(`hit-${i}`), 10);
+      while (waiting(s) === "Hit or stand")
+        s = applyOrThrow(blackjack, s, hit.by("p1"));
+      const total = handTotal(cards(s, player));
+      expect(waiting(s)).toBe("Deal again");
       if (total > 21) {
         busted = true;
-        expect(r.state.vars.result).toBe("lose");
-        expect(cards(r, "dealer")).toHaveLength(2); // the dealer never drew
-        expect(
-          r.events.some(
-            (e) =>
-              e.type === "flow" &&
-              e.kind === "exit" &&
-              e.node === "play" &&
-              e.outcome === "bust",
-          ),
-        ).toBe(true);
+        expect(s.vars.result).toBe("lose");
+        expect(cards(s, dealer)).toHaveLength(2); // the dealer never drew
       } else {
         expect(total).toBe(21);
       }
@@ -137,62 +107,68 @@ describe("blackjack", () => {
   });
 
   test("standing lets the dealer draw to 17 and settles the bet", () => {
-    let r = bet(start("stand"), 10);
-    if (prompt(r).node === "playerTurn")
-      r = ok(apply(blackjack, r.state, input(r, { action: "stand" })));
-    expect(handTotal(cards(r, "dealer"))).toBeGreaterThanOrEqual(17);
+    let s = bet(start("stand"), 10);
+    if (waiting(s) === "Hit or stand")
+      s = applyOrThrow(blackjack, s, stand.by("p1"));
+    expect(handTotal(cards(s, dealer))).toBeGreaterThanOrEqual(17);
     const payout = { win: 20, push: 10, blackjack: 25, lose: 0 }[
-      r.state.vars.result!
+      s.vars.result!
     ];
-    expect(r.state.vars.bankroll).toBe(90 + payout);
+    expect(s.vars.bankroll).toBe(90 + payout);
   });
 
   test("going broke resets the bankroll and offers a new game", () => {
-    const seed = findSeed((r) => {
-      let x = r;
-      if (prompt(x).node === "playerTurn")
-        x = ok(apply(blackjack, x.state, input(x, { action: "stand" })));
-      return x.state.vars.result === "lose";
-    }, 100);
-    let r = bet(start(seed), 100);
-    if (prompt(r).node === "playerTurn")
-      r = ok(apply(blackjack, r.state, input(r, { action: "stand" })));
-    expect(prompt(r)).toMatchObject({
-      node: "over",
-      kind: "pause",
-      label: "Play again",
-    });
-    expect(r.state.vars.bankroll).toBe(1000);
-    r = ok(apply(blackjack, r.state, input(r, { continue: true })));
-    expect(prompt(r).node).toBe("bet");
-    expect(r.state.zones.shoe.items).toHaveLength(52);
+    const standIfAsked = (s: S) =>
+      waiting(s) === "Hit or stand"
+        ? applyOrThrow(blackjack, s, stand.by("p1"))
+        : s;
+    const seed = findSeed((s) => standIfAsked(s).vars.result === "lose", 100);
+    let s = standIfAsked(bet(start(seed), 100));
+    expect(view(blackjack, s, "p1").waiting).toEqual([
+      { label: "Play again", actors: ["p1"] },
+    ]);
+    expect(s.vars.bankroll).toBe(1000);
+    s = applyOrThrow(blackjack, s, next.by("p1"));
+    expect(waiting(s)).toBe("Place a bet");
+    expect(s.zones[shoe.id]).toHaveLength(52);
   });
 });
 
 /** A simple strategy: bet 10, hit below 17, then deal again. */
-function strategy(r: Result): Input | undefined {
-  const p = prompt(r);
-  if (p.node === "bet")
-    return input(r, {
-      action: "placeBet",
-      args: { amount: Math.min(10, r.state.vars.bankroll) },
-    });
-  if (p.node === "playerTurn") {
-    return input(r, {
-      action: handTotal(cards(r, "player")) < 17 ? "hit" : "stand",
-    });
+const strategy: SyncBot<Vars, GameInput<typeof blackjack>> = (
+  legal,
+  { view: v },
+) => {
+  const bets = legal.filter(placeBet.is);
+  if (bets.length)
+    return placeBet.by(v.player, { amount: Math.min(10, v.vars.bankroll) });
+  if (legal.some(stand.is)) {
+    const mine = v.zones[player.id]!.map(
+      (ref) => (v.entities[ref] as { props: PlayingCard }).props,
+    );
+    return handTotal(mine) < 17 && legal.some(hit.is)
+      ? hit.by(v.player)
+      : stand.by(v.player);
   }
-  return input(r, { continue: true });
-}
+  return next.by(v.player);
+};
 
 test("golden replay", async () => {
-  const { golden, results } = record(
-    blackjack,
-    { players: ["p1"], seed: "golden", maxInputs: 120 },
-    strategy,
+  const { states, inputs } = playBots(blackjack, {
+    players,
+    seed: "golden",
+    bots: strategy,
+    maxInputs: 120,
+  });
+  const golden = {
+    players,
+    seed: "golden",
+    inputs,
+    finalStateHash: hashState(states.at(-1)!),
+  };
+  expect(hashState(replayInputs(blackjack, golden, golden.inputs))).toBe(
+    golden.finalStateHash,
   );
-  expect(hashState(replay(blackjack, golden))).toBe(golden.finalStateHash);
-  expect(results.at(-1)!.state).toEqual(replay(blackjack, golden));
   await expect(JSON.stringify(golden, null, 2) + "\n").toMatchFileSnapshot(
     "./golden.json",
   );

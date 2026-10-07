@@ -1,0 +1,77 @@
+---
+title: outcomes
+description: Lists the ways its body may end early, each with an optional guard and handler.
+sidebar:
+  order: 11
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+`outcomes` wraps a body that may need to stop partway: a turn that ends
+when you bust, a fight that ends when the monster dies, a run that ends
+when the dragon falls. You write `outcomes(outcomes, body)`.
+
+| Argument   | Type                           | What it is                                            |
+| ---------- | ------------------------------ | ----------------------------------------------------- |
+| `outcomes` | `{ [name]: { when?, then? } }` | The ways the body may end early, by name.             |
+| `when`     | `(s) => boolean`               | A guard: ends the body as soon as it holds. Optional. |
+| `then`     | `Node`                         | Runs after the body is cancelled. Optional.           |
+| `body`     | `Node`                         | What runs normally. The builder's second argument.    |
+
+## Demo
+
+Push your luck: reaching exactly 10 wins, going over busts, and you may
+cash out at any time. `won` and `bust` are guards; `cashed` is raised by
+the `cashOut` action.
+
+<Demo name="outcomes" />
+
+## How an outcome happens
+
+- **A guard holds.** Every `when` is checked after every transaction, not
+  only between nodes, so the roll that busts you ends the loop at once.
+- **Rules code raises it.** An action's `execute` or a `step` returns
+  `{ exit: "name" }`. An outcome doesn't need a `when` to be raised.
+
+Then everything running inside the body is cancelled, however deep, `then`
+runs if there is one, and the `outcomes` node ends. The flow carries on
+after it. If the body ends normally, `then` never runs.
+
+Dungeon Crawl's fight has both kinds: `killed` is a guard, and `fled` has
+no `when`; the `flee` action raises it.
+
+<Source file="games/dungeon-crawl/game.ts" region="combat" />
+
+## Which one wins
+
+- **Outermost first.** Guards are checked from the root of the flow
+  inward, so when guards on two nested `outcomes` hold at once, the outer
+  one fires.
+- **First listed.** On one node, if two guards hold at once, the one listed
+  first fires.
+- **Nearest catch.** A raised outcome unwinds to the nearest enclosing
+  `outcomes` that lists its name, passing any that don't. If none does,
+  the engine throws `UnhandledOutcomeError`.
+
+## While `then` runs
+
+The node is handling an outcome: its guards are off, and it catches
+nothing. An outcome raised by the handler unwinds past it to the next
+`outcomes` out, even one with the same name, so a handler can pass an
+outcome on after doing its own part.
+
+## Across fibers and reactions
+
+- An outcome that escapes a fiber in
+  [`simultaneous`](/board-game-toolkit/reference/flow/simultaneous/)
+  cancels every fiber and carries on in the parent.
+- If abilities are still reacting when a guard fires, they finish first,
+  and then `then` runs.
+
+## See also
+
+- [Outcomes](/board-game-toolkit/concepts/outcomes/): the concept, with
+  Dungeon Crawl's outer `victory`.
+- [Crazy Eights](/board-game-toolkit/examples/crazy-eights/) raises
+  `wild` from an action, to call a color.

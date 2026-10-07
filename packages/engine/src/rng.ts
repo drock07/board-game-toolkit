@@ -60,8 +60,8 @@ export function seedRng(seed: string): RngState {
 }
 
 /** A die is its list of faces; rolling picks one uniformly. */
-export interface Die {
-  faces: Json[];
+export interface Die<F extends Json = Json> {
+  readonly faces: readonly F[];
 }
 
 export interface Random {

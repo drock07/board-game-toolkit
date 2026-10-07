@@ -1,85 +1,120 @@
 ---
 title: Devtools
-description: Embed the live flow graph and fiber inspector in your game while you build it, and theme them to match.
+description: See what a running game's flow is doing with the live flow graph and fiber inspector, and theme them to match your page.
 sidebar:
   order: 13
 ---
 
 import FlowFigure from "../../../components/FlowFigure.astro";
+import Source from "../../../components/Source.astro";
 
-`@drock07/board-game-toolkit-react/devtools` has two components for seeing
-what a running game's flow is doing. Every [example](/board-game-toolkit/examples/)
-page has them under **Devtools**.
+When a game doesn't do what you expect, the question is usually "where is
+the flow, and what is it waiting for?" The React package's devtools entry
+point, `@drock07/board-game-toolkit-react/devtools`, has two components that
+answer it while you play: `FlowGraph` and `FiberInspector`.
+
+## Add them to a game
+
+Both take the game and a state. Give them `g.state`, the committed state:
+
+<Source file="snippets/devtools.tsx" region="debug" />
+
+Use `g.state`, not `g.view`. A view leaves out the flow's frames, which is
+what these components draw. They're for development; render the game itself
+from the view.
 
 ## FlowGraph
 
-Draws a game's flow as nested boxes. Sequences run left to right; branch
-cases, parallel lanes, actions' `then` flows and `on` flows stack; loops are
-marked ↻; triggers are drawn below the main flow. Each box lists its guards,
-conditions (via `describeCond`), actors and the rules it names.
+`FlowGraph` draws a game's flow as nested boxes. Each box is a node, with its
+kind, its id, and one-line facts from its settings: its label, its actions,
+the conditions and queries it names (`until`, `from`), its `limits`.
+
+- A `seq` runs its children left to right, with arrows.
+- A `branch` stacks its cases, each labelled with its condition, and `else`.
+- An `outcomes` node draws its body, then each outcome and its handler,
+  dashed.
+- `loop` and `turns` are marked ↻.
+- Abilities and effects follow the main flow.
+- Any other kind, your own included, draws what its `children()` returns.
 
 <FlowFigure
   slug="dungeon-crawl"
-  caption="Dungeon Crawl's flow, with its subflows expanded and guards listed."
+  caption="Dungeon Crawl's flow, drawn by FlowGraph."
 />
 
-Pass a flow state to highlight it live: running nodes are outlined, and nodes
-waiting for input are filled.
-
-```tsx
-import { FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
-
-function Debug() {
-  const g = useGame(game, { players: ["p1", "p2"] });
-  return <FlowGraph game={game} flow={g.state.flow} />;
-}
-```
-
-Without `flow`, it draws the spec alone, as in the
-[Flow Gallery](/board-game-toolkit/examples/flow-gallery/). It renders on the
-server too.
+Given a state, running nodes are outlined, and nodes waiting for input are
+filled. A node running in several frames at once, like a `turn` inside a
+`simultaneous`, is marked with how many (`×2`). Without a state, it draws
+the flow alone, as in the
+[Flow Gallery](/board-game-toolkit/examples/flow-gallery/) and the figure
+above. It renders on the server too.
 
 ## FiberInspector
 
-Lists the live fibers and their frame stacks: each frame's node, phase,
-binding, locals and open prompt. It's the place to look when a flow isn't
-doing what you expect, or to understand parallel flows and interrupts.
+`FiberInspector` shows the flow as the engine runs it:
 
-```tsx
-import { FiberInspector } from "@drock07/board-game-toolkit-react/devtools";
+- **The root stack and every fiber.** A fiber is one of several flows
+  running at once, like each player's turn in a `simultaneous` round. Each
+  is a card with its status (running, waiting for input, or blocked on its
+  child fibers), what spawned it, and the player it runs for.
+- **Each fiber's frames**, innermost first: the node, how many passes it has
+  made, its frame data (a `turn`'s counts, a `loop`'s passes), and the child
+  fibers it waits on. Frames the engine pushed to run an ability or an effect
+  are marked in red.
+- **The pending queue**: abilities that fired and haven't started yet, and
+  effects waiting to run, next first, each with the fiber it will run on and
+  how deeply it's nested. When several abilities react to one effect, they
+  run one at a time; the queue shows the ones still to come.
 
-<FiberInspector flow={g.state.flow} />;
-```
+Reach for it when a reaction doesn't fire, fires twice, or runs in the wrong
+order, or when a simultaneous round won't end: the inspector shows which
+fiber is still waiting.
 
-Use `g.state` (the committed state), not `g.view`: views leave out the flow's
-internals.
+## On the examples site
+
+Every [example](/board-game-toolkit/examples/) page has both. The
+**Inspector** beside the game shows, for the seat you're viewing:
+
+- **Viewing as**: switch seats, or watch as a spectator, to check what each
+  player sees.
+- **Flow**: the flow as a tree, open along the running path, with the nodes
+  waiting for input highlighted.
+- **Actions**: the viewer's legal actions, with how many ways each can be
+  taken, or who the game is waiting on.
+- **Vars** as the viewer sees them, and the last few **Events** they got.
+- **Source**: the game's files, and the seed, to reproduce a game.
+
+The **Devtools** button opens a panel with the full `FlowGraph` and
+`FiberInspector`, docked under the game so you can play and watch the flow
+move.
 
 ## Theming
 
 Both components use inline styles, so they need no stylesheet. Their colors
-and fonts come from CSS variables, with defaults for a light page:
+and fonts are CSS variables, with defaults for a light page:
 
-| Variable                                  | Used for                  |
-| ----------------------------------------- | ------------------------- |
-| `--bgt-dt-bg`                             | Box backgrounds           |
-| `--bgt-dt-surface`                        | Nested surfaces           |
-| `--bgt-dt-fg`                             | Text                      |
-| `--bgt-dt-muted`, `--bgt-dt-faint`        | Secondary text            |
-| `--bgt-dt-line`                           | Borders                   |
-| `--bgt-dt-accent`, `--bgt-dt-accent-soft` | Running and waiting nodes |
-| `--bgt-dt-good`, `--bgt-dt-bad`           | Status colors             |
-| `--bgt-dt-sans`, `--bgt-dt-mono`          | Fonts                     |
+| Variable                                  | Used for                    |
+| ----------------------------------------- | --------------------------- |
+| `--bgt-dt-bg`                             | Box backgrounds             |
+| `--bgt-dt-surface`                        | Headers and nested surfaces |
+| `--bgt-dt-fg`                             | Text                        |
+| `--bgt-dt-muted`, `--bgt-dt-faint`        | Secondary text              |
+| `--bgt-dt-line`                           | Borders                     |
+| `--bgt-dt-accent`, `--bgt-dt-accent-soft` | Running and waiting nodes   |
+| `--bgt-dt-good`, `--bgt-dt-bad`           | Status colors               |
+| `--bgt-dt-sans`, `--bgt-dt-mono`          | Fonts                       |
 
-Set them on any ancestor, for example to follow a dark theme:
+Set them on any ancestor, for example under your dark theme's selector, and
+both components follow. Each also takes a `style` prop for its outer element.
 
-```css
-.dark {
-  --bgt-dt-bg: #1c1c1f;
-  --bgt-dt-fg: #ededef;
-  --bgt-dt-line: #2a2a2e;
-}
-```
+## Building your own
 
-The helpers behind `FlowGraph` are exported too: `flowActivity(flow)` returns
-which nodes are running and waiting, and `nodeDetails(node)` the one-line facts
-a box shows.
+The helpers behind the graph are exported too:
+
+- **`flowActivity(game, state)`** returns which nodes are running (with how
+  many frames each) and which are waiting for input. The site's Flow tree is
+  built on it.
+- **`nodeDetails(node)`** returns the one-line facts a box shows for a spec
+  node.
+
+Walk `game.spec.flow` with them to draw the flow your own way.

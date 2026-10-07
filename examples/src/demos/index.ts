@@ -1,29 +1,31 @@
-import type { Game } from "@drock07/board-game-toolkit-engine";
+import type { AnyGame } from "../games/registry";
+import { game as anyone } from "./anyone";
 import { game as branch } from "./branch";
-import { game as choose } from "./choose";
-import { game as decision } from "./decision";
-import { game as each } from "./each";
-import { game as exit } from "./exit";
+import { game as effects } from "./effects";
+import { game as everyone } from "./everyone";
 import { game as families } from "./families";
 import { game as loop } from "./loop";
-import { game as parallel } from "./parallel";
-import { game as pause } from "./pause";
+import { game as outcomes } from "./outcomes";
+import { game as prompt } from "./prompt";
 import { game as seq } from "./seq";
-import { game as subflow } from "./subflow";
-import { game as trigger } from "./trigger";
+import { game as simultaneous } from "./simultaneous";
+import { game as step } from "./step";
+import { game as turn } from "./turn";
+import { game as turns } from "./turns";
 
 /** The reference pages' small demo games, by name, with their seats. */
-export const demos: Record<string, { game: Game; players: string[] }> = {
+export const demos: Record<string, { game: AnyGame; players: string[] }> = {
   seq: { game: seq, players: ["p1"] },
+  step: { game: step, players: ["p1"] },
+  turns: { game: turns, players: ["p1", "p2", "p3"] },
+  turn: { game: turn, players: ["p1"] },
   loop: { game: loop, players: ["p1"] },
-  each: { game: each, players: ["p1", "p2", "p3"] },
   branch: { game: branch, players: ["p1"] },
-  decision: { game: decision, players: ["p1"] },
-  choose: { game: choose, players: ["p1"] },
-  pause: { game: pause, players: ["p1", "p2"] },
-  parallel: { game: parallel, players: ["p1", "p2"] },
-  exit: { game: exit, players: ["p1"] },
-  subflow: { game: subflow, players: ["p1"] },
-  trigger: { game: trigger, players: ["p1"] },
+  outcomes: { game: outcomes, players: ["p1"] },
+  prompt: { game: prompt, players: ["p1"] },
+  everyone: { game: everyone, players: ["p1", "p2"] },
+  anyone: { game: anyone, players: ["p1", "p2", "p3"] },
+  simultaneous: { game: simultaneous, players: ["p1", "p2"] },
+  effects: { game: effects, players: ["p1"] },
   families: { game: families, players: ["p1", "p2"] },
-} as unknown as Record<string, { game: Game; players: string[] }>;
+} as unknown as Record<string, { game: AnyGame; players: string[] }>;
