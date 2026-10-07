@@ -14,9 +14,15 @@ import {
 const players = ["ann", "bob", "cat"];
 const place = sealedBids.action("bid");
 
-test("lowers an everyone node and keeps the spec JSON", () => {
-  assert.ok(JSON.stringify(sealedBids.spec.flow).includes('"kind":"everyone"'));
-  assert.ok("everyone" in sealedBids.kinds);
+test("everyone lowers to simultaneous(prompt) and keeps the spec JSON", () => {
+  const flow = JSON.stringify(sealedBids.spec.flow);
+  assert.ok(
+    flow.includes(
+      '"kind":"simultaneous","id":"simultaneous","body":{"kind":"prompt"',
+    ),
+  );
+  assert.ok(!flow.includes('"everyone"'));
+  assert.ok("simultaneous" in sealedBids.kinds && "prompt" in sealedBids.kinds);
   assert.deepEqual(
     JSON.parse(JSON.stringify(sealedBids.spec)),
     sealedBids.spec,
@@ -53,7 +59,7 @@ test("everyone may bid, in any order, once each", () => {
   assert.ok(bid.is(view(sealedBids, s, "bob").entities[bobsBid]!));
   assert.ok("hidden" in view(sealedBids, s, "ann").entities[bobsBid]!);
   s = applyOrThrow(sealedBids, s, place.by("cat", { amount: 5 }));
-  assert.strictEqual(s.flow.at(-1)?.id, "everyone", "still waiting on ann");
+  assert.strictEqual(s.flow.at(-1)?.id, "simultaneous", "still waiting on ann");
   s = applyOrThrow(sealedBids, s, place.by("ann", { amount: 5 }));
   // Resolved: ann and cat tied at 5, the earlier seat wins and pays
   assert.deepEqual(s.vars.lastResult?.winner, "ann");

@@ -183,7 +183,7 @@ export type GameInput<G> =
  * The registry of node builders by kind name, each a generic alias over the
  * game's vars. A kind adds itself with one augmentation:
  *
- *     declare module "./builder.ts" { interface NodeBuilders<V> { turn: TurnBuilder<V> } }
+ *     declare module "../define/types.js" { interface NodeBuilders<V> { turn: TurnBuilder<V> } }
  *
  * `withNodes` reads a game's builders out of it; `defineNode` checks a kind's
  * implementation against it with `unknown` vars. This is the one place
@@ -197,26 +197,27 @@ export interface NodeBuilders<V> {
 export type KindName = Exclude<keyof NodeBuilders<unknown>, "__vars">;
 
 /**
- * A node kind: its builder name, its engine module, and its builder. The
- * builder is checked with `unknown` vars: it only moves functions into the
- * impl and never looks inside them, so that check holds for every game.
+ * A node builder by name. The nodes it builds carry their kind modules
+ * (`node(kind, lower)`), so a builder may also be shorthand that composes
+ * other builders, with no kind of its own. The builder is checked with
+ * `unknown` vars: it only moves functions into the impl and never looks
+ * inside them, so that check holds for every game.
  */
 export interface NodeDef<N extends KindName> {
   readonly name: N;
-  readonly kind: Kind;
   readonly build: NodeBuilders<unknown>[N];
 }
 
 /**
- * Defines a node kind: `defineNode("turn", { kind, build })`. The name is a
+ * Defines a node builder: `defineNode("turn", { build })`. The name is a
  * separate argument so it's inferred before `build` is checked against the
  * registry's type.
  */
 export function defineNode<N extends KindName>(
   name: N,
-  def: { kind: Kind<never>; build: NodeBuilders<unknown>[N] },
+  def: { build: NodeBuilders<unknown>[N] },
 ): NodeDef<N> {
-  return { name, kind: def.kind, build: def.build };
+  return { name, build: def.build };
 }
 
 /** The builders a list of definitions gives, by name, bound to `V`. */

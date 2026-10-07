@@ -32,8 +32,6 @@ export type Node =
   /** Repeats the body until `until` holds (forever when absent), checked before each pass. */
   | { kind: "loop"; id: string; until?: string; body: Node }
   | { kind: "prompt"; id: string; actions: string[] }
-  /** Waits for every player to take one of the actions, in any order. */
-  | { kind: "everyone"; id: string; actions: string[] }
   /** Waits for the first answer from any of `who` (a query; every player when absent). */
   | { kind: "anyone"; id: string; who?: string; actions: string[] }
   /** Runs `body` once per player, all at once, each on its own fiber. */

@@ -1,4 +1,4 @@
-// Kinds that wait for input: one player, everyone, anyone, and fibers.
+// Kinds that wait for input: one player, anyone, and fibers.
 import { isExit, type Kind, type Node, type PlayerId } from "../types.js";
 
 type Of<K extends string> = Extract<Node, { kind: K }>;
@@ -10,37 +10,6 @@ export const prompt: Kind<Of<"prompt">> = {
   actions: (n) => n.actions,
   answered: (_n, _f, answer) =>
     isExit(answer.result) ? answer.result : "done",
-};
-
-interface EveryoneData {
-  answered: PlayerId[];
-}
-
-/** Waits for every player to take one of its actions, in any order, once each. */
-export const everyone: Kind<Of<"everyone">> = {
-  children: () => [],
-  run: () => "wait",
-  actors: (_n, f, { state }) => {
-    const { answered } = (f.data as EveryoneData | undefined) ?? {
-      answered: [],
-    };
-    return state.players.filter((p) => !answered.includes(p));
-  },
-  actions(n, f, player) {
-    const { answered } = (f.data as EveryoneData | undefined) ?? {
-      answered: [],
-    };
-    return answered.includes(player) ? [] : n.actions;
-  },
-  answered(_n, f, answer, ctx) {
-    const answered = [
-      ...((f.data as EveryoneData | undefined)?.answered ?? []),
-      answer.player,
-    ];
-    f.data = { answered } satisfies EveryoneData;
-    if (isExit(answer.result)) return answer.result;
-    return answered.length >= ctx.state.players.length ? "done" : "wait";
-  },
 };
 
 /**

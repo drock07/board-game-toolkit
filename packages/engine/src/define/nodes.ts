@@ -4,7 +4,6 @@ import type { Node as SpecNode } from "../types.js";
 import { defineNode, node } from "./types.js";
 
 export const seqNode = defineNode("seq", {
-  kind: kinds.seq,
   build: (...children) =>
     node(kinds.seq, (l) => ({
       kind: "seq",
@@ -14,7 +13,6 @@ export const seqNode = defineNode("seq", {
 });
 
 export const stepNode = defineNode("step", {
-  kind: kinds.step,
   build: (run) =>
     node(kinds.step, (l) => {
       const name = l.id("step");
@@ -23,7 +21,6 @@ export const stepNode = defineNode("step", {
 });
 
 export const turnsNode = defineNode("turns", {
-  kind: kinds.turns,
   build: (opts, body) =>
     node(kinds.turns, (l) => {
       const name = l.id("turns");
@@ -41,7 +38,6 @@ export const turnsNode = defineNode("turns", {
 });
 
 export const loopNode = defineNode("loop", {
-  kind: kinds.loop,
   build: (opts, body) =>
     node(kinds.loop, (l) => {
       const name = l.id("loop");
@@ -55,7 +51,6 @@ export const loopNode = defineNode("loop", {
 });
 
 export const promptNode = defineNode("prompt", {
-  kind: kinds.prompt,
   build: (...actions) =>
     node(kinds.prompt, (l) => ({
       kind: "prompt",
@@ -65,7 +60,6 @@ export const promptNode = defineNode("prompt", {
 });
 
 export const simultaneousNode = defineNode("simultaneous", {
-  kind: kinds.simultaneous,
   build: (body) =>
     node(kinds.simultaneous, (l) => ({
       kind: "simultaneous",
@@ -75,7 +69,6 @@ export const simultaneousNode = defineNode("simultaneous", {
 });
 
 export const anyoneNode = defineNode("anyone", {
-  kind: kinds.anyone,
   build: (opts, ...actions) =>
     node(kinds.anyone, (l) => {
       const id = l.id("anyone");
@@ -88,18 +81,12 @@ export const anyoneNode = defineNode("anyone", {
     }),
 });
 
+/** Shorthand for `simultaneous(prompt(...actions))`: one prompt per player, on their own fiber. */
 export const everyoneNode = defineNode("everyone", {
-  kind: kinds.everyone,
-  build: (...actions) =>
-    node(kinds.everyone, (l) => ({
-      kind: "everyone",
-      id: l.id("everyone"),
-      actions: actions.map((a) => l.action(a)),
-    })),
+  build: (...actions) => simultaneousNode.build(promptNode.build(...actions)),
 });
 
 export const branchNode = defineNode("branch", {
-  kind: kinds.branch,
   build: (cases, otherwise) =>
     node(kinds.branch, (l) => {
       const name = l.id("branch");
@@ -116,7 +103,6 @@ export const branchNode = defineNode("branch", {
 });
 
 export const outcomesNode = defineNode("outcomes", {
-  kind: kinds.outcomes,
   build: (outcomes, body) =>
     node(kinds.outcomes, (l) => {
       const name = l.id("outcomes");
