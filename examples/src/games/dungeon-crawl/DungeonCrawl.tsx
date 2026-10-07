@@ -1,9 +1,13 @@
+import type {
+  DeepReadonly,
+  GameInput,
+} from "@drock07/board-game-toolkit-engine";
 import { useGame, useGameEvent } from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
 import { motion } from "motion/react";
 import { dungeonCrawl } from ".";
 import { GameFrame } from "../../site/GameFrame";
-import { continueInput, findInput, type ActionInput } from "../../ui/inputs";
+import { findInput } from "../../ui/inputs";
 import {
   Banner,
   Button,
@@ -14,13 +18,9 @@ import {
   Stat,
   wait,
 } from "../../ui/kit";
-import {
-  SIZE,
-  type CombatLocals,
-  type Room,
-  type TrapLocals,
-  type Vars,
-} from "./impl";
+import { SIZE, type Room, type Vars } from "./game";
+
+type ActionInput = GameInput<typeof dungeonCrawl>;
 
 const ICON = {
   monster: { glyph: "⚔", cls: "text-bad", label: "Monster" },
@@ -30,7 +30,7 @@ const ICON = {
 };
 
 /** What a revealed room shows: its live monster, or its unclaimed item. */
-function roomIcon(room: Room) {
+function roomIcon(room: DeepReadonly<Room>) {
   if (room.type === "boss")
     return (room.monster?.hp ?? 0) > 0 ? ICON.boss : null;
   if (room.type === "monster")
@@ -45,7 +45,7 @@ function Grid({
   moveTo,
   onMove,
 }: {
-  vars: Vars;
+  vars: DeepReadonly<Vars>;
   moveTo: (row: number, col: number) => ActionInput | undefined;
   onMove: (input: ActionInput) => void;
 }) {
@@ -127,16 +127,13 @@ export default function DungeonCrawl() {
   // A beat for each move and log line, so fights read as an exchange
   useGameEvent(g, "vars", () => wait(120));
 
-  const vars = g.view.vars as Vars;
-  const { player } = vars;
-  const prompt = g.prompts[0];
-  const node = prompt?.node;
-  const combat = g.view.locals["combat.fight"] as CombatLocals | undefined;
-  const trap = g.view.locals["trap.trapRoom"] as TrapLocals | undefined;
+  const { vars } = g.view;
+  const { player, combat, trap } = vars;
   const room = vars.grid[player.row]?.[player.col];
   const visited = vars.grid.flat().filter((r) => r.visited).length;
-  const act = (name: string) => findInput(g.legal, name);
-  const go = continueInput(g.legal);
+  const act = (name: ActionInput["action"]) => findInput(g.legal, name);
+  const go = act("continue");
+  const again = act("again");
   const submit = (input: ActionInput | undefined) => input && g.submit(input);
 
   // Potions stack by name; using one uses its first copy
@@ -151,8 +148,8 @@ export default function DungeonCrawl() {
   });
 
   let actions = null;
-  if (node === "move") actions = <Hint>Click an adjacent room to move</Hint>;
-  else if (node === "combat.playerAttack")
+  if (act("move")) actions = <Hint>Click an adjacent room to move</Hint>;
+  else if (act("attack"))
     actions = (
       <>
         <Button variant="primary" onClick={() => submit(act("attack"))}>
@@ -161,7 +158,7 @@ export default function DungeonCrawl() {
         <Button onClick={() => submit(act("flee"))}>Flee</Button>
       </>
     );
-  else if (node === "trap.trapChoice")
+  else if (act("dismantle"))
     actions = (
       <>
         <Button variant="primary" onClick={() => submit(act("dismantle"))}>
@@ -170,9 +167,9 @@ export default function DungeonCrawl() {
         <Button onClick={() => submit(act("skip"))}>Leave it</Button>
       </>
     );
-  else if (node === "treasurePause" || node === "trap.trapPause")
+  else if (go)
     actions = (
-      <Button variant="primary" onClick={() => go && g.submit(go)}>
+      <Button variant="primary" onClick={() => g.submit(go)}>
         Continue
       </Button>
     );
@@ -333,9 +330,9 @@ export default function DungeonCrawl() {
         }
         onMove={(input) => g.submit(input)}
       />
-      {(node === "wonPause" || node === "lostPause") && !g.playing && (
+      {again && !g.playing && (
         <Overlay>
-          {node === "wonPause" ? (
+          {vars.result === "victory" ? (
             <Banner tone="win" tag="VICTORY">
               The dragon is slain.
             </Banner>
@@ -347,7 +344,7 @@ export default function DungeonCrawl() {
           <div className="text-sm text-muted">
             Explored {visited} of {SIZE * SIZE} rooms.
           </div>
-          <Button variant="primary" onClick={() => go && g.submit(go)}>
+          <Button variant="primary" onClick={() => g.submit(again)}>
             Play again
           </Button>
         </Overlay>

@@ -1,5 +1,11 @@
-import { defineGame } from "@drock07/board-game-toolkit-engine";
-import { impl } from "./impl";
-import { spec } from "./spec";
-
-export const dungeonCrawl = defineGame({ spec, impl });
+export {
+  again,
+  attack,
+  dismantle,
+  dungeonCrawl,
+  flee,
+  move,
+  next,
+  skip,
+  useItem,
+} from "./game";

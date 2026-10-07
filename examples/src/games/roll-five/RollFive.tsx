@@ -1,21 +1,21 @@
-import { useGame, useGameEvent } from "@drock07/board-game-toolkit-react";
+import { turnNode } from "@drock07/board-game-toolkit-engine";
+import { useGame } from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { rollFive } from ".";
 import { GameFrame } from "../../site/GameFrame";
 import { Die } from "../../ui/Die";
-import { continueInput, findInput } from "../../ui/inputs";
-import { Button, Overlay, Stat, wait } from "../../ui/kit";
+import { findInput } from "../../ui/inputs";
+import { Button, Overlay, Stat } from "../../ui/kit";
 import {
   CATEGORIES,
   MAX_ROLLS,
   scoreFor,
   scoreSummary,
   type Category,
-  type TurnLocals,
   type Vars,
-} from "./impl";
+} from "./game";
 
 const LABELS: Record<Category, { name: string; hint: string | number }> = {
   aces: { name: "Aces", hint: 1 },
@@ -167,18 +167,15 @@ function ScoreSheet({
 
 export default function RollFive() {
   const g = useGame(rollFive, { players: ["p1"] });
-  // Let the dice tumble before the next update
-  useGameEvent(g, "locals", () => wait(250));
 
-  const vars = g.view.vars as Vars;
-  const turn = g.view.locals.turn as TurnLocals | undefined;
-  const dice = turn?.dice ?? [];
-  const held = turn?.held ?? [];
-  const rolls = turn?.rolls ?? 0;
-  const prompt = g.prompts[0];
+  const { vars } = g.view;
+  const { dice, held } = vars;
+  // The turn counts its own rolls; undefined between games
+  const turn = turnNode.shown(g.view);
+  const rolls = turn?.counts.roll ?? 0;
   const round = CATEGORIES.filter((c) => vars.scores[c] !== null).length;
   const roll = findInput(g.legal, "roll");
-  const again = continueInput(g.legal);
+  const again = findInput(g.legal, "again");
   const grand = scoreSummary(vars).grandTotal;
 
   return (
@@ -207,7 +204,7 @@ export default function RollFive() {
         />
       }
       actions={
-        prompt?.node === "turn" && (
+        turn && (
           <>
             <Button
               variant="primary"
@@ -229,7 +226,11 @@ export default function RollFive() {
     >
       <div className="flex flex-wrap justify-center gap-5">
         {[0, 1, 2, 3, 4].map((i) => {
-          const toggle = findInput(g.legal, "toggleHold", (a) => a.index === i);
+          // Holding after the last roll changes nothing, so it isn't offered
+          const toggle =
+            rolls < MAX_ROLLS
+              ? findInput(g.legal, "toggleHold", (a) => a.index === i)
+              : undefined;
           const isHeld = !!held[i];
           return (
             <div key={i} className="flex flex-col items-center gap-3.5">
@@ -264,7 +265,7 @@ export default function RollFive() {
           );
         })}
       </div>
-      {prompt?.node === "over" && !g.playing && (
+      {again && !g.playing && (
         <Overlay>
           <div className="flex flex-col gap-1.5">
             <div className="eyebrow">Game over</div>
