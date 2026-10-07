@@ -4,14 +4,13 @@ import type { Kind } from "../types.js";
 import { branch, loop, outcomes, seq, step } from "./flow.js";
 import { ability, effect } from "./interrupts.js";
 import { turns } from "./turns.js";
-import { anyone, everyone, prompt, simultaneous } from "./waiting.js";
+import { anyone, prompt, simultaneous } from "./waiting.js";
 
 export {
   ability,
   anyone,
   branch,
   effect,
-  everyone,
   loop,
   outcomes,
   prompt,
@@ -29,7 +28,6 @@ export const builtinKinds: Record<string, Kind> = {
   prompt,
   branch,
   outcomes,
-  everyone,
   anyone,
   simultaneous,
   ability,

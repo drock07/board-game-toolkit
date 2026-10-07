@@ -1,7 +1,14 @@
 // Roll Five (Yahtzee). Five dice, up to three rolls a turn holding any you
 // like, then score one of thirteen categories. Thirteen rounds.
 import type { PlayerId } from "../index.js";
-import { defaultNodes, define, entity, zone, type Reader } from "../index.js";
+import {
+  D6,
+  defaultNodes,
+  define,
+  entity,
+  zone,
+  type Reader,
+} from "../index.js";
 import { turnNode } from "./turn.js";
 
 export const CATEGORIES = [
@@ -127,7 +134,7 @@ export const rollFive = rules({
         action("roll", {
           execute: (tx) => {
             for (const d of tx.entities(dice))
-              if (!d.props.held) tx.update(d, { value: tx.random.int(1, 6) });
+              if (!d.props.held) tx.update(d, { value: tx.random.roll(D6) });
           },
         }),
         action("hold", {

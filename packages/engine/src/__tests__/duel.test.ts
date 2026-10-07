@@ -181,7 +181,7 @@ test("2. Thorns costs the attacker 1; Thorns damage isn't an Attack, so the atta
   assert.ok(out.ok);
   assert.deepEqual([out.state.vars.hp.p1, out.state.vars.hp.p2], [9, 8]);
   const damages = out.events.flatMap((e) =>
-    e.type === "custom" && e.name === "damage" ? [e.data] : [],
+    e.type === "effect" && e.name === "damage" ? [e.data] : [],
   );
   assert.deepEqual(damages, [
     { to: "p2", amount: 2, attack: { by: "p1" } },
@@ -289,7 +289,6 @@ test("5. an ability that triggers itself ends with a clear error", () => {
     players: [2, 3],
     setup,
     abilities: [cursed],
-    effects: [attack],
     flow,
   });
   let s = init(game, { players: ["p1", "p2"], seed: "x" });
@@ -406,8 +405,7 @@ test("8. hidden information: a carried Shield leaks through actors(); a game-wid
   const shields = (s: Pick<Reader<Vars>, "entities">, p: string) =>
     s.entities(hand.of(p)).filter((e) => e.props.name === "Shield");
   const guard = ability({
-    on: attack,
-    timing: "before",
+    on: attack.before,
     who: (_s, a) => a.target,
     then: (t) =>
       prompt(
@@ -454,12 +452,11 @@ test("9. a player who is out is skipped; an empty deck ends the game on HP", () 
 });
 
 test("types: effects and abilities infer from one declaration each", () => {
-  const { ability, step, effect } = core;
+  const { ability, step } = core;
   ability({
     of: entity<{ name: CardName }>("card"),
     in: hand,
-    on: attack,
-    timing: "before",
+    on: attack.before,
     // @ts-expect-error an Attack has no `amount`
     when: (_s, t) => t.data.amount > 0,
     then: (t) =>
@@ -469,19 +466,21 @@ test("types: effects and abilities infer from one declaration each", () => {
         void t.self(tx).props.hp;
       }),
   });
-  const e = effect("e", { resolve: (_tx, d: { n: number }) => void d.n });
+  const e = define<Vars>().effect("e", {
+    resolve: (_tx, d: { n: number }) => void d.n,
+  });
   step((tx) => {
     // @ts-expect-error `n` is a number
     tx.cause(e, { n: "1" });
   });
-  // "before" on something that isn't an effect is a runtime error, not a type error
-  assert.throws(() =>
-    ability({
-      of: entity("card"),
-      in: hand,
-      on: "enters",
-      timing: "before",
-      then: () => step(() => {}),
-    }),
-  );
+  // Timing is part of `on`: only an effect has a `.before`. (Overloads
+  // report the excess property at the call.)
+  // @ts-expect-error -- there is no `timing`; write `on: effect.before`
+  ability({
+    of: entity("card"),
+    in: hand,
+    on: "enters",
+    timing: "before",
+    then: () => step(() => {}),
+  });
 });

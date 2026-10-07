@@ -101,13 +101,17 @@ test("hit until 17 then stand, for both; the dealer plays and the game ends", ()
 test("a bust ends the turn; the turn frame counts its answers", () => {
   let s = init(blackjack, { players, seed: "bust" });
   let hits = 0;
+  let checked = 0;
   while (current(blackjack, s) === "ann") {
     s = applyOrThrow(blackjack, s, hit.by("ann"));
     hits++;
     const frame = s.flow.find((f) => f.id === "turn");
-    if (current(blackjack, s) === "ann")
-      assert.deepEqual(frame?.data, { answers: hits });
+    if (current(blackjack, s) === "ann") {
+      assert.deepEqual(frame?.data, { answers: hits, counts: { hit: hits } });
+      checked++;
+    }
   }
+  assert.ok(checked > 0, "the seed lets ann hit without busting at least once");
   assert.strictEqual(current(blackjack, s), "bob");
   assert.deepEqual(
     s.flow.find((f) => f.id === "turn")?.data,

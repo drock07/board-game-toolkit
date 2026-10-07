@@ -1,12 +1,11 @@
 // Rung 9: events. A tiny game that touches every event type, with a hidden
-// deck, owner-only hands, an update while hidden and a whispered emit.
+// deck, owner-only hands, an update while hidden and a whispered effect.
 import { assert, test } from "vitest";
 import {
   apply,
   defaultNodes,
   define,
   entity,
-  event,
   init,
   replay,
   view,
@@ -24,7 +23,6 @@ interface Vars {
 }
 
 const card = entity<Card>("card");
-const drew = event<{ id: string | undefined }>("drew");
 const deck = zone("deck", { holds: card, visibility: "hidden" });
 const hand = zone("hand", {
   holds: card,
@@ -33,9 +31,14 @@ const hand = zone("hand", {
 });
 const table = zone("table", { holds: card });
 
-const { rules, action, seq, step, turns, prompt } = define<Vars>({
+const { rules, action, effect, seq, step, turns, prompt } = define<Vars>({
   zones: [deck, hand, table],
 }).withNodes(defaultNodes);
+
+/** Whispered to the player who drew: no ability reacts, nothing resolves. */
+const drew = effect<{ id: string | undefined; by: string }>("drew", {
+  to: (d) => [d.by],
+});
 
 const game = rules({
   players: 2,
@@ -54,7 +57,7 @@ const game = rules({
             const [id] = tx.moveTop(deck, hand.of(actor));
             tx.update(tx.entities(hand.of(actor))[0]!, { marked: true });
             tx.vars.draws++;
-            tx.emit(drew, { id }, { to: [actor] });
+            tx.cause(drew, { id, by: actor });
             if (tx.count(hand.of(actor)) === 2) {
               tx.move(tx.entities(hand.of(actor)).at(-1)!.id, table);
               tx.flip(tx.entities(table)[0]!.id, false);
@@ -80,13 +83,13 @@ test("a draw: the drawer sees the card, the other player a placeholder", () => {
   assert.ok(out.ok);
   assert.deepEqual(
     out.events.map((e) => e.type),
-    ["moved", "updated", "custom", "vars"],
+    ["moved", "updated", "effect", "vars"],
   );
   const mine = viewEvents(game, out.events, "ann");
   const theirs = viewEvents(game, out.events, "bob");
   assert.deepEqual(
     mine.map((e) => e.type),
-    ["moved", "updated", "custom", "vars"],
+    ["moved", "updated", "effect", "vars"],
   );
   // bob learns a card moved, not which one or that it was marked
   assert.deepEqual(

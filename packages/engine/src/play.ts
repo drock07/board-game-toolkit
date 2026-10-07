@@ -11,7 +11,7 @@ import {
   sameJson,
   stackOf,
 } from "./frames.js";
-import { seedFrom } from "./random.js";
+import { seedRng } from "./rng.js";
 import { advance, contextFor, settle } from "./run.js";
 import { transact } from "./tx.js";
 import {
@@ -185,7 +185,7 @@ export function init<V>(game: GameDef<V>, opts: InitOptions): State<V> {
   const empty: State<V> = {
     players: opts.players,
     vars: undefined as V,
-    rng: seedFrom(opts.seed),
+    rng: seedRng(opts.seed),
     entities: {},
     zones,
     nextEntity: 1,

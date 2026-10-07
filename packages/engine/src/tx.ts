@@ -1,13 +1,15 @@
 import { isEffect, triggered } from "./effects.js";
 import {
   boundActor,
-  nearestEffect,
+  nearestFrame,
+  nodeOf,
   sameJson,
   scopeOf,
   stackOf,
   withStack,
+  type FrameAt,
 } from "./frames.js";
-import { nextRandom } from "./random.js";
+import { createRandom, type RngState } from "./rng.js";
 import type {
   EffectData,
   EntityId,
@@ -20,7 +22,7 @@ import type {
   ZoneId,
   ZoneRef,
 } from "./types.js";
-import { entityOf, itemsOf, zonesOf } from "./zones.js";
+import { entitiesOf, entityOf, itemsOf, zonesOf } from "./zones.js";
 
 /** Runs `body` on a copy of `state`, appending what it did to `log`. */
 export function transact<V>(
@@ -31,12 +33,24 @@ export function transact<V>(
   body: (tx: Tx<V>) => void,
 ): State<V> {
   const at = log.length;
-  const effect = nearestEffect(game, state, fiber);
-  const draft =
-    effect && structuredClone((effect.frame.data as EffectData).data);
+  // An effect's scope is its data, handed out as a draft and kept if changed
+  const drafts = new Map<string, { where: FrameAt; data: unknown }>();
+  const scope = (id: string): unknown => {
+    const where = nearestFrame(state, fiber, id);
+    if (!where || nodeOf(game, id).kind !== "effect")
+      return scopeOf(game, state, fiber, id);
+    const key = `${where.fiber}:${where.index}`;
+    if (!drafts.has(key))
+      drafts.set(key, {
+        where,
+        data: structuredClone((where.frame.data as EffectData).data),
+      });
+    return drafts.get(key)!.data;
+  };
   const next: State<V> = {
     ...state,
     vars: structuredClone(state.vars),
+    rng: [...state.rng] as RngState,
     entities: { ...state.entities },
     zones: { ...state.zones },
     flow: [...state.flow],
@@ -67,24 +81,21 @@ export function transact<V>(
       entities: ids.map((id) => next.entities[id]!),
     });
   };
+  // Draws advance this transaction's own copy of the state
+  const random = createRandom(() => next.rng);
   const tx: Tx<V> = {
     players: state.players,
     get actor() {
       return boundActor(game, state, fiber);
     },
-    get scope() {
-      return scopeOf(game, state, fiber);
-    },
-    get effect() {
-      return draft;
-    },
+    scopeOf: scope,
     get vars() {
       return next.vars;
     },
     set vars(v) {
       next.vars = v;
     },
-    entities: (zone) => items(zone).map((id) => next.entities[id]!),
+    entities: (zone) => entitiesOf(next, zone),
     count: (zone) => items(zone).length,
     zones: (family, player) => zonesOf(game, next, family, player),
     entity: (id) => entityOf(next, id),
@@ -94,8 +105,7 @@ export function transact<V>(
       delete next.entities[id];
       log.push({ type: "destroyed", entity: e });
     },
-    update(target, patch) {
-      const id = typeof target === "string" ? target : target.id;
+    update({ id }, patch) {
       const e = entityOf(next, id);
       next.entities[id] = { ...e, props: { ...(e.props as object), ...patch } };
       log.push({ type: "updated", entity: next.entities[id] });
@@ -123,9 +133,7 @@ export function transact<V>(
     shuffle(zone) {
       const order = [...items(zone)];
       for (let i = order.length - 1; i > 0; i--) {
-        const [rng, value] = nextRandom(next.rng);
-        next.rng = rng;
-        const j = Math.floor(value * (i + 1));
+        const j = random.int(i + 1);
         [order[i], order[j]] = [order[j]!, order[i]!];
       }
       next.zones[zone.id] = order;
@@ -147,32 +155,19 @@ export function transact<V>(
       next.entities[id] = { ...e, faceUp };
       log.push({ type: "flipped", entity: next.entities[id] });
     },
-    random: {
-      int(min, max) {
-        const [rng, value] = nextRandom(next.rng);
-        next.rng = rng;
-        return min + Math.floor(value * (max - min + 1));
-      },
-    },
+    random,
     end(result) {
       next.status = "finished";
       next.result = result;
       log.push({ type: "ended", result });
     },
-    emit({ name }, data, opts) {
-      log.push({
-        type: "custom",
-        name,
-        data,
-        ...(opts?.to !== undefined && { to: opts.to }),
-      });
-    },
     cause({ name }, data) {
       if (!isEffect(game, name))
         throw new Error(
-          `"${name}" isn't a registered effect: list it in rules({ effects })`,
+          `"${name}" isn't one of this game's effects: declare it with \`effect\` before calling \`rules\``,
         );
-      log.push({ type: "custom", name, data });
+      const to = game.impl.effects[name]?.to?.(data);
+      log.push({ type: "effect", name, data, ...(to && { to }) });
     },
   };
   body(tx);
@@ -180,15 +175,15 @@ export function transact<V>(
     log.push({ type: "vars", vars: next.vars });
   let out = next;
   // A reaction's changes to the effect it reacts to are kept in the effect's frame
-  if (effect && !sameJson(draft, (effect.frame.data as EffectData).data)) {
-    const stack = stackOf(out, effect.fiber);
-    const frame = stack[effect.index]!;
+  for (const { where, data } of drafts.values()) {
+    if (sameJson(data, (where.frame.data as EffectData).data)) continue;
+    const stack = stackOf(out, where.fiber);
     out = withStack(
       out,
-      effect.fiber,
+      where.fiber,
       stack.map((f, i) =>
-        i === effect.index
-          ? { ...frame, data: { ...(frame.data as EffectData), data: draft } }
+        i === where.index
+          ? { ...f, data: { ...(f.data as EffectData), data } }
           : f,
       ),
     );

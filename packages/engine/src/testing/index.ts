@@ -2,7 +2,7 @@
 // what they should and that events replay to the new state and to each
 // player's new view.
 import { apply, check, init, legalInputs } from "../play.js";
-import { nextRandom, seedFrom } from "../random.js";
+import { seededRandom } from "../rng.js";
 import type {
   GameDef,
   GameEvent,
@@ -15,12 +15,8 @@ import { replay, view, viewEvents } from "../views.js";
 import { canSee } from "../zones.js";
 
 export function randomBot(seed: string) {
-  let rng = seedFrom(seed);
-  return (legal: Input[]): Input => {
-    const [next, value] = nextRandom(rng);
-    rng = next;
-    return legal[Math.floor(value * legal.length)]!;
-  };
+  const random = seededRandom(seed);
+  return (legal: Input[]): Input => random.pick(legal);
 }
 
 /** Every entity a player may not see must be a placeholder in their view. */
@@ -92,7 +88,7 @@ export function checkEvents<V>(
     const leaked = mine.find(
       (ev) =>
         carried(ev).some((e) => "hidden" in e && ("props" in e || "id" in e)) ||
-        (ev.type === "custom" && ev.to && !ev.to.includes(player)),
+        (ev.type === "effect" && ev.to && !ev.to.includes(player)),
     );
     if (leaked)
       throw new Error(`${player}'s events leak a ${leaked.type} event`);

@@ -111,8 +111,7 @@ export const shield = ability({
   of: card,
   where: named("Shield"),
   in: hand,
-  on: attack,
-  timing: "before",
+  on: attack.before,
   when: (_s, t) => t.data.target === t.owner && !t.data.prevented,
   then: (t) =>
     prompt(
@@ -238,7 +237,7 @@ export const flow = seq(
                       prevented: false,
                     });
                   const theirs = tx.entities(hand.of(target!));
-                  const pick = theirs[tx.random.int(0, theirs.length - 1)]!;
+                  const pick = tx.random.pick(theirs);
                   tx.move(pick.id, hand.of(actor));
                 },
               }),

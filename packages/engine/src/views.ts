@@ -72,7 +72,7 @@ export function viewEvents<V>(
       case "shuffled":
         out.push({ ...ev, entities: ev.entities.map(see) });
         break;
-      case "custom":
+      case "effect":
         if (!ev.to || ev.to.includes(viewer)) out.push(ev);
         break;
       default:
@@ -146,7 +146,7 @@ export function replay<V, E extends { ref: Ref; zone: ZoneId; id?: EntityId }>(
         out.status = "finished";
         if (ev.result !== undefined) out.result = ev.result;
         break;
-      case "custom":
+      case "effect":
         break;
     }
   }

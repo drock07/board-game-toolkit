@@ -69,7 +69,6 @@ const kind: Kind<TurnNode> = {
 };
 
 export const turnNode = defineNode("turn", {
-  kind,
   build: (opts, ...actions) =>
     node(kind, (l) => {
       const id = l.id("turn");

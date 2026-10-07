@@ -4,13 +4,13 @@
 
 // Authoring
 export { define } from "./define/define.js";
-export { entity, event, zone } from "./define/handles.js";
+export { entity, zone } from "./define/handles.js";
 export type {
   AnyZone,
+  Before,
   CountedZone,
   Effect,
   EntityType,
-  EventType,
   PerPlayerCountedZone,
   PerPlayerZone,
   SharedZone,
@@ -41,6 +41,7 @@ export type {
   PlainActionDef,
   PromptBuilder,
   Reader,
+  Scoped,
   SeqBuilder,
   SimultaneousBuilder,
   StepBuilder,
@@ -63,6 +64,11 @@ export {
 } from "./define/play.js";
 export type { InitOptions } from "./play.js";
 export { canSee } from "./zones.js";
+
+// Randomness
+export { D10, D100, D12, D20, D4, D6, D8, Fudge } from "./dice.js";
+export { seededRandom } from "./rng.js";
+export type { Die, Random, RngState } from "./rng.js";
 
 // The engine's data
 export type {

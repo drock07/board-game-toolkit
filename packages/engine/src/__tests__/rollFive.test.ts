@@ -146,3 +146,13 @@ test("types: updates are typed by the entity, limits and first by the actions", 
   // @ts-expect-error -- a die id is a string
   hold.by("ann", { die: 3 });
 });
+
+test("apply never mutates the state it's given, rng included", () => {
+  const s = init(rollFive, { players, seed: "pure" });
+  const before = JSON.stringify(s);
+  const once = applyOrThrow(rollFive, s, roll.by("ann"));
+  assert.strictEqual(JSON.stringify(s), before);
+  // The same input on the same state rolls the same dice
+  const again = applyOrThrow(rollFive, s, roll.by("ann"));
+  assert.deepEqual(again, once);
+});
