@@ -43,11 +43,13 @@ const playable = (s: State<Vars>, p: string) =>
     .map((c) => c.id);
 const waiting = (s: State<Vars>) => view(crazyEights, s, "p1").waiting;
 
+// #region findSeed
 /** The first seed whose opening deal satisfies `pred`. */
 function findSeed(pred: (s: State<Vars>) => boolean): string {
   for (let i = 0; i < 500; i++) if (pred(start(`c${i}`))) return `c${i}`;
   throw new Error("No seed found");
 }
+// #endregion findSeed
 
 /** Moves entities in a copy of the state, as a test fixture. */
 function rearrange(
@@ -99,6 +101,7 @@ describe("crazy eights", () => {
     expect(legalInputs(crazyEights, s, "p2")).toEqual([]);
   });
 
+  // #region eight
   test("an eight asks its player for a color, then play moves on", () => {
     let s = start(
       findSeed((s) => handOf(s, "p1").some((c) => c.props.value === 8)),
@@ -114,6 +117,7 @@ describe("crazy eights", () => {
     expect(s.vars.activeColor).toBe(color);
     expect(actors(crazyEights, s)).toEqual(["p2"]);
   });
+  // #endregion eight
 
   test("drawing ends the turn", () => {
     const seed = findSeed((s) => playable(s, "p1").length < 7);

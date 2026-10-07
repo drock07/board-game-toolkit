@@ -1,0 +1,70 @@
+---
+title: turn
+description: A prompt held open for the current player across several answers, with per-action limits.
+sidebar:
+  order: 7
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+A `turn` is a player's turn of several moves: roll up to three times then
+score, or draw, play any number of cards and pass. It keeps one prompt
+open for the current player until they end it, and counts what they did.
+You write `turn(opts, ...actions)`.
+
+| Option    | Type                   | What it is                                                               |
+| --------- | ---------------------- | ------------------------------------------------------------------------ |
+| `label`   | `string`               | What players are told it's waiting for. In `view.waiting`.               |
+| `limits`  | `{ [action]: number }` | How many times each action may be taken this turn. Others are unlimited. |
+| `first`   | `action name[]`        | The only actions allowed as the turn's first answer.                     |
+| `until`   | `(s) => boolean`       | Ends the turn when it holds. Checked on entry and after every answer.    |
+| `actions` | handles                | The actions it offers. The builder's arguments after the options.        |
+
+The names in `limits` and `first` are typed by the actions you pass.
+
+## Demo
+
+Draw first, at most twice; discard as often as you have cards; pass to end
+the turn. The loop then starts a fresh one.
+
+<Demo name="turn" />
+
+## How it ends
+
+- **An action returns `"end"`.** That's how a player says they're done:
+  the demo's `pass`, or Roll Five's `score`.
+- **`until` holds**, after an answer or already when the turn starts, in
+  which case it ends without waiting.
+- **An action returns `{ exit: "name" }`**, raising an outcome.
+
+Any other answer keeps the turn open for the next one.
+
+## Limits and first
+
+An action over its limit, or not in `first` before the first answer, isn't
+offered: it's not among the legal inputs, and an input for it is illegal.
+The counts belong to the running `turn`, so each new turn starts from zero
+with nothing to reset in your vars.
+
+Make sure some action can always end the turn. If every action is used up
+or invalid, the player is still waited on and has nothing they can do.
+
+Roll Five's turn rolls up to three times, rolling first:
+
+<Source file="games/roll-five/game.ts" region="turn" />
+
+## What it shows
+
+`turnNode.shown(view)` is `{ answers, counts }`: answers given this turn,
+and how many times each action was taken. A UI reads it for "2 rolls
+left"; rules code reads it the same way, from `s`, in a `validate`:
+
+<Source file="games/roll-five/game.ts" region="hold" />
+
+## See also
+
+- [prompt](/board-game-toolkit/reference/flow/prompt/): one answer.
+- [simultaneous](/board-game-toolkit/reference/flow/simultaneous/): a
+  `turn` for every player at once.
+- [What nodes show](/board-game-toolkit/reference/flow/shown/).

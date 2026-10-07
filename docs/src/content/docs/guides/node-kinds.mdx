@@ -1,0 +1,158 @@
+---
+title: Writing a node kind
+description: Write your own node, from the kind module the engine runs to the typed builder you use in a flow.
+sidebar:
+  order: 14
+---
+
+import Source from "../../../components/Source.astro";
+
+The built-in nodes cover most flows, and a
+[function that returns a node](/board-game-toolkit/guides/reusing-flow/)
+covers most reuse. When you need a node that behaves differently from any
+combination of them, with its own rules for who it waits on or its own
+state in the frame, write a **node kind**. The built-ins are written the
+same way, against the same interface.
+
+A node kind has three parts:
+
+1. **The kind**: a module of functions the engine calls to run frames of
+   this node. It's written against the spec node, plain JSON.
+2. **The spec node**: what the node is in the game's spec, with any rules
+   code replaced by names.
+3. **The builder**: what you call in a flow. It turns your arguments into a
+   spec node, registering the rules code under those names.
+
+This page builds two kinds: `rollCall`, which waits until each of a set of
+players has answered once, on a single frame; and `repeat`, which runs its
+body a fixed number of times and tells the body which pass it's on.
+What you write a kind against, `Kind`, `defineNode`, `node` and friends,
+comes from the `@drock07/board-game-toolkit-engine/kinds` entry point.
+
+## The `Kind` interface
+
+| Function                      | Called                                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `children(n)`                 | Lists the node's child nodes, so the engine can index them by id. Required.                                                               |
+| `run(n, f, ctx)`              | When the frame is on top and not waiting: on entry, and each time a child it passed to ends. Required; a waiting kind's returns `"wait"`. |
+| `actions(n, f, player)`       | Makes it a **waiting** kind: the actions `player` may take now.                                                                           |
+| `answered(n, f, answer, ctx)` | After an action this frame offered ran. Returns what to do next; the default is `"done"`.                                                 |
+| `actors(n, f, ctx)`           | Who may answer it now. Without it, the bound actor answers.                                                                               |
+| `actor(n, f, ctx)`            | Binds a player for the nodes under it, as `turns` binds the current player.                                                               |
+| `scope(n, f)`                 | What the nodes under it read with `s.scopeOf(n.id)`.                                                                                      |
+| `show(n, f, ctx)`             | What players see of this frame, in `view.shown` under the kind's name.                                                                    |
+| `check(n, f, ctx)`            | A guard, checked after every transaction. Returning an outcome's name raises it.                                                          |
+| `catches(n, f, outcome)`      | Whether this frame catches a raised outcome.                                                                                              |
+| `exited(n, f, outcome, ctx)`  | On the catching frame, once everything above it is cancelled.                                                                             |
+
+`n` is the spec node and `f` the **frame**: the running node's record in
+the state. A frame has the node's `id`, a counter `i`, and `data`, which
+belongs to the kind. Change `f.data` in `run` or `answered`, and the engine
+keeps it. It must be JSON, since it's saved with the state.
+
+`run` and `answered` return a **`Next`**:
+
+| `Next`                          | What the engine does                                                   |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| `{ pass: child }`               | Starts the child on top of this frame, and adds one to `f.i`.          |
+| `"wait"`                        | Leaves the frame where it is, waiting for input.                       |
+| `"done"`                        | Ends the frame. Its parent's `run` is called next.                     |
+| `{ exit: "name" }`              | Raises an outcome, which unwinds to the nearest frame that catches it. |
+| `{ spawn: [{ node, player }] }` | Starts child fibers, and waits until all of them finish.               |
+
+`ctx` reads the game: `ctx.state`, `ctx.holds(condition)` and
+`ctx.query(name)`. In `run` and `answered` it can also change it:
+`ctx.transact((tx) => …)` runs rules code in a transaction, such as a step
+the builder registered, `ctx.game.impl.steps[name]`.
+
+## A waiting kind
+
+`rollCall` waits on a set of players, each answering once, in any order:
+
+<Source file="snippets/nodeKind.ts" region="rollCallKind" />
+
+- **`actions`** makes it a waiting kind. The engine stops the flow at its
+  frame, and offers its actions to its actors.
+- **`actors`** says who may answer: the players the `who` query names, less
+  those who have answered. `actors()` and `view.waiting` list them.
+- **`answered`** runs after the action's `execute`, with what it returned in
+  `answer.result`. It records the player in `f.data` and keeps waiting
+  until nobody is missing. Passing an `{ exit }` result through lets an
+  action raise an outcome, as with the built-in `prompt`.
+- **`show`** publishes who has answered. Every player gets it, so it must
+  never hold hidden information.
+- **`label`** on the spec node is what `view.waiting` shows for it, as for
+  `prompt`.
+
+## A kind with a body
+
+`repeat` runs its body `times` times:
+
+<Source file="snippets/nodeKind.ts" region="repeatKind" />
+
+- **`run`** is called on entry and each time the body ends. `f.i` counts the
+  passes started so far, so the kind needs no data of its own.
+- **`scope`** is what the body sees. `s.scopeOf(n.id)` reads the nearest
+  frame of this node, from any reader or transaction inside it. Scopes are
+  looked up by node id, so a scope isn't hidden by another scoped node in
+  between.
+- **`show`** publishes the pass to players, read as
+  `repeatNode.shown(view)`.
+
+## The builders
+
+<Source file="snippets/nodeKind.ts" region="builders" />
+
+- **The builder types** say how the node is called, generic over the game's
+  vars `V`. `H` carries the action handles inside, so a game's inputs stay
+  typed.
+- **The `NodeBuilders` augmentation** registers each builder type by name.
+  TypeScript can't derive a vars-bound type from a generic function value,
+  so the registry declares it instead. It's the one place a kind needs
+  this help.
+- **`defineNode(name, { kind, build })`** checks `build` against the
+  registry, with `unknown` vars. Pass the `kind` when it shows something, so
+  `.shown(view)` is typed. The kind's spec nodes must use the same name.
+- **`node(kind, lower)`** makes the authored node: the kind module, and a
+  `lower` function that turns it into a spec node when `rules` runs.
+
+`lower` gets a **`Lowerer`**:
+
+| Method              | What it does                                                                   |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `l.id(kind)`        | A unique node id: the kind's name, numbered when it's used again.              |
+| `l.cond(name, fn)`  | Registers a condition; the kind checks it with `ctx.holds(name)`.              |
+| `l.query(name, fn)` | Registers a read-only query; the kind reads it with `ctx.query(name)`.         |
+| `l.step(name, fn)`  | Registers rules code that changes state, for the kind to run in a transaction. |
+| `l.action(handle)`  | Registers an action and returns its name.                                      |
+| `l.visit(child)`    | Lowers a child node and returns its spec node.                                 |
+
+Name what you register after the node's id, `${id}.who`, so two uses of the
+node don't collide. `repeat`'s builder also makes the typed accessor its
+body reads: `r.pass(s)` is `s.scopeOf(id)` closed over the node's id. An
+ability's `t.self` and `t.data` work the same way.
+
+## Using them
+
+Add the definitions to the core with `withNodes`, next to the built-ins:
+
+<Source file="snippets/nodeKind.ts" region="game" />
+
+`rollCall` asks everyone but the player who's away. Then `repeat` runs its
+prompt three times, and the action reads which pass it's in. The kinds are
+in the game's spec under their names, so saves and the spec hash cover
+them like any other node.
+
+## Getting it right
+
+- **Keep frame data JSON**, and keep hidden information out of `show`.
+- **List every child in `children`.** The engine finds nodes by id through
+  it; a child it can't find is an error when the frame starts it.
+- **Fuzz it.** `fuzz` plays the kind through random games and checks that
+  its events replay and its views don't leak. The tests for this page do.
+
+## See also
+
+- [Flow](/board-game-toolkit/concepts/flow/): frames, fibers and waiting.
+- [What nodes show](/board-game-toolkit/reference/flow/shown/).
+- The built-in kinds, in the engine's `src/kinds/`, are the best examples.

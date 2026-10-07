@@ -1,125 +1,145 @@
 ---
 title: Cards and hidden hands
-description: Model a deck, hands and a discard pile, keep hands secret, and render each player's view.
+description: Keep hands secret, deal face down, render placeholders, and avoid the three ways a game can give a hidden card away.
 sidebar:
   order: 1
 ---
 
 import Source from "../../../components/Source.astro";
 
-This guide walks through the card setup in
-[Crazy Eights](/board-game-toolkit/examples/crazy-eights/): a hidden deck, a hand per
-player that only its owner sees, and a discard pile showing its top card.
+Card games run on what players can't see: the deck's order, each other's
+hands, the dealer's hole card. The engine keeps those secrets for you. Each
+zone says who may see its entities, and every
+[view](/board-game-toolkit/concepts/views/) and event a player gets is
+filtered by it. This guide walks through
+[Crazy Eights](/board-game-toolkit/examples/crazy-eights/) and
+[Blackjack](/board-game-toolkit/examples/blackjack/), and then the rules your
+own code has to follow so it doesn't leak what the engine hides.
 
-## 1. Declare the zones
+## Declare who sees what
 
-<Source file="games/crazy-eights/spec.ts" title="spec.ts" />
+Crazy Eights has a deck no one sees, a discard pile whose top card everyone
+sees, and a hand per player that only its owner sees:
 
-The three zones cover the usual cases:
+<Source file="games/crazy-eights/game.ts" region="box" />
 
-- `deck: { visibility: "hidden" }`: no one sees any card.
-- `hand: { perPlayer: true, visibility: "owner" }`: one hand per player,
-  `hand:p1`, `hand:p2`, …, each seen only by its owner.
-- `discard: { visibility: "top" }`: everyone sees the top card.
+| Visibility           | Who sees the entities                              |
+| -------------------- | -------------------------------------------------- |
+| `"public"` (default) | Everyone.                                          |
+| `"hidden"`           | No one.                                            |
+| `"owner"`            | The player who owns the instance: `hand.of("p2")`. |
+| `"top"`              | Everyone sees the top entity; the rest are hidden. |
 
-## 2. Declare the card type
+`"owner"` needs `perPlayer: true`, since an instance needs an owner; the
+types reject it on a shared zone. Anyone who owns no zone, like
+`"spectator"`, sees only what's public.
 
-Each card is an entity with typed props. Name its type in `TypesFor`:
+## Deal and play
 
-```ts
-export interface Card {
-  color: Color;
-  value: number;
-}
+Dealing is moving entities between zones; their visibility follows the zone
+they land in. The deal step shuffles the deck, moves seven cards into each
+hand and turns up the first discard:
 
-export type Types = TypesFor<
-  typeof spec,
-  { vars: Vars; entities: { card: Card } }
->;
-```
+<Source file="games/crazy-eights/game.ts" region="rules" />
 
-## 3. Create and deal
+An action that names a card must check that the actor holds it. Inputs are
+just data, so a player can send any card's id; `validate` is what stops them
+playing someone else's:
 
-Create the cards in `setup`, then deal in a step, so every new game reshuffles:
+<Source file="games/crazy-eights/game.ts" region="actions" />
 
-```ts
-setup(tx) {
-  for (const color of COLORS) {
-    for (let value = 1; value <= 8; value++) {
-      tx.create("card", { color, value }, "deck");
-    }
-  }
-},
-steps: {
-  dealSeven(tx) {
-    tx.shuffle("deck");
-    for (let round = 0; round < 7; round++) {
-      for (const p of tx.state.players) tx.moveTop("deck", `hand:${p}`);
-    }
-    tx.moveTop("deck", "discard");
-  },
-},
-```
+## What a player sees
 
-`moveTop` takes from index 0, the top. `create` puts new entities at the
-bottom, so the deck reads top-down in creation order until it's shuffled.
+A card the viewer can't see is a **placeholder**: `{ ref, zone, hidden:
+true }`. It says where a card is, and nothing that tells it apart:
 
-## 4. Play a card
+<Source
+  file="snippets/hidden-information.test.ts"
+  region="views"
+  title={false}
+/>
 
-An action whose args name a card. `enumerate` lists the playable ones, which
-is how the UI knows which cards to enable and how bots and the fuzzer find
-moves:
+- **Placeholders keep counts public.** Everyone sees how many cards each hand
+  and the deck hold, as at a real table.
+- **Views key entities by ref, not id.** A ref (`r12`) is a public handle. An
+  id would give a card away (`card#1` was created first), so a placeholder
+  never carries one.
+- **A shuffle renews refs.** Every entity in a shuffled zone gets a new ref,
+  so a player can follow a face-down card they watched move, but not through
+  a shuffle.
 
-```ts
-playCard: {
-  enumerate: (s, scope): PlayArgs[] =>
-    playable(s, scope.actor!).map((card) => ({ card })),
-  validate: (s, { card }: PlayArgs, scope) =>
-    playable(s, scope.actor!).includes(card) ? true : "You can't play that",
-  execute: (tx, { card }: PlayArgs) => tx.move(card, "discard"),
-},
-```
+To render a zone, read it with `viewEntities(view, zone)`, draw a card back
+for a placeholder (`"hidden" in e`), and a face otherwise; `card.is(e)`
+narrows to a card with typed props. Key each element by `ref`, which every
+entry has.
 
-Always check in `validate` that the card is in the actor's hand: an input
-naming someone else's card must be rejected.
-
-## 5. Render a view
-
-Render from the viewer's **view**, never the full state. In a view, cards you
-can't see are placeholders with positional ids:
-
-```tsx
-const g = useGame(crazyEights, { players: ["p1", ...] });
-const { view } = g;
-
-// Any hand: real cards where the viewer can see them, placeholders elsewhere
-const cardsIn = (zone: string) =>
-  view.zones[zone]!.items.map((id) => view.entities[id]!);
-
-return cardsIn(`hand:${g.viewer}`).map((card) =>
-  isHidden(card) ? (
-    <CardBack key={card.id} />
-  ) : (
-    <CardFace key={card.id} color={card.props.color} value={card.props.value} />
-  ),
-);
-```
-
-`isHidden(entity)` narrows an entity to the placeholder. A placeholder has
-`id`, `hidden: true` and `zone`, plus `type` when the zone sets `revealType`.
-
-## Face-down cards in public zones
+## Face down in a public zone
 
 Sometimes one card in a public zone is hidden, like Blackjack's hole card.
-Set `faceUp: false` when it moves, and `tx.flip(id, true)` to reveal it:
+The dealer's hand is public; the second card is dealt with `faceUp: false`:
 
-<Source file="games/blackjack/impl.ts" region="deal" />
+<Source file="games/blackjack/game.ts" region="deal" />
 
-## Custom visibility
+`faceUp` on an entity overrides its zone: `false` hides it from everyone,
+`true` shows it to everyone. `tx.flip(id, true)` turns it up when the dealer
+plays:
 
-For rules like "you can see cards in adjacent rooms", give the zone
-`visibility: { ref: "inSight" }` and write
-`impl.visibility.inSight(s, entity, viewer)`.
+<Source file="games/blackjack/game.ts" region="reveal" />
 
-See [Views and hidden information](/board-game-toolkit/concepts/views/) for the details,
-including how events are filtered.
+Moving an entity clears its `faceUp` unless the move sets one. In a `"top"`
+zone the engine sets `faceUp` itself, turning the top card up and the rest
+down, so you never flip a discard pile by hand.
+
+## Three ways to give a card away
+
+The engine filters views and events. Your code can still leak a secret
+through what isn't filtered.
+
+### Hidden ids in vars
+
+Vars are public: every player's view has them in full. If you store the id of
+a card in a hidden zone in the vars, a player can follow that card. Store
+what the rules need once it's public (Crazy Eights stores the active color,
+not the card that set it), and keep references to hidden cards in zones.
+
+### Who is asked
+
+`actors()` and `view.waiting` are public. They tell every player who the game
+is waiting on, so who's asked must never depend on a hidden card.
+
+An [ability](/board-game-toolkit/concepts/effects/) carried by a card runs
+only while that card is in its zone, and asks the card's owner. Carried by a
+card in a hand, it gives the card away the moment it asks:
+
+<Source file="snippets/hidden-information.ts" region="carried" />
+
+When p1 strikes p2, the game waits on p2 only if p2 holds a Counter, and p1
+can see that. Write the reaction as a game-wide ability that always asks the
+target, and check the hand in the action's `validate` instead:
+
+<Source file="snippets/hidden-information.ts" region="asks" />
+
+Now every strike asks its target, holding a Counter or not. Only the target's
+legal inputs, which nobody else sees, show whether they can counter.
+
+### Whispers
+
+An [effect](/board-game-toolkit/concepts/effects/) is in every player's
+events unless it has `to`. For an effect that names a hidden card, like
+"you drew the Bomb", give it `to: (d) => [d.player]` so only that player
+gets it.
+
+## Fuzzing checks the engine's part
+
+`fuzz` fails if any view or event carries a hidden entity's id or props, or
+an effect whispered to someone else, and checks every player's view after
+every input. It can't tell that your vars or your abilities give a card
+away; that's the part this guide is for. See
+[Testing](/board-game-toolkit/guides/testing/#fuzzing).
+
+## See also
+
+- [Views](/board-game-toolkit/concepts/views/): what a view holds, and how
+  events are filtered to match.
+- [Boards and zones](/board-game-toolkit/guides/boards/): zone families and
+  piles.

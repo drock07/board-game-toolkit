@@ -72,11 +72,13 @@ export default function TowerBattler() {
   const [selected, setSelected] = useState<string | null>(null);
   const [hit, setHit] = useState<Hit | null>(null);
   useGameEvent(g, "moved", () => wait(90));
+  // #region hit
   useGameEffect(g, enemyAttack, async (data) => {
     setHit(data);
     await wait(900);
     setHit(null);
   });
+  // #endregion hit
 
   const { vars } = g.view;
   const { player, enemy } = vars;

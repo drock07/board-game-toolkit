@@ -1,58 +1,98 @@
 ---
 title: Saving and replays
-description: Save games as states or inputs, load them, undo moves, and replay games for review.
+description: Save a game as its state or as its inputs, load it back safely, undo moves, and step through a finished game.
 sidebar:
   order: 11
 ---
 
 import Source from "../../../components/Source.astro";
 
-Because a game is determined by its seed and inputs, there are two ways to
-save one.
+A game is fully determined by its players, its seed and its inputs, and its
+state is plain JSON. So there are two ways to keep one: store the state, or
+store the inputs and replay them. This page shows both, and the undo and
+replay viewers they make easy. The samples use High Card from the
+[concept pages](/board-game-toolkit/concepts/model/).
 
 ## Save the state
 
-State is JSON:
+<Source file="snippets/savingAndReplays.test.ts" region="save" title={false} />
 
-<Source file="snippets/concepts.test.ts" region="save" title={false} />
+- **`save(game, state)`** writes the state as a JSON document, stamped with
+  the game's **spec hash**.
+- **`load(game, text)`** reads it back. It throws a `SaveError` if the text
+  isn't a save, is from a newer save format, or was written by a game whose
+  spec hash differs.
+- **`specHash(game)`** is a hash of the game's spec: its zones, its flow's
+  nodes and their settings, its abilities and effects. A state's frames name
+  flow nodes by id, so a state only makes sense in a flow with the same
+  nodes. The hash makes a mismatch fail clearly at `load`, instead of deep
+  in the flow later.
 
-This is the simplest option and loads instantly. The state records its
-`spec.id` and `spec.version`; `apply` refuses a state from another version, so
-bump `version` when a spec change would break old saves.
+The hash doesn't cover rules code. Change what an action's `execute` does,
+or a step's body, and old saves still load and play on under the new rules.
+Add a node or a zone, and they don't.
+
+A save works at any point: mid-turn, in the middle of a reaction, with
+[several fibers](/board-game-toolkit/guides/simultaneous-turns/) running.
+The flow's position is part of the state.
 
 ## Save the inputs
 
-Keep the players, seed and every accepted input. `replay` rebuilds the state:
+The players, the seed and the accepted inputs are a complete record of a
+game, and a small one. `replayInputs` plays them from the start:
 
-<Source file="snippets/concepts.test.ts" region="replay" title={false} />
+<Source file="snippets/savingAndReplays.test.ts" region="log" title={false} />
 
-Inputs are smaller than a state, keep the full history (for a game log or a
-replay viewer), and still load after a rules fix that doesn't change what
-those inputs did. A golden replay is exactly this, plus a hash to check it.
+- Every input must still be legal. The first that isn't throws a
+  `SaveError` naming its index, player, action and why it was rejected.
+- A log survives rules fixes that don't change what its inputs did, even
+  ones that change the spec hash. A save doesn't.
+- A log is history. You can show it as a game log, replay it for review, or
+  rebuild any point in the game from it.
+
+Which to keep? A save loads instantly and needs nothing else. A log is
+smaller, keeps the whole game, and is what you want for bug reports and
+[golden replays](/board-game-toolkit/guides/testing/). Many hosts keep both:
+the log as the record, and a recent save to start from quickly.
 
 ## Undo
 
-Two ways:
+<Source file="snippets/savingAndReplays.test.ts" region="undo" title={false} />
 
-- **Keep earlier states.** States share structure, so a stack of them is
-  cheap. Undo is popping the stack.
-- **Replay all but the last input**, which needs nothing but the inputs:
+- **Keep every state.** `apply` never changes the state it's given, so a
+  stack of states is a full history. Undo pops it.
+- **Replay all but the last input**, when you only keep the log.
 
-<Source file="snippets/guides.test.ts" region="undo" title={false} />
-
-Undo in a game with hidden information or bots needs care: undoing past a
-card draw lets a player see the card and choose differently. Most games allow
-undo only until something new is revealed.
+Undo needs care with hidden information. Undoing past a card draw lets a
+player see the card and choose differently. Most games allow undo only
+until something new is revealed, or only in single-player games.
 
 ## Replay viewers
 
-To step through a finished game, replay its inputs one at a time with `init`
-and `apply`, keeping each result. Each result's `events` drive the same
-animations as live play.
+To step through a finished game, apply its inputs one at a time and keep
+each result. Each step's events are the same events live play produced, so
+the same animations play them back:
+
+<Source
+  file="snippets/savingAndReplays.test.ts"
+  region="viewer"
+  title={false}
+/>
+
+Show each player's share with `viewEvents(game, events, player)`, as in
+live play. See [Events](/board-game-toolkit/concepts/events/).
 
 ## With the React host
 
-`useGame` takes a `seed`, and `restart(seed?)` starts over. The host can't
-start from a saved state yet. To resume a game, mount it with the saved seed
-and submit the saved inputs in order; their events play back like any others,
-so register animation handlers afterwards or skip them while restoring.
+`useGame` starts a game from a seed, and `restart(seed?)` starts it over. To
+put a logged game back on screen, start from the log's seed and submit its
+inputs in order; their events play back like any others. The host's own
+`log` is the viewer's events, for showing what happened, not the inputs.
+
+## See also
+
+- [Determinism and saves](/board-game-toolkit/concepts/determinism/): why
+  this works, and the rules that keep a game deterministic.
+- [Running on a server](/board-game-toolkit/guides/server/): a server keeps
+  the log, and rebuilds from it after a restart.
+- [Testing](/board-game-toolkit/guides/testing/): golden replays.

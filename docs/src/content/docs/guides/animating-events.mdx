@@ -1,6 +1,6 @@
 ---
 title: Animating events
-description: Play the engine's events back one at a time in React, and wait for your animations between them.
+description: Play the engine's events back one at a time in React, wait for your animations between them, and keep what nodes show in step.
 sidebar:
   order: 9
 ---
@@ -8,53 +8,106 @@ sidebar:
 import Source from "../../../components/Source.astro";
 
 `apply` jumps straight from one state to the next, but a player wants to see
-the card slide, the dice tumble, the damage flash. The React host gives you
-the events between the two states, one at a time.
+the card slide, the dice land, the hit flash. The React host plays the
+[events](/board-game-toolkit/concepts/events/) between the two states back
+one at a time, and waits for your animations between them.
 
 ## How playback works
 
 When an input is applied, the host keeps the new **committed** state and
-queues its events. It then applies them one by one to the **displayed** state,
-which is what `g.view` shows. Before each event it calls your handlers, and
-waits for any promise they return.
+queues the input's events. It then replays the viewer's share of them, one by
+one, onto the **displayed** view, which is what `g.view` shows. After each
+event it calls your handlers for that event type, and waits for any promise
+they return before the next one.
 
-While events are playing:
+While events play back:
 
-- `g.playing` is `true`,
-- `g.view` lags behind the committed state, one event at a time,
-- `g.legal` and `g.prompts` are empty, so the player can't act on a state they
-  haven't seen yet,
-- bots wait too.
+- **`g.playing`** is `true`.
+- **`g.view`** lags the committed state: it includes the events played so
+  far, and no more. Its `waiting` is empty, since nothing can be answered
+  until playback ends.
+- **`g.legal`** and **`g.actors`** are empty, so nobody acts on a state they
+  haven't seen yet.
+- **Bots wait** too, and answer once playback ends.
+
+`g.state` is always the committed state. Render from `g.view`, and use
+`g.state` only for devtools.
+
+An event with no handler is applied straight away, with no render in between,
+so a burst of bookkeeping doesn't flicker. When the queue is empty, the
+displayed view is the committed state's view.
 
 ## useGameEvent
 
-<Source file="snippets/AnimatedTable.tsx" region="table" title="Table.tsx" />
+`useGameEvent(g, type, handler)` runs `handler` as each of the viewer's
+events of that type plays back. Crazy Eights gives a played card a beat on
+the discard pile, and deals quickly:
 
-- The first argument is the `useGame` result.
-- The type is an event type (`"moved"`, `"created"`, `"vars"`, `"custom"`,
-  …) or `"*"` for all.
-- The handler gets the event and the displayed view, which already includes
-  the event.
-- Return a promise to hold playback until it resolves.
+<Source file="games/crazy-eights/Table.tsx" region="playback" />
 
-Handlers only see the **viewer's** events: hidden cards keep positional ids,
-and custom events respect `visibleTo`. See
-[Views](/board-game-toolkit/concepts/views/#events-per-player).
+- **The type** is an event type, `"moved"`, `"created"`, `"flipped"`,
+  `"vars"`, `"flow"` and so on, or `"*"` for every event. The event is typed
+  by it: a `"moved"` event has `to`, `from` and `entities`.
+- **The handler** gets the event and the displayed view, which already
+  includes the event.
+- **Return a promise** to hold playback until it resolves. Here, `wait(ms)`
+  is a timer.
 
-Events with no handler are applied straight away, without a render in between,
-so a burst of bookkeeping doesn't flicker.
+Handlers see only the **viewer's** events, filtered as their view is. A card
+dealt to another player is still a `moved` event, with a placeholder in place
+of the card; see [Views](/board-game-toolkit/concepts/views/). A handler may
+change between renders; the host always calls the latest one.
 
-## Animating with layout animations
+## useGameEffect
 
-A good pattern with a layout animation library such as Motion: render from
-`g.view` with stable `key`s (entity ids), and give `moved` events a short wait.
-Each card renders in its new zone after its event, and the library animates
-it from its old position. The examples do this with `motion/react`'s
-`layout` and `AnimatePresence`.
+An [effect](/board-game-toolkit/concepts/effects/) is a typed event of your
+own. `useGameEffect(g, effect, handler)` runs as one plays back, with its
+data typed by the effect. Tower Battler shows the enemy's attack landing:
+
+<Source file="games/tower-battler/TowerBattler.tsx" region="hit" />
+
+The effect's event is logged when it's caused, before its abilities and its
+`resolve` run, so the hit shows before the hit points drop. An effect
+whispered to some players (its `to`) plays back only for them.
+
+## Flow events keep the view in step
+
+What nodes show, like a `turn`'s count of rolls (`turnNode.shown(view)`),
+is in `view.shown`, and what the flow waits on is in `view.waiting`. Neither
+changes with the vars or the zones; a **`flow` event** at the end of each
+input's events carries them. So during playback, `view.shown` stays as it
+was until the `flow` event plays, and then catches up.
+
+In Roll Five, a roll is a `vars` event (the new dice) followed by a `flow`
+event (the turn's roll count, now one more). Pausing on the `flow` event
+rather than the `vars` event means the dice and the count change on screen
+together:
+
+<Source file="games/roll-five/RollFive.tsx" region="playback" />
+
+The same holds for anything you derive from `shown`. If you render a value
+from `turnNode.shown(g.view)` next to one from `g.view.vars`, wait on
+`"flow"` and they never disagree.
+
+## Animating with a layout library
+
+A good pattern with a layout animation library such as
+[Motion](https://motion.dev): render from `g.view` with stable keys, and give
+`moved` events a short wait. Each card renders in its new zone after its
+event, and the library animates it from where it was. Key entities by `ref`,
+which a view always has, even for a placeholder; a shuffle gives a zone's
+entities new refs, so cards re-enter after one, as they should. The examples
+use `motion/react`'s `layout` and `AnimatePresence` this way.
 
 ## Without React
 
-`GameHost` is the framework-free class `useGame` wraps. Use it with another UI
-library, or headless:
+`GameHost` is the framework-free class `useGame` wraps. Use it with another
+UI library, or headless, as this test does:
 
-<Source file="snippets/AnimatedTable.tsx" region="host" title={false} />
+<Source file="snippets/animating-events.test.ts" region="host" title={false} />
+
+`host.on(type, handler)` registers a handler and returns a function that
+removes it. `host.subscribe(listener)` and `host.getSnapshot()` follow
+React's external store contract; `useGame`'s result is the snapshot plus
+`submit`, `restart`, `setViewer` and `host`. Call `host.start()` to begin playback and bots, and
+`host.stop()` to pause them.

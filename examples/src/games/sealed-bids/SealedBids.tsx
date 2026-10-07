@@ -20,6 +20,7 @@ const NAMES: Record<PlayerId, string> = { p1: "You", p2: "Bot 2", p3: "Bot 3" };
 const name = (p: PlayerId) => NAMES[p] ?? p;
 
 export default function SealedBids() {
+  // #region host
   const g = useGame(sealedBids, {
     players: [
       "p1",
@@ -30,15 +31,18 @@ export default function SealedBids() {
   });
   // Give each round's result a moment on screen
   useGameEffect(g, sold, () => wait(600));
+  // #endregion host
 
   const { vars, players } = g.view;
   const me = players.includes(g.viewer) ? g.viewer : null;
   const bids = actionInputs(g.legal, "placeBid");
+  // #region waiting
   const waitingOn = new Set(
     g.view.waiting
       .filter((w) => w.label === "Place a sealed bid")
       .flatMap((w) => w.actors),
   );
+  // #endregion waiting
   const { coins, won } = vars;
   const scored = { coins, won };
   const lotsLeft = vars.items.length + (vars.lot ? 1 : 0);

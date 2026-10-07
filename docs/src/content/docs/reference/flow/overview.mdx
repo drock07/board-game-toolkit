@@ -1,57 +1,105 @@
 ---
 title: Flow nodes
-description: Every flow node kind, the options all nodes share, and the builders that create them.
+description: Every built-in node at a glance, what each waits on and shows, and how the builders become a game's spec.
 sidebar:
   label: Overview
   order: 0
 ---
 
-The flow is a tree of nodes. Each node is a plain object with a `kind` and an
-`id`; the builders exported by the engine create them with less typing. See
-[Flow](/board-game-toolkit/concepts/flow/) for how the engine runs them.
+import Source from "../../../../components/Source.astro";
 
-| Kind       | Builder                                | Waits? | Page                                                     |
-| ---------- | -------------------------------------- | ------ | -------------------------------------------------------- |
-| `seq`      | `seq(id, children, opts?)`             | No     | [seq](/board-game-toolkit/reference/flow/seq/)           |
-| `loop`     | `loop(id, body, opts?)`                | No     | [loop](/board-game-toolkit/reference/flow/loop/)         |
-| `each`     | `each(id, over, body, opts?)`          | No     | [each](/board-game-toolkit/reference/flow/each/)         |
-| `branch`   | `branch(id, cases, otherwise?, opts?)` | No     | [branch](/board-game-toolkit/reference/flow/branch/)     |
-| `step`     | `step(id, run, opts?)`                 | No     | [step](/board-game-toolkit/reference/flow/step/)         |
-| `decision` | `decision(id, opts, actions, common?)` | Yes    | [decision](/board-game-toolkit/reference/flow/decision/) |
-| `choose`   | `choose(id, opts)`                     | Yes    | [choose](/board-game-toolkit/reference/flow/choose/)     |
-| `pause`    | `pause(id, opts?)`                     | Yes    | [pause](/board-game-toolkit/reference/flow/pause/)       |
-| `parallel` | `parallel(id, children, opts)`         | No     | [parallel](/board-game-toolkit/reference/flow/parallel/) |
-| `exit`     | `exit(id, outcome, opts?)`             | No     | [exit](/board-game-toolkit/reference/flow/exit/)         |
-| `use`      | `subflow(id, name, opts?)`             | No     | [subflow](/board-game-toolkit/reference/flow/subflow/)   |
+These pages are the reference for the flow's nodes: what each one does, its
+options, and a live demo you can play. For how the engine runs a flow, read
+[Flow](/board-game-toolkit/concepts/flow/) first.
 
-## Options every node takes
+## The built-in nodes
 
-| Option   | Type                      | Meaning                                                                                                          |
-| -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `id`     | `string`                  | Unique in the spec. Set by the builder's first argument.                                                         |
-| `locals` | `string`                  | An `impl.locals` name. Its result becomes the node's locals each time the node is entered.                       |
-| `exits`  | `{ [outcome]: Cond }`     | Guards. After every transaction, if a condition holds, the node ends with that outcome. Checked outermost first. |
-| `on`     | `{ [outcome]: FlowNode }` | A flow to run when the node ends with that outcome.                                                              |
+The builders come from your core, once you add them with
+`withNodes(defaultNodes)`:
 
-A **`Cond`** is either the name of an `impl.conditions` entry or an inline
-[expression](/board-game-toolkit/reference/spec/expressions/). See
-[Outcomes and guards](/board-game-toolkit/concepts/outcomes/) for `exits` and `on`.
+<Source file="snippets/highCard.ts" region="core" />
 
-## Builders and plain objects
+| Node                                                                          | What it does                                      | Waits on                               | Shows                     |
+| ----------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------- | ------------------------- |
+| [`seq(...children)`](/board-game-toolkit/reference/flow/seq/)                 | Runs its children in order.                       | Nothing                                | Nothing                   |
+| [`step(run)`](/board-game-toolkit/reference/flow/step/)                       | Runs rules code in one transaction.               | Nothing                                | Nothing                   |
+| [`loop(opts, body)`](/board-game-toolkit/reference/flow/loop/)                | Repeats its body until `until` holds, or forever. | Nothing                                | `{ pass }`                |
+| [`branch(cases, otherwise?)`](/board-game-toolkit/reference/flow/branch/)     | Runs the first case whose `when` holds.           | Nothing                                | Nothing                   |
+| [`turns(opts, body)`](/board-game-toolkit/reference/flow/turns/)              | Players take turns at its body, in seat order.    | Nothing; binds whose turn it is        | `{ player, turn, round }` |
+| [`prompt(opts?, ...actions)`](/board-game-toolkit/reference/flow/prompt/)     | Waits for one answer.                             | The bound player                       | Nothing                   |
+| [`turn(opts, ...actions)`](/board-game-toolkit/reference/flow/turn/)          | A prompt held open across several answers.        | The bound player                       | `{ answers, counts }`     |
+| [`everyone(opts?, ...actions)`](/board-game-toolkit/reference/flow/everyone/) | One answer from every player, in any order.       | Every player, each on their own fiber  | Nothing                   |
+| [`anyone(opts, ...actions)`](/board-game-toolkit/reference/flow/anyone/)      | The first answer from any of a set of players.    | Everyone in `who`, or every player     | Nothing                   |
+| [`simultaneous(body)`](/board-game-toolkit/reference/flow/simultaneous/)      | Runs its body for every player at once.           | Whatever its body waits on, per player | Nothing                   |
+| [`outcomes(outcomes, body)`](/board-game-toolkit/reference/flow/outcomes/)    | The ways its body may end early.                  | Nothing                                | Nothing                   |
 
-Builders return exactly the object you'd write by hand, and keep every string
-as a literal type so `defineGame` can check names:
+Effects and abilities run as nodes too, pushed by the engine when an effect
+is caused or an ability fires; see
+[Effects and abilities](/board-game-toolkit/reference/flow/effects/). What
+the "Shows" column means, and how a UI reads it, is on
+[What nodes show](/board-game-toolkit/reference/flow/shown/).
 
-```ts
-decision("turn", { actor: "current" }, { play: {}, pass: {} });
-// { kind: "decision", id: "turn", actor: "current", actions: { play: {}, pass: {} } }
-```
+Only `prompt`, `turn`, `everyone` (through its prompts) and `anyone` wait
+for input. Every other node runs straight through, so the game only stops
+where one of those is open.
 
-Specs loaded from JSON with [`fromJSON`](/board-game-toolkit/reference/spec/json/) use the plain form.
+## Conditions and queries are functions of state
 
-## Custom node kinds
+Options like `until`, `when`, `from`, `among` and `who` are functions of a
+read-only `Reader`: `(s) => s.vars.round === 3`. They see the vars, the
+zones, `s.players`, `s.actor` (who the flow is bound to there) and
+`s.shown`. They must not change anything, and they run whenever the engine
+needs the answer, so keep them cheap.
 
-`defineGame(def, { kinds })` accepts custom node kinds, through the exported
-`NodeKind` interface. This extension point is **experimental**: custom kinds
-can't have children yet, and a custom node needs a type cast in the spec. Use
-the built-in kinds for now.
+## How builders become a spec
+
+A builder doesn't run anything. It returns an authored node, and `rules`
+**lowers** the whole tree into two parts:
+
+- a **spec**: plain JSON, with a `kind` and an `id` per node, that the
+  engine runs, [devtools](/board-game-toolkit/guides/devtools/) draw, and
+  saves are checked against;
+- an **impl**: your functions, filed by name: steps, conditions, queries
+  and actions.
+
+Each node's id is its kind, numbered when repeated (`step`, `step2`, …), and
+its functions are filed under names built from the id (`turns.until`,
+`branch.when0`, `outcomes.won`). The [seq demo](/board-game-toolkit/reference/flow/seq/)
+lowers to:
+
+<Source file="snippets/flowNodes.test.ts" region="spec" />
+
+You rarely need the spec yourself, but it's why a game's state is plain
+JSON: frames name nodes by id, so a save holds no functions. A save only
+loads into a game with the same spec, so adding, removing or reordering
+nodes makes old saves refuse to load; changing what a step or an action
+does doesn't. See
+[Saving and replays](/board-game-toolkit/guides/saving-and-replays/).
+
+## Errors the flow throws
+
+All of these are bugs in a game, never a player's mistake:
+
+- **`FlowStuckError`**: the flow ran 10,000 nodes without waiting for
+  input, usually a `loop` whose body never waits. Its `trace` lists the
+  last nodes run.
+- **`FlowEndedWithoutEndError`**: the flow ran out without `tx.end()`. End
+  the game in a last `step`, or loop forever.
+- **`UnhandledOutcomeError`**: an outcome was raised that no enclosing
+  `outcomes` lists.
+- **`RulesError`**: rules code used the engine wrongly, e.g. `turns` got an
+  unknown player from `from`.
+
+## Your own nodes
+
+A node kind is a module the engine runs, and the built-ins use the same
+interface you do. See
+[Writing a node kind](/board-game-toolkit/guides/node-kinds/).
+
+## See also
+
+- [Flow](/board-game-toolkit/concepts/flow/): how the engine runs and waits.
+- [Outcomes](/board-game-toolkit/concepts/outcomes/) and
+  [Effects and abilities](/board-game-toolkit/concepts/effects/).
+- The [flow gallery](/board-game-toolkit/examples/flow-gallery/): every
+  example game's flow, drawn.

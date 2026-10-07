@@ -359,6 +359,7 @@ const combat = seq(
 );
 // #endregion combat
 
+// #region trap
 /** A trap: try to dismantle it, as often as you like, or leave it. */
 const trap = seq(
   step((tx) => {
@@ -368,6 +369,7 @@ const trap = seq(
   prompt({ label: "Continue" }, next),
   step(leaveRoom),
 );
+// #endregion trap
 
 const treasureRoom = seq(
   step((tx) => {
@@ -403,6 +405,7 @@ export const dungeonCrawl = rules({
         tx.vars.log = ["You enter the dungeon..."];
         reveal(tx, 0, 0);
       }),
+      // #region run
       // Outermost guards win: killing the boss also kills the room's
       // monster, and resolves as victory
       outcomes(
@@ -436,6 +439,7 @@ export const dungeonCrawl = rules({
           ),
         ),
       ),
+      // #endregion run
       prompt({ label: "Play again" }, again),
     ),
   ),

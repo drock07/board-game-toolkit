@@ -114,6 +114,7 @@ export const sealedBids = rules({
         tx.vars.lastResult = null;
         tx.vars.winners = [];
       }),
+      // #region round
       loop(
         { until: (s) => s.vars.items.length === 0 },
         seq(
@@ -142,6 +143,7 @@ export const sealedBids = rules({
           }),
         ),
       ),
+      // #endregion round
       step((tx) => {
         const best = Math.max(...tx.players.map((p) => points(tx.vars, p)));
         tx.vars.winners = tx.players.filter((p) => points(tx.vars, p) === best);

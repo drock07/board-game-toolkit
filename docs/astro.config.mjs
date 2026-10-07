@@ -32,6 +32,7 @@ export default defineConfig({
           entryPoints: [
             "../packages/engine/src/index.ts",
             "../packages/engine/src/testing/index.ts",
+            "../packages/engine/src/kinds/index.ts",
           ],
           tsconfig: "../packages/engine/tsconfig.build.json",
           output: "api/engine",
@@ -57,7 +58,7 @@ export default defineConfig({
       ],
       title: "Board Game Toolkit",
       description:
-        "A TypeScript toolkit for board games: a JSON flow spec, a pure deterministic engine, and a React host.",
+        "A TypeScript toolkit for board games: typed rules and flow, a pure deterministic engine, and a React host.",
       logo: { src: "./src/assets/logo.svg" },
       favicon: "/favicon.svg",
       social: [{ icon: "github", label: "GitHub", href: REPO }],

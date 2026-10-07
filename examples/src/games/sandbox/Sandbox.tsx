@@ -8,9 +8,11 @@ import { Button, Stat, wait } from "../../ui/kit";
 import { deck as deckZone, discardPile, hand as handZone } from "./game";
 
 export default function Sandbox() {
+  // #region host
   const g = useGame(sandbox, { players: ["p1"] });
   useGameEvent(g, "moved", () => wait(120));
   useGameEvent(g, "shuffled", () => wait(300));
+  // #endregion host
 
   const deck = zoneCards(g.view, deckZone);
   const hand = zoneCards(g.view, handZone);

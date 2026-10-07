@@ -1,32 +1,49 @@
 ---
 title: step
-description: "Runs a rule from impl.steps, then ends."
+description: Runs rules code in one transaction, without waiting for anyone.
 sidebar:
-  order: 5
+  order: 2
 ---
 
 import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
 
-```ts
-step(id, run, opts?)
-// { kind: "step", id, run }
-```
+A `step` is the automatic part of a game: shuffling and dealing, scoring a
+round, refilling a market, the dealer playing out their hand. You write
+`step(run)`.
 
-Runs `impl.steps[run](/board-game-toolkit/reference/flow/step/tx)` in a transaction and ends. Steps never wait for
-input: they're for the automatic parts of a game, such as dealing,
-scoring, refilling a market, or the dealer playing their hand.
-
-| Option | Type     | Meaning                        |
-| ------ | -------- | ------------------------------ |
-| `run`  | `string` | The `impl.steps` entry to run. |
-
-The step gets a transaction with the current scope in `tx.scope`, so a step
-inside an `each` over players knows whose turn it is (`tx.scope.player`). A
-step can raise an outcome with `tx.exit`, or end the game with `tx.end`.
-
-Several step nodes can run the same rule: the node id is unique, the rule
-name needn't be.
+| Argument | Type                       | What it is                                                        |
+| -------- | -------------------------- | ----------------------------------------------------------------- |
+| `run`    | `(tx) => void \| { exit }` | Rules code. It may return `{ exit: "name" }` to raise an outcome. |
 
 ## Demo
 
-<Demo name="seq" />
+Each pass, a step rolls two dice; then a prompt waits before the next roll.
+
+<Demo name="step" />
+
+## Behavior
+
+- **One transaction.** `run` gets a `tx` and everything it changes is one
+  transaction: its events are logged together, and abilities and caused
+  effects run once it ends, before the flow moves on.
+- **Never waits.** A step runs and ends. To ask a player something, follow
+  it with a [`prompt`](/board-game-toolkit/reference/flow/prompt/).
+- **Knows where it is.** `tx.actor` is the player the flow is bound to
+  there: whose turn it is inside `turns`, the fiber's player inside
+  `simultaneous`, the owner inside an ability. `tx.shown` reads what the
+  nodes around it show, such as the turn number.
+- **Ends things.** `tx.end(result)` ends the game. Returning
+  `{ exit: "name" }` raises an outcome to the nearest
+  [`outcomes`](/board-game-toolkit/reference/flow/outcomes/) that lists it.
+
+A flow either loops forever or ends the game in a step. High Card ends in
+one once the deck can't deal another round:
+
+<Source file="snippets/highCard.ts" region="rules" />
+
+## See also
+
+- [State](/board-game-toolkit/concepts/state/): what a transaction can do.
+- [Determinism](/board-game-toolkit/concepts/determinism/): why randomness
+  goes through `tx.random`.

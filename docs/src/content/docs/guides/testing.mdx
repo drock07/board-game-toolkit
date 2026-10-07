@@ -1,85 +1,154 @@
 ---
 title: Testing your game
-description: Unit-test rules, script whole games, record golden replays, and fuzz for bugs the engine can find on its own.
+description: Test rules with applyOrThrow, script and bot-play whole games, record golden replays, and fuzz for bugs the engine can find on its own.
 sidebar:
   order: 10
 ---
 
 import Source from "../../../components/Source.astro";
 
-Rules are pure functions of state, so they're easy to test without a UI. The
-`/testing` entry point adds tools for the rest. The examples below use
-[Vitest](https://vitest.dev), but nothing depends on it.
+A game is a plain value and its rules are pure, so you test it without a UI:
+start a state, apply inputs, check the result. The testing entry point,
+`@drock07/board-game-toolkit-engine/testing`, adds helpers for the rest. The
+examples use [Vitest](https://vitest.dev), but nothing depends on it.
 
-```ts
-import {
-  fuzz,
-  hashState,
-  playBots,
-  record,
-  simulate,
-  transact,
-} from "@drock07/board-game-toolkit-engine/testing";
-```
+| Helper                         | What it does                                                    |
+| ------------------------------ | --------------------------------------------------------------- |
+| `applyOrThrow(game, s, input)` | Applies an input that must be legal, and returns the new state. |
+| `simulate(game, opts)`         | Plays a list of inputs from `init`, and returns every state.    |
+| `playBots(game, opts)`         | Plays a game with bots, and returns every state and input.      |
+| `record(game, opts, choose)`   | Plays a game and records it as a golden replay.                 |
+| `hashState(state)`             | A short, stable hash of a state.                                |
+| `fuzz(game, opts)`             | Plays many random games, checking every step.                   |
 
-## Unit-test a rule
+## Test a rule
 
-Run one step, action or choice in a transaction on any state with `transact`:
+Get the game into a situation, apply an input, and check what changed. Each
+rule is tested through the inputs that reach it, the same way a player
+reaches it. `applyOrThrow` applies an input and throws with the reason if it
+was rejected, so a test fails at the input that went wrong:
 
-<Source file="snippets/guides.test.ts" region="unit" title={false} />
+<Source
+  file="games/crazy-eights/crazy-eights.test.ts"
+  region="eight"
+  title={false}
+/>
 
-## Script a game
+For a rejected input, use `apply` and check its `{ ok: false, reason }`:
+`expect(apply(game, s, input)).toEqual({ ok: false, reason: "…" })`.
 
-`simulate` applies a list of inputs from `init` and returns every result. It
-throws if any input is rejected. `expectPrompt` checks there's exactly one
-open prompt and that it matches:
+## Get to a situation
 
-<Source file="snippets/guides.test.ts" region="simulate" title={false} />
+Scripting dozens of inputs to reach one position is brittle. Two ways around
+it:
 
-To get a game into a particular situation, search seeds instead of scripting
-dozens of inputs. Several example tests have a `findSeed(predicate)` helper
-that tries seeds until the opening deal fits.
+- **Search seeds.** The opening is a function of the seed, so try seeds until
+  one deals what you need, as Crazy Eights' tests do below.
+- **Arrange the state.** A state is JSON, so a test can copy one and move
+  entities by hand, like giving one player's cards to another. Keep fixtures
+  like this to tests; they skip the rules that would have made the move.
+
+<Source
+  file="games/crazy-eights/crazy-eights.test.ts"
+  region="findSeed"
+  title={false}
+/>
+
+When you do want a script, `simulate` plays a list of inputs from `init` and
+returns every state. It throws at the first rejected input, naming its index:
+
+<Source file="snippets/testing.test.ts" region="simulate" title={false} />
+
+## Play with bots
+
+`playBots` plays a whole game with bots, synchronously. Use it to check a
+bot's strength, or to get a realistic game to assert over:
+
+<Source file="snippets/bots.test.ts" region="playBots" title={false} />
+
+See [Writing a bot](/board-game-toolkit/guides/bots/#bots-in-tests) for its
+options.
 
 ## Golden replays
 
-A golden replay is a recorded game, committed to the repo: players, seed,
-inputs, and a hash of the final state. If a change alters behavior, the replay
-reaches a different hash and the test fails.
+A golden replay is a recorded game, committed to the repo: the players, the
+seed, the inputs, and a hash of the final state. A game is a function of its
+seed and inputs, so if a change alters behavior anywhere along the way, the
+replay reaches a different hash and the test fails.
 
-<Source file="snippets/guides.test.ts" region="golden" title={false} />
+`record` plays a game, asking your function for each input, and returns the
+recording. `replayInputs` plays it back:
+
+<Source file="snippets/testing.test.ts" region="record" title={false} />
 
 `hashState` hashes a state's JSON with sorted keys, so equal states always
-hash the same. Every example has a `golden.json` like this, replayed in CI.
-When a behavior change is intended, record a new one.
+hash the same. An input that no longer replays makes `replayInputs` throw a
+`SaveError` naming it.
+
+Every example keeps a `golden.json` and checks it in its tests. They record
+with `playBots`, which returns the same inputs `record` would, and use
+Vitest's `toMatchFileSnapshot` to write the file the first time:
+
+<Source
+  file="games/tic-tac-toe/tic-tac-toe.test.ts"
+  region="golden"
+  title={false}
+/>
+
+When a change in behavior is intended, the hash changes. Check that the new
+game is right, then update the snapshot (`vitest -u`) to record it.
 
 ## Fuzzing
 
-`fuzz` plays random legal inputs from every player, for many seeds:
+`fuzz` plays random games: for each seed it starts a game and has a seeded
+`randomBot` pick among the legal inputs until the game ends or `maxInputs`
+runs out.
 
 <Source file="snippets/quickstart.test.ts" region="fuzz" title={false} />
 
 After **every input** it checks that:
 
-- the state keeps its invariants: every entity in exactly one zone, its
-  `zone` field matching, ids never reused (`checkInvariants`),
-- no rule mutated a state it was given (states are deep-frozen),
-- a legal input is accepted,
-- `reduceEvents` on the events rebuilds the new state.
+- someone has a legal input while the game is running. A running game where
+  nobody can act is stuck;
+- every legal input it's offered passes `check`, and the one it picks
+  applies;
+- the events replay onto the old state to give the new one, and each
+  player's share of them replays onto their old view to give their new view;
+- no player's view or events carry a hidden entity's id or props, or an
+  effect whispered to someone else;
+- the state is plain JSON.
 
-After **every run** it checks that `replay` rebuilds the final state, and that
-no player's or a spectator's view or events ever showed the real id of an
-entity they couldn't see.
+It also checks the opening state's views. An error thrown along the way, from
+rules code or the engine, is a failure too. Each failure has the seed, the
+step and the message. The seeds are `fuzz-0`, `fuzz-1` and so on, and
+`seeds` also takes a list, so `fuzz(game, { seeds: ["fuzz-17"], … })` plays
+that exact game again while you debug it.
 
-Errors thrown along the way, like `FlowStuckError` or an `OpError` from a
-rule, are recorded as failures with their seed and step, so you can replay
-exactly that game.
+`fuzz` returns `{ runs, finished, inputs, failures }`. `finished` counts the
+games that ended within `maxInputs`; for a game that loops forever, like the
+examples' "play again" games, it stays at zero, and that's fine.
 
-The report also has `warnings`: actions that were never legal without args.
-That usually means the action takes args and needs an `enumerate`.
+Here's a bug fuzzing finds on the first game: a game that can get stuck.
 
-The examples fuzz 100 seeds locally and 1,000 in CI.
+<Source file="snippets/testing.test.ts" region="broken" title={false} />
 
-## Bots in tests
+## Fuzzing in CI
 
-`playBots` plays with bots until no bot can act, the game ends, or
-`maxInputs` runs out. See [Writing a bot](/board-game-toolkit/guides/bots/#test-with-bots).
+The examples share one fuzz test helper. Each game's `fuzz.test.ts` is three
+lines, and the helper fuzzes 100 seeds locally and 1,000 in CI:
+
+<Source file="games/fuzzCase.ts" />
+
+<Source file="games/crazy-eights/fuzz.test.ts" />
+
+- **Seeds in batches.** One long synchronous run starves Vitest's worker on a
+  slow runner, so the helper fuzzes 50 seeds at a time and yields between
+  batches.
+- **A file per game**, so games fuzz in parallel.
+- **`FUZZ_SEEDS`** overrides the count, to fuzz harder before a release.
+
+## See also
+
+- [Writing a bot](/board-game-toolkit/guides/bots/): bots for `playBots`.
+- [Determinism and saves](/board-game-toolkit/concepts/determinism/): why a
+  seed and inputs reproduce a game.

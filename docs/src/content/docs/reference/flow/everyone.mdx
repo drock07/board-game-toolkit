@@ -1,0 +1,59 @@
+---
+title: everyone
+description: Waits for every player to answer once, in any order.
+sidebar:
+  order: 8
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+`everyone` is a round where all players act at once: sealed bids, picking
+a card to pass, voting. Each player answers once, in any order, and it ends
+when all have. You write `everyone(opts?, ...actions)`, with the same
+arguments as [`prompt`](/board-game-toolkit/reference/flow/prompt/).
+
+| Argument  | Type     | What it is                                                                    |
+| --------- | -------- | ----------------------------------------------------------------------------- |
+| `label`   | `string` | What players are told it's waiting for. Optional, in an options object first. |
+| `actions` | handles  | The actions each player may take.                                             |
+
+## Demo
+
+Both players pick a number; the higher pick scores.
+
+<Demo name="everyone" />
+
+## It's simultaneous(prompt)
+
+`everyone(…)` is shorthand. It builds exactly
+`simultaneous(prompt(…))`: one fiber per player, each with its own prompt
+bound to that player.
+
+<Source file="snippets/flowNodes.test.ts" region="everyone" />
+
+So everything about [`simultaneous`](/board-game-toolkit/reference/flow/simultaneous/)
+holds here:
+
+- **One prompt per player.** `view.waiting` has an entry per player who
+  hasn't answered yet, each with that one actor. Once you've answered, you
+  have no legal inputs until the round ends.
+- **Every player, every time.** It waits on all seats. To ask only some,
+  write `simultaneous(branch(…))` with a case on `s.actor`, the fiber's
+  player, so the others' fibers end at once. For the first answer from
+  any of them, use [`anyone`](/board-game-toolkit/reference/flow/anyone/).
+- **Answers are private until you show them.** Keep what each player chose
+  in an owner zone, not the vars, so nobody can read another's answer
+  early. Sealed Bids keeps each bid in the bidder's own zone:
+
+<Source file="games/sealed-bids/game.ts" region="rules" />
+
+When you need more than one answer per player, like a turn of several
+moves each, write `simultaneous(turn(…))` yourself.
+
+## See also
+
+- [Simultaneous turns](/board-game-toolkit/guides/simultaneous-turns/):
+  the patterns, with hidden answers.
+- [Sealed Bids](/board-game-toolkit/examples/sealed-bids/), which bids
+  with `everyone`.

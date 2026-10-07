@@ -42,12 +42,12 @@ function Demo({ spec }: { spec: ReactNode }) {
           </div>
         </section>
         <aside
-          aria-label="The game's spec"
+          aria-label="The game's rules"
           className="flex min-w-0 flex-col border-t border-line lg:border-t-0 lg:border-l"
         >
           <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-5">
-            <span className="eyebrow">crazy-eights/spec.ts</span>
-            <span className="text-xs text-subtle">the whole flow, as data</span>
+            <span className="eyebrow">crazy-eights/game.ts</span>
+            <span className="text-xs text-subtle">the rules and the flow</span>
           </div>
           {/* Absolute on wide screens, so the game sets the row's height */}
           <div className="relative max-h-96 flex-1 overflow-auto lg:max-h-none">
@@ -72,8 +72,8 @@ function Demo({ spec }: { spec: ReactNode }) {
 }
 
 /**
- * The landing page's demo: Crazy Eights against two bots, its spec, and its
- * flow graph lighting up as the game runs. `children` is the highlighted spec.
+ * The landing page's demo: Crazy Eights against two bots, its rules, and its
+ * flow graph lighting up as the game runs. `children` is the highlighted code.
  */
 export default function LandingDemo({ children }: { children?: ReactNode }) {
   return (

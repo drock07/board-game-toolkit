@@ -145,6 +145,7 @@ export const roll = action("roll", {
 });
 // #endregion roll
 
+// #region hold
 export const toggleHold = action("toggleHold", {
   enumerate: () => [0, 1, 2, 3, 4].map((index) => ({ index })),
   validate(s, { index }) {
@@ -160,6 +161,7 @@ export const toggleHold = action("toggleHold", {
     tx.vars.held[index] = !tx.vars.held[index];
   },
 });
+// #endregion hold
 
 export const score = action("score", {
   enumerate: () => CATEGORIES.map((category) => ({ category })),

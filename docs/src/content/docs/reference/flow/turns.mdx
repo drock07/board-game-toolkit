@@ -1,0 +1,78 @@
+---
+title: turns
+description: Players take turns at its body, in seat order, for a number of rounds or until a condition holds.
+sidebar:
+  order: 5
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+`turns` is going around the table: each player in turn takes the body as
+their turn. It decides whose turn it is, so nothing in your vars needs to.
+You write `turns(opts, body)`.
+
+| Option   | Type                                | Default        | What it is                                                        |
+| -------- | ----------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `from`   | `(s) => PlayerId`                   | The first seat | Who takes the first turn. Read once, when `turns` starts.         |
+| `order`  | `"clockwise" \| "counterclockwise"` | `"clockwise"`  | Seat order (`s.players`) forward, or backward.                    |
+| `among`  | `(s) => PlayerId[]`                 | Every player   | Who may take a turn now; anyone else is skipped. Read every turn. |
+| `rounds` | `number`                            | No limit       | Ends after this many passes around the table.                     |
+| `until`  | `(s) => boolean`                    | Never          | Checked before every turn; `turns` ends when it holds.            |
+| `body`   | `Node`                              |                | One player's turn. The builder's second argument.                 |
+
+With neither `rounds` nor `until`, turns go around forever.
+
+## Demo
+
+Three players add to a pot, two rounds, then a prompt to play again.
+
+<Demo name="turns" />
+
+## Every option at once
+
+In Knockout, the dealer goes first, each player may knock another out, and
+the last one standing wins, or everyone left after three rounds:
+
+<Source file="snippets/flowTurns.ts" region="turns" />
+
+<Source file="snippets/flowTurns.test.ts" region="play" />
+
+## Behavior
+
+Before each turn, `turns` decides who's next, in this order:
+
+1. **`until`** is checked. If it holds, `turns` ends; nobody else plays.
+2. It moves one seat on in `order`, starting from `from`'s seat for the
+   first turn.
+3. If that makes `rounds` passes around the table, `turns` ends.
+4. If `among` leaves that player out, it skips them and goes back to step 2. A skipped seat still counts toward `rounds`.
+5. If a whole lap goes by with nobody `among`, `turns` ends.
+
+Other things to know:
+
+- **It binds the player.** While a turn runs, `s.actor` and `tx.actor` are
+  that player, and a `prompt` or `turn` in the body waits on them.
+- **`from` must name a seat.** An unknown player throws `RulesError`.
+- **Nested turns** bind the innermost player; a `turns` inside another
+  takes over for its own body.
+- **Fibers bind their own player.** Inside
+  [`simultaneous`](/board-game-toolkit/reference/flow/simultaneous/), each
+  fiber's player answers, not the outer `turns`' player.
+
+## What it shows
+
+`turnsNode.shown(view)` is `{ player, turn, round }` while a turn runs:
+whose turn it is, and how many turns and rounds have started, from 1. `turn`
+counts turns taken, so a skipped seat doesn't add one; `round` counts passes
+around the table, skipped seats included.
+Before the first turn starts, it's `undefined`.
+
+## See also
+
+- [prompt](/board-game-toolkit/reference/flow/prompt/) and
+  [turn](/board-game-toolkit/reference/flow/turn/): what a turn usually
+  waits on.
+- [What nodes show](/board-game-toolkit/reference/flow/shown/).
+- [Tic-Tac-Toe](/board-game-toolkit/examples/tic-tac-toe/) starts its turns
+  `from` a random player.

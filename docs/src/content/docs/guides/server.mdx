@@ -1,6 +1,6 @@
 ---
 title: Running on a server
-description: The pattern for an authoritative multiplayer server, with the engine on the server and each client getting only its own view.
+description: Run the engine on a server, apply each player's input there, and send each client only its own view and events.
 sidebar:
   order: 12
 ---
@@ -8,60 +8,89 @@ sidebar:
 import Source from "../../../components/Source.astro";
 
 :::note[A pattern, not a package]
-The toolkit doesn't include networking yet. This page shows how the engine's
-pieces fit an authoritative server, with a sketch you can adapt to your
-transport. It will be updated when there's built-in support.
+The toolkit has no networking. This page shows how the engine fits an
+authoritative server, with a room you can adapt to any transport. The room
+is tested, with the test standing in for the clients.
 :::
 
-The engine is pure and has no UI, so it runs on a server unchanged. The
-server is the only one with the full state; each client gets its player's
-view.
+The engine is pure TypeScript with no UI, so it runs on a server unchanged.
+The server holds the full state and applies every input. Each client gets
+only what its player may see: their view when they join, and their share of
+each input's events after that.
 
 ## The shape
 
-1. The server creates the game with `init`, and keeps the state.
-2. A client connects as a player and receives `view(game, state, player)`.
-3. The client sends an input.
-4. The server checks the input came from that player, and runs `apply`.
-   - If it's rejected, the server sends back `error.message`.
-   - If it's accepted, the server stores the new state and sends **each**
-     player their new view, `viewEvents(game, before, events, player)`, and
-     their `legalInputs`.
-5. Clients render the view and animate the events.
+1. The server creates the game with `init` and keeps the state.
+2. A client connects as a player and is sent their view, `view(game, state,
+player)`, and their legal inputs.
+3. The client sends an input. The server checks it came from that player's
+   seat, and applies it with `apply`.
+4. If it's rejected, the sender gets the reason. If it's accepted, the
+   server sends **every** player their share of the events,
+   `viewEvents(game, events, player)`, and their new legal inputs.
+5. Each client replays its events onto its view, animating as it goes.
 
-## A sketch
+## Messages
 
-<Source file="snippets/server.ts" region="room" title="room.ts" />
+<Source file="snippets/server.ts" region="messages" title={false} />
 
-And a test of it, standing in for two connected clients:
+A client never gets the state, only a view and the events it may see. Those
+are enough: replaying a player's events onto their old view gives exactly
+their new view, `waiting` and `shown` included. `fuzz` checks that on every
+input of every game, so a client that stays in sync by replaying is
+relying on a tested guarantee. See
+[Events](/board-game-toolkit/concepts/events/).
 
-<Source file="snippets/guides.test.ts" region="room" title={false} />
+## The room
 
-## Things to get right
+<Source file="snippets/server.ts" region="room" />
 
-- **Authenticate the player.** Take the player id from the connection, never
-  from the message. The sketch rejects an input whose `player` isn't the
-  sender.
-- **Never send the state.** Send views and viewed events only. The full state
-  includes every hand and the RNG, from which a client could predict every
-  future shuffle.
-- **Keep the seed secret.** For the same reason, the seed stays on the server
-  until the game is over.
-- **Persist inputs.** The seed and the list of accepted inputs are a complete,
-  compact record of the game. Store them to survive restarts; `replay`
-  rebuilds the state.
-- **Run bots on the server.** A `Bot` is a plain function: call it with the
-  bot player's view, the prompt, and `legalInputs` when one of its prompts
-  opens, then apply its input like a client's.
-- **Reconnects** are just sending the current view again.
+- **`join`** sends the whole view. It's also how a client reconnects: send
+  the current view again, and replay from there.
+- **`receive`** takes the sender from the connection, never from the
+  message. An input whose `player` isn't the sender's seat is refused
+  before the engine sees it. The engine then rejects anything illegal, like
+  an input out of turn, with a reason the client can show.
+- **`play`** sends each player their own share of what happened. A card
+  dealt to bob is a `moved` event for ann too; she sees a card go to his
+  hand, not which card.
+- **Legal inputs come from the server.** Working out what's legal needs the
+  full state, which the client doesn't have, so each message carries the
+  player's legal inputs. Use them to enable buttons; the server still checks
+  every input it receives.
+- **Bots run on the server.** A bot is a function from a seat's legal inputs
+  to one of them, like the engine's `randomBot(seed)`. After each input the
+  room lets bot seats answer until a person must act. See
+  [Writing a bot](/board-game-toolkit/guides/bots/).
+- **`restore`** rebuilds a room from its log: players, seed and inputs,
+  replayed with `replayInputs`. Store the log as the game goes, and a
+  restart loses nothing.
 
 ## On the client
 
-Clients don't run the engine, so they don't use `useGame`. Render from the
-latest `PlayerView` you received, and send one of the `legal` inputs that came
-with it. To animate, play the received events in order (a card sliding, a die
-rolling) before showing the new view.
+Clients don't run the rules. A client keeps the view it was sent and folds
+each update's events onto it with `replay`:
 
-Listing legal moves needs the full state, so the sketch sends each player
-their `legal` inputs with every update. Use them to enable buttons and
-highlight playable cards; the server still checks every input it receives.
+<Source file="snippets/server.test.ts" region="client" title={false} />
+
+Render from that view, and play the events back one at a time if you
+animate. The React host does this for a local game; for a networked one,
+render from the view you keep yourself.
+
+## Things to get right
+
+- **Never send the state.** It holds every hand and the random generator's
+  state, from which a client could predict every shuffle.
+- **Keep the seed secret** until the game is over, for the same reason.
+- **Authenticate the seat.** Take the player from the connection, as the
+  room does.
+- **Keep secrets out of vars.** Vars go to every player. Anything one player
+  shouldn't know belongs in a zone they can't see; see
+  [Hidden information](/board-game-toolkit/guides/hidden-information/).
+
+## See also
+
+- [Views](/board-game-toolkit/concepts/views/) and
+  [Events](/board-game-toolkit/concepts/events/): what each player may see.
+- [Saving and replays](/board-game-toolkit/guides/saving-and-replays/): logs
+  and saves.

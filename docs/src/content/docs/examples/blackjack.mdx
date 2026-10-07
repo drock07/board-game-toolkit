@@ -1,6 +1,6 @@
 ---
 title: Blackjack
-description: "One hand at a time against the dealer. Shows exits on a seq, a face-down hole card, and a branch when you go broke."
+description: "One hand at a time against the dealer. Shows guards that end play early, a turn held open across hits, and a face-down hole card."
 tableOfContents: false
 sidebar:
   order: 4
@@ -16,31 +16,58 @@ the bankroll resets.
 
 ## How it works
 
-**Guards end the hand early.** The `play` seq declares
-`exits: { natural, bust }`. Guards are checked after every transaction, so
-hitting to 22 ends `play` at once and the dealer never takes a turn. See
-[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+**Two public hands and a hidden shoe.** The dealer's zone is public, like
+the player's; the hole card is hidden another way.
 
-**The decision stays open until you stand.** `hit` sets `ends: false`, so the
-decision prompts again after it. Its `endWhen: "playerAt21"` closes it on 21
-without asking.
+<Source file="games/blackjack/game.ts" region="types" />
 
-**A branch handles going broke.** It uses an inline
-[expression](/board-game-toolkit/reference/spec/expressions/), not a named condition:
-`{ lte: [{ var: "vars.bankroll" }, 0] }`.
+**The hole card is face down in a public zone.** Each card is dealt to the
+bottom of a hand, so hands read in deal order, and the dealer's second card
+is dealt with `faceUp: false`. That override hides one entity, whatever its
+zone's visibility:
 
-<Source file="games/blackjack/spec.ts" />
+<Source file="games/blackjack/game.ts" region="deal" />
 
-**The hole card is face down in a public zone.** The dealer's zone is public,
-but the second card is dealt with `faceUp: false`, which overrides the zone for
-that one entity:
+Turning it up later is `tx.flip`, which is a `flipped` event. Every view shows
+the card from then on. See [Views](/board-game-toolkit/concepts/views/).
 
-<Source file="games/blackjack/impl.ts" region="deal" />
+<Source file="games/blackjack/game.ts" region="reveal" />
 
-Turning it up later is a `flip`, which emits a `flipped` event. The view shows
-the card from then on:
+**Guards end play early.** Your turn and the dealer's are wrapped in
+`outcomes` with two guards:
 
-<Source file="games/blackjack/impl.ts" region="reveal" />
+<Source file="games/blackjack/game.ts" region="play" />
+
+- **`natural`**: holds right after the deal when you have 21 in two cards, so
+  play is skipped before you're asked anything.
+- **`bust`**: guards are checked after every transaction, so the `hit` that
+  takes you past 21 cancels the turn at once, and the dealer never draws.
+- Neither outcome has a `then`. The `outcomes` node just ends, and the flow
+  carries on to settle the hand.
+
+See [Outcomes](/board-game-toolkit/concepts/outcomes/).
+
+**Your turn is a `turn` node.** A `prompt` ends after one answer; a `turn`
+holds "Hit or stand" open across as many hits as you like. It ends when an
+action returns `"end"`, as `stand` does, or when its `until` holds, here a
+total of 21.
+
+<Source file="games/blackjack/game.ts" region="actions" />
+
+`placeBet` enumerates chip amounts and all-in, not every amount: `enumerate`
+may be partial, and `validate` still accepts any whole amount in range. See
+[`turn`](/board-game-toolkit/reference/flow/turn/).
+
+**A branch handles going broke.** After settling, the first case whose
+condition holds runs; otherwise the last argument does:
+
+<Source file="games/blackjack/game.ts" region="broke" />
+
+**The page deals one card at a time.** It waits a moment on each `moved` and
+`flipped` event as it plays back, so the hole card gets a beat before it
+turns:
+
+<Source file="games/blackjack/Blackjack.tsx" region="host" />
 
 ## Source
 

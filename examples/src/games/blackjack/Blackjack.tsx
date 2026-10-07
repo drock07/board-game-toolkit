@@ -71,10 +71,12 @@ function Hand({
 }
 
 export default function Blackjack() {
+  // #region host
   const g = useGame(blackjack, { players: ["p1"] });
   // Deal one card at a time, and give the hole card a beat before it turns
   useGameEvent(g, "moved", () => wait(260));
   useGameEvent(g, "flipped", () => wait(320));
+  // #endregion host
 
   const { vars } = g.view;
   // What the game waits on, by its prompt's label

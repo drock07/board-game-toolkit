@@ -1,0 +1,72 @@
+---
+title: Reusing flow pieces
+description: A node is a value, so a piece of flow you use in several places is a constant, or a function that returns a node.
+sidebar:
+  order: 6
+---
+
+import Source from "../../../components/Source.astro";
+
+The same stretch of flow often shows up more than once: a fight in any room
+with a monster, the same auction for each lot, a scoring step after every
+phase. There's no special construct for it. A node is a plain value that the
+builders return, so you reuse one the way you reuse any value in
+TypeScript.
+
+## A constant
+
+[Dungeon Crawl](/board-game-toolkit/examples/dungeon-crawl/) writes its
+combat and its traps once each, as constants:
+
+<Source file="games/dungeon-crawl/game.ts" region="combat" />
+
+<Source file="games/dungeon-crawl/game.ts" region="trap" />
+
+and puts them in the flow by name, in a `branch` on what's in the room:
+
+<Source file="games/dungeon-crawl/game.ts" region="run" />
+
+- **A piece reads what it needs from the state.** Combat fights "the monster
+  in the current room"; it doesn't take the monster as a parameter.
+- **A piece can bring its own outcomes.** Combat's `killed` and `fled` are
+  handled inside it. `flee` raises `fled` with `{ exit: "fled" }`, and the
+  nearest `outcomes` that lists it is combat's own. An outcome a piece
+  doesn't handle unwinds to whoever does, further out.
+- **A piece cleans up after itself.** Both end with `step(leaveRoom)`.
+
+## A function
+
+When the uses differ, write a function that returns a node. Here one
+`auction` function builds the round for each lot, with the lot's name in
+its label and its resolution, and a `tally` constant is shared by both:
+
+<Source file="snippets/reusingFlow.ts" region="pieces" />
+
+The function runs when the flow is built, once per use. Its parameters are
+fixed then; anything that changes during play belongs in the state, and the
+piece reads it from there, like combat does.
+
+## Each use is its own node
+
+`rules` lowers every use of a piece separately, so a piece used twice is two
+sets of nodes, each with its own id: `step`, `step2`, and so on. The game
+above has seven steps in its spec, though `tally` is written once. Two
+uses never share a frame, a counter or a label, and saves and the
+[devtools](/board-game-toolkit/guides/devtools/) tell them apart.
+
+Ids are numbered in the order `rules` meets the nodes. Moving a piece, or
+adding one before it, can renumber the nodes after it and change the
+game's [spec hash](/board-game-toolkit/guides/saving-and-replays/), as any
+change to the flow's shape does.
+
+## Reusing a kind of node
+
+A function that returns a node is enough for most reuse. When you need a
+node that behaves differently from any combination of the built-ins, with
+its own waiting rules or its own state in the frame, write a
+[node kind](/board-game-toolkit/guides/node-kinds/).
+
+## See also
+
+- [Flow](/board-game-toolkit/concepts/flow/): how nodes run.
+- [Outcomes](/board-game-toolkit/concepts/outcomes/): ending a piece early.
