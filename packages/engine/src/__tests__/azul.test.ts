@@ -124,11 +124,7 @@ test("a round ends with wall tiling, scoring, and the marker's holder starting n
   for (;;) {
     const before = pass(s);
     if (s.vars.marker !== "center") marker = s.vars.marker;
-    s = applyOrThrow(
-      azul,
-      s,
-      bot(legalInputs(azul, s)) as GameInput<typeof azul>,
-    );
+    s = applyOrThrow(azul, s, bot(legalInputs(azul, s)));
     if (s.status !== "running" || pass(s) < before) break;
   }
   assert.strictEqual(s.status, "running", "the seed reaches round 2");

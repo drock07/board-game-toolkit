@@ -1,8 +1,10 @@
 // Testing helpers: a seeded random bot, fuzzing, and checks that views hide
 // what they should and that events replay to the new state and to each
 // player's new view.
-import { apply, check, init, legalInputs } from "../play.js";
+import { isPlainJson, jsonEqual, stableStringify } from "../json.js";
+import { apply, check, init, legalInputs, type InitOptions } from "../play.js";
 import { seededRandom } from "../rng.js";
+import { hashJson } from "../serialize.js";
 import type {
   GameDef,
   GameEvent,
@@ -14,9 +16,10 @@ import type {
 import { replay, view, viewEvents } from "../views.js";
 import { canSee } from "../zones.js";
 
+/** A bot that picks uniformly from the legal inputs it's given, seeded. */
 export function randomBot(seed: string) {
   const random = seededRandom(seed);
-  return (legal: Input[]): Input => random.pick(legal);
+  return <I extends Input>(legal: readonly I[]): I => random.pick(legal);
 }
 
 /** Every entity a player may not see must be a placeholder in their view. */
@@ -47,16 +50,6 @@ export function applyOrThrow<V>(
   return out.state;
 }
 
-/** JSON with object keys sorted, so key order never makes two values differ. */
-const json = (v: unknown): string =>
-  JSON.stringify(v, (_, x: unknown) =>
-    x && typeof x === "object" && !Array.isArray(x)
-      ? Object.fromEntries(
-          Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1)),
-        )
-      : x,
-  );
-
 /** Replaying `events` onto `before` gives `after`, and so does each player's share of them onto their view. */
 export function checkEvents<V>(
   game: GameDef<V>,
@@ -64,21 +57,22 @@ export function checkEvents<V>(
   events: readonly GameEvent<V>[],
   after: State<V>,
 ): void {
-  const pick = (s: State<V>) =>
-    json({
-      vars: s.vars,
-      zones: s.zones,
-      entities: s.entities,
-      status: s.status,
-      result: s.result,
-    });
-  if (pick(replay(before, events)) !== pick(after))
+  const pick = (s: State<V>) => ({
+    vars: s.vars,
+    zones: s.zones,
+    entities: s.entities,
+    status: s.status,
+    result: s.result,
+  });
+  if (!jsonEqual(pick(replay(before, events)), pick(after)))
     throw new Error("Replaying the events doesn't give the new state");
   for (const player of before.players) {
     const mine = viewEvents(game, events, player);
     if (
-      json(replay(view(game, before, player), mine)) !==
-      json(view(game, after, player))
+      !jsonEqual(
+        replay(view(game, before, player), mine),
+        view(game, after, player),
+      )
     )
       throw new Error(
         `Replaying ${player}'s events doesn't give their new view`,
@@ -134,8 +128,7 @@ export function fuzz<V>(
         if (!out.ok) throw new Error(out.reason);
         checkEvents(game, s, out.events, out.state);
         s = out.state;
-        if (JSON.stringify(JSON.parse(JSON.stringify(s))) !== JSON.stringify(s))
-          throw new Error("State is not plain JSON");
+        if (!isPlainJson(s)) throw new Error("State is not plain JSON");
         checkViews(game, s);
       }
       if (s.status === "finished") finished++;
@@ -144,4 +137,69 @@ export function fuzz<V>(
     }
   }
   return { runs: opts.seeds, finished, failures };
+}
+
+// --- Golden replays ----------------------------------------------------------
+
+export { replayInputs } from "../serialize.js";
+export { stableStringify };
+
+/** A short, stable hash of a state, for golden replay fixtures. */
+export function hashState<V>(state: State<V>): string {
+  return hashJson(state);
+}
+
+/** Applies inputs in order and returns every state, starting with `init`'s. Throws on a rejected input. */
+export function simulate<V>(
+  game: GameDef<V>,
+  opts: InitOptions & { inputs: readonly Input[] },
+): State<V>[] {
+  const states = [init(game, opts)];
+  opts.inputs.forEach((input, i) => {
+    const out = apply(game, states.at(-1)!, input);
+    if (!out.ok) throw new Error(`Input ${i} was rejected: ${out.reason}`);
+    states.push(out.state);
+  });
+  return states;
+}
+
+/** A recorded game: replaying its inputs from its seed must reach the same state. */
+export interface GoldenReplay {
+  players: PlayerId[];
+  seed: string;
+  inputs: Input[];
+  finalStateHash: string;
+}
+
+/**
+ * Plays a game by asking `choose` for each input, until it returns undefined,
+ * the game ends or `maxInputs` is reached, and records it as a golden replay.
+ * Check one later with `hashState(replayInputs(game, golden, golden.inputs))`.
+ */
+export function record<V>(
+  game: GameDef<V>,
+  opts: InitOptions & { maxInputs: number },
+  choose: (state: State<V>, step: number) => Input | undefined,
+): { golden: GoldenReplay; states: State<V>[] } {
+  const states = [init(game, opts)];
+  const inputs: Input[] = [];
+  for (let i = 0; i < opts.maxInputs; i++) {
+    const last = states.at(-1)!;
+    if (last.status === "finished") break;
+    const input = choose(last, i);
+    if (!input) break;
+    const out = apply(game, last, input);
+    if (!out.ok) throw new Error(`Input ${i} was rejected: ${out.reason}`);
+    inputs.push(input);
+    states.push(out.state);
+  }
+  return {
+    golden: {
+      players: opts.players,
+      seed: opts.seed,
+      inputs,
+      finalStateHash: hashState(states.at(-1)!),
+    },
+    states,
+  };
 }

@@ -155,10 +155,6 @@ test("fuzz: random play finishes, views never leak", () => {
   let s = init(blackjack, { players: ["solo"], seed: "r" });
   const bot = randomBot("r");
   while (s.status === "running")
-    s = applyOrThrow(
-      blackjack,
-      s,
-      bot(legalInputs(blackjack, s)) as GameInput<typeof blackjack>,
-    );
+    s = applyOrThrow(blackjack, s, bot(legalInputs(blackjack, s)));
   assert.strictEqual(s.status, "finished");
 });
