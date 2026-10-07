@@ -88,7 +88,7 @@ export function checkEvents<V>(
     const leaked = mine.find(
       (ev) =>
         carried(ev).some((e) => "hidden" in e && ("props" in e || "id" in e)) ||
-        (ev.type === "custom" && ev.to && !ev.to.includes(player)),
+        (ev.type === "effect" && ev.to && !ev.to.includes(player)),
     );
     if (leaked)
       throw new Error(`${player}'s events leak a ${leaked.type} event`);

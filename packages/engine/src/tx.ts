@@ -154,20 +154,13 @@ export function transact<V>(
       next.result = result;
       log.push({ type: "ended", result });
     },
-    emit({ name }, data, opts) {
-      log.push({
-        type: "custom",
-        name,
-        data,
-        ...(opts?.to !== undefined && { to: opts.to }),
-      });
-    },
     cause({ name }, data) {
       if (!isEffect(game, name))
         throw new Error(
-          `"${name}" isn't a registered effect: list it in rules({ effects })`,
+          `"${name}" isn't one of this game's effects: declare it with \`effect\` before calling \`rules\``,
         );
-      log.push({ type: "custom", name, data });
+      const to = game.impl.effects[name]?.to?.(data);
+      log.push({ type: "effect", name, data, ...(to && { to }) });
     },
   };
   body(tx);

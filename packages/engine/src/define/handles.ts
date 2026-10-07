@@ -1,4 +1,4 @@
-// The box: entity types, event types and zones, as typed handles.
+// The box: entity types, effects and zones, as typed handles.
 import type {
   Entity,
   FamilyRef,
@@ -22,23 +22,26 @@ export function entity<P>(name: string): EntityType<P> {
   return { name, is: (e): e is Entity<P> => "type" in e && e.type === name };
 }
 
-/** A custom event type with typed data: `const attack = event<Attack>("attack")`. */
-export interface EventType<T> {
+/**
+ * Something that happens, with typed data: every custom event is one. Caused
+ * with `tx.cause(effect, data)`, it runs in three phases: abilities `on:
+ * effect.before` (which may change its data), `resolve`, then abilities `on:
+ * effect`. `to` limits who sees it in their events. Make one with `effect`
+ * from `define`.
+ */
+export interface Effect<V, T> {
   readonly name: string;
   readonly __data?: T;
-}
-
-export function event<T>(name: string): EventType<T> {
-  return { name };
-}
-
-/**
- * An effect: an event with phases. Abilities may react before it resolves
- * (and change its data) or after. Make one with `effect` from `define`.
- */
-export interface Effect<V, T> extends EventType<T> {
-  readonly effect: true;
   resolve?(tx: Tx<V>, data: T): void;
+  to?(data: T): readonly PlayerId[];
+  /** Reacting before it resolves: `ability({ on: attack.before, ... })`. */
+  readonly before: Before<V, T>;
+}
+
+/** An effect's "before" phase, as an ability's `on`. */
+export interface Before<V, T> {
+  readonly effect: Effect<V, T>;
+  readonly timing: "before";
 }
 
 /** A zone instance that holds `P`: `deck`, `hand.of(player)`, `factory.at(2)`. */

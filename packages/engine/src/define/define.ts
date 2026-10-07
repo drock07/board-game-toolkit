@@ -12,12 +12,12 @@ import type {
   PlayerId,
   ZoneDef,
 } from "../types.js";
-import {
-  type AnyZone,
-  type Effect,
-  type EntityType,
-  type EventType,
-  type ZoneFamily,
+import type {
+  AnyZone,
+  Before,
+  Effect,
+  EntityType,
+  ZoneFamily,
 } from "./handles.js";
 import {
   type Action,
@@ -30,6 +30,7 @@ import {
   type PlainActionDef,
   type Reader,
   type Trigger,
+  type Tx,
 } from "./types.js";
 
 const scopeIn = (s: object): AbilityScope => {
@@ -38,8 +39,8 @@ const scopeIn = (s: object): AbilityScope => {
   return scope;
 };
 
-/** The data of a custom event, or undefined for an engine event. */
-const dataOf = (e: GameEvent) => (e.type === "custom" ? e.data : undefined);
+/** An effect's data, or undefined for an engine event. */
+const dataOf = (e: GameEvent) => (e.type === "effect" ? e.data : undefined);
 
 // --- define -----------------------------------------------------------------
 
@@ -74,15 +75,29 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
       impl,
     };
   }
+  // Every effect declared on this core; `rules` gives a game all of them
+  const declared = new Map<string, Effect<V, unknown>>();
   const core: Core<V> = {
     action: action,
-    effect: (name, def) => ({ name, effect: true, ...def }) as never,
+    effect<T>(
+      name: string,
+      def: {
+        resolve?: (tx: Tx<V>, data: T) => void;
+        to?: (data: T) => readonly PlayerId[];
+      } = {},
+    ) {
+      if (declared.has(name))
+        throw new Error(`Two effects are named "${name}"`);
+      const e = { name, ...def } as Effect<V, T>;
+      (e as { before: Before<V, T> }).before = { effect: e, timing: "before" };
+      declared.set(name, e);
+      return e;
+    },
     ability(def: {
       of?: EntityType<unknown>;
       where?: (self: Entity) => boolean;
       in?: ZoneFamily<unknown>;
-      on: EventType<unknown> | "enters";
-      timing?: "before" | "after";
+      on: Effect<V, unknown> | Before<V, unknown> | "enters";
       pause?: "everyone";
       who?: (s: Reader<V>, data: unknown) => PlayerId | undefined;
       when?: (s: Reader<V>, t: never) => boolean;
@@ -93,14 +108,9 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         def.in?.def.perPlayer ? self.zone.split(":")[1] : undefined;
       const on = def.on;
       const effect =
-        on !== "enters" && "effect" in on
-          ? (on as Effect<V, unknown>)
-          : undefined;
-      const label = def.of?.name ?? (on as EventType<unknown>).name;
-      if (def.timing === "before" && !effect)
-        throw new Error(
-          `An ability "${label}" reacts "before" something that isn't an effect`,
-        );
+        on === "enters" ? undefined : "timing" in on ? on.effect : on;
+      const timing = on !== "enters" && "timing" in on ? on.timing : "after";
+      const label = def.of?.name ?? effect!.name;
       return {
         lower(l: Lowerer<V>) {
           const id = l.id(`ability.${label}`);
@@ -118,7 +128,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
             kind: "ability",
             id,
             ...(carried && { of: def.of!.name, in: def.in!.name }),
-            timing: def.timing ?? "after",
+            timing,
             ...(def.pause && { pause: def.pause }),
             body: l.visit(def.then(t)),
           };
@@ -128,7 +138,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
                 ? (ev.type === "moved" &&
                     ev.entities.some((e) => e.id === self?.id)) ||
                   (ev.type === "created" && ev.entity.id === self?.id)
-                : ev.type === "custom" && ev.name === on.name;
+                : ev.type === "effect" && ev.name === effect!.name;
             if (!fired) return false;
             if (!carried) return !def.when || def.when(s, dataOf(ev) as never);
             if (def.where && !def.where(self!)) return false;
@@ -213,7 +223,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
           throw new Error(`Two different effects are named "${e.name}"`);
         caused.set(e.name, e);
       };
-      for (const e of def.effects ?? []) addEffect(e);
+      for (const e of declared.values()) addEffect(e);
       const abilities = (def.abilities ?? []).map((a) => {
         const { node, matches, effect, who } = a.lower(l);
         impl.abilities[node.id] = matches as never;
@@ -222,7 +232,12 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         return node;
       });
       const effects = [...caused.values()].map((e) => {
-        impl.effects[e.name] = (tx, data) => e.resolve?.(tx as never, data);
+        impl.effects[e.name] = {
+          ...(e.resolve && {
+            resolve: (tx, data) => e.resolve!(tx as never, data),
+          }),
+          ...(e.to && { to: (data) => e.to!(data) }),
+        };
         return {
           kind: "effect" as const,
           id: l.id(`effect.${e.name}`),

@@ -14,7 +14,7 @@ export const effect: Kind<Of<"effect">> = {
   children: () => [],
   run(n, f, ctx) {
     const d = f.data as EffectData;
-    const event: GameEvent = { type: "custom", name: n.name, data: d.data };
+    const event: GameEvent = { type: "effect", name: n.name, data: d.data };
     // "wait" on a kind with no actions: run again once what it queued is done
     switch (d.phase) {
       case "before":
@@ -23,7 +23,7 @@ export const effect: Kind<Of<"effect">> = {
         return "wait";
       case "resolve":
         ctx.transact((tx) =>
-          ctx.game.impl.effects[n.name]?.(tx, structuredClone(d.data)),
+          ctx.game.impl.effects[n.name]?.resolve?.(tx, structuredClone(d.data)),
         );
         f.data = { ...d, phase: "after" } satisfies EffectData;
         return "wait";

@@ -48,8 +48,7 @@ function game(pause?: "everyone") {
       ),
   });
   const dodge = ability({
-    on: poke,
-    timing: "before",
+    on: poke.before,
     who: (_s, p) => p.target,
     then: () =>
       prompt(action("dodge", { execute: (tx) => void tx.vars.dodged++ })),

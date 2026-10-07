@@ -259,12 +259,6 @@ export interface Tx<V> {
   flip(id: EntityId, faceUp: boolean): void;
   readonly random: Random;
   end(result?: unknown): void;
-  /** Logs a custom event, for everyone or only the players in `to`. */
-  emit(
-    event: { readonly name: string },
-    data?: unknown,
-    opts?: { to?: PlayerId[] },
-  ): void;
   /** Causes a registered effect: logged now, run (before, resolve, after) once this transaction ends. */
   cause(effect: { readonly name: string }, data: unknown): void;
 }
@@ -274,6 +268,11 @@ export interface ActionImpl<V> {
   enumerate(s: Reader<V>, actor: PlayerId): unknown[];
   /** May return a result for the waiting kind's `answered`. */
   execute(tx: Tx<V>, args: unknown, actor: PlayerId): unknown;
+}
+
+export interface EffectImpl<V> {
+  resolve?(tx: Tx<V>, data: unknown): void;
+  to?(data: unknown): readonly PlayerId[];
 }
 
 export interface Impl<V> {
@@ -286,8 +285,8 @@ export interface Impl<V> {
   queries: Record<string, (s: Reader<V>) => unknown>;
   /** How many instances a counted zone has, from the player count. */
   zoneCounts: Record<string, (players: number) => number>;
-  /** How each effect resolves, by name. */
-  effects: Record<string, (tx: Tx<V>, data: unknown) => void>;
+  /** Each effect by name: how it resolves, and who sees it (everyone when absent). */
+  effects: Record<string, EffectImpl<V>>;
   /** Whether an event fires an ability for `self`, which is already in its zone (none if game-wide). */
   abilities: Record<
     string,
@@ -407,7 +406,8 @@ export type GameEvent<V = unknown, E = Entity> =
   | { type: "destroyed"; entity: E }
   /** The vars after the transaction, when it changed them. */
   | { type: "vars"; vars: V }
-  | { type: "custom"; name: string; data: unknown; to?: PlayerId[] }
+  /** A caused effect, logged when caused; `to` limits who sees it. */
+  | { type: "effect"; name: string; data: unknown; to?: readonly PlayerId[] }
   | { type: "ended"; result: unknown };
 
 /** An event as a player may see it. */

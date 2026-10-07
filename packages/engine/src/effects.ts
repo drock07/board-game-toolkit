@@ -56,7 +56,7 @@ export function triggered<V>(
   const out: Pending[] = [];
   for (const event of events) {
     // At a transaction's end a caused effect is queued itself; its frame fires its abilities
-    if (effects && event.type === "custom" && isEffect(game, event.name)) {
+    if (effects && event.type === "effect") {
       out.push({ effect: event.name, data: event.data, fiber, depth });
       continue;
     }
@@ -125,7 +125,7 @@ export function liveEvent<V>(
   fiber: FiberId,
   event: GameEvent,
 ): GameEvent {
-  if (event.type !== "custom" || !isEffect(game, event.name)) return event;
+  if (event.type !== "effect") return event;
   const at = nearestEffect(game, s, fiber);
   return at ? { ...event, data: (at.frame.data as EffectData).data } : event;
 }

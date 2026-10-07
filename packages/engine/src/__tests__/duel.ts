@@ -111,8 +111,7 @@ export const shield = ability({
   of: card,
   where: named("Shield"),
   in: hand,
-  on: attack,
-  timing: "before",
+  on: attack.before,
   when: (_s, t) => t.data.target === t.owner && !t.data.prevented,
   then: (t) =>
     prompt(

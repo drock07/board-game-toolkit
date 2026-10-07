@@ -4,13 +4,13 @@
 
 // Authoring
 export { define } from "./define/define.js";
-export { entity, event, zone } from "./define/handles.js";
+export { entity, zone } from "./define/handles.js";
 export type {
   AnyZone,
+  Before,
   CountedZone,
   Effect,
   EntityType,
-  EventType,
   PerPlayerCountedZone,
   PerPlayerZone,
   SharedZone,

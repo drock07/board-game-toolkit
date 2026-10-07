@@ -1,4 +1,5 @@
 // The typed authoring layer: readers and transactions, actions, authored
+// nodes, games, the node-builder registry, abilities and `Core`.
 import type { Random } from "../rng.js";
 import type {
   AbilityNode,
@@ -15,13 +16,12 @@ import type {
   Node as SpecNode,
 } from "../types.js";
 import type {
+  Before,
   Effect,
   EntityType,
-  EventType,
   ZoneFamily,
   ZoneRef,
 } from "./handles.js";
-// nodes, games, the node-builder registry, abilities and `Core`.
 
 // --- Typed state access ----------------------------------------------------
 
@@ -69,8 +69,6 @@ export interface Tx<V> {
   flip(id: EntityId, faceUp: boolean): void;
   readonly random: Random;
   end(result?: unknown): void;
-  /** Logs a custom event, for everyone or only the players in `to`. */
-  emit<T>(event: EventType<T>, data: T, opts?: { to?: PlayerId[] }): void;
   /** Causes an effect: abilities before it, its resolution, abilities after it, once this transaction ends. */
   cause<T>(effect: Effect<never, T>, data: T): void;
 }
@@ -274,20 +272,26 @@ export interface Core<V> {
     setup(tx: Tx<V>): void;
     flow: Node<V, H>;
     abilities?: As;
-    /** Effects that are caused but that no ability reacts to. Abilities register theirs. */
-    effects?: readonly Effect<V, unknown>[];
   }) => Game<V, H | ActionsIn<As[number]>>;
-  /** An effect, with how it resolves: `effect("damage", { resolve: (tx, d: Damage) => ... })`. */
+  /**
+   * An effect, with how it resolves and who sees it:
+   * `effect("damage", { resolve: (tx, d: Damage) => ... })`. A game gets
+   * every effect declared before its `rules`.
+   */
   readonly effect: <T>(
     name: string,
-    def?: { resolve?: (tx: Tx<V>, data: T) => void },
+    def?: {
+      resolve?: (tx: Tx<V>, data: T) => void;
+      /** Who sees it in their events; everyone when absent. */
+      to?: (data: T) => readonly PlayerId[];
+    },
   ) => Effect<V, T>;
   readonly ability: {
     /**
      * An ability of entities of type `of` (narrowed by `where`), live while
-     * one is in a zone of family `in`. It fires on `on`: an effect (`timing`
-     * "before" it resolves, or "after"), a custom event, or `"enters"` (this
-     * entity arrived in its zone), when `when` holds, both when the event
+     * one is in a zone of family `in`. It fires on `on`: an effect (after it
+     * resolves), an effect's `.before` (before it resolves, and may change
+     * its data), or `"enters"` (this entity arrived in its zone), when `when` holds, both when the event
      * happens and again when the ability's turn comes. `then` builds the
      * handler from `t`, which reads the running ability's entity, owner and
      * event data; an effect's data is live, and changes to it in a
@@ -298,8 +302,7 @@ export interface Core<V> {
       of: EntityType<P>;
       where?: (self: Entity<P>) => boolean;
       in: ZoneFamily<P>;
-      on: EventType<T> | "enters";
-      timing?: "before" | "after";
+      on: Effect<V, T> | Before<V, T> | "enters";
       pause?: "everyone";
       when?: (s: Reader<V>, t: Fired<P, T>) => boolean;
       then: (t: Trigger<P, T>) => Node<V, A>;
@@ -310,8 +313,7 @@ export interface Core<V> {
      * on hidden cards, e.g. always asking an Attack's target.
      */
     <T, A = never>(def: {
-      on: EventType<T>;
-      timing?: "before" | "after";
+      on: Effect<V, T> | Before<V, T>;
       pause?: "everyone";
       who?: (s: Reader<V>, data: T) => PlayerId | undefined;
       when?: (s: Reader<V>, data: T) => boolean;
