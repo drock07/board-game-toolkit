@@ -3,6 +3,7 @@
 import type { Kind } from "../types.js";
 import { branch, loop, outcomes, seq, step } from "./flow.js";
 import { ability, effect } from "./interrupts.js";
+import { turn, type TurnShown } from "./turn.js";
 import { turns } from "./turns.js";
 import { anyone, prompt, simultaneous } from "./waiting.js";
 
@@ -17,14 +18,17 @@ export {
   seq,
   simultaneous,
   step,
+  turn,
   turns,
 };
+export type { TurnShown };
 
 export const builtinKinds: Record<string, Kind> = {
   seq,
   step,
   loop,
   turns,
+  turn,
   prompt,
   branch,
   outcomes,

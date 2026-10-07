@@ -33,7 +33,7 @@ import {
 } from "./types.js";
 import { zoneId } from "./zones.js";
 
-export interface Waiting {
+export interface OpenFrame {
   fiber: FiberId;
   frame: Frame;
   node: Node;
@@ -41,8 +41,11 @@ export interface Waiting {
 }
 
 /** Every fiber whose top frame's kind is waiting for input. */
-export function waitingFrames<V>(game: GameDef<V>, state: State<V>): Waiting[] {
-  const out: Waiting[] = [];
+export function waitingFrames<V>(
+  game: GameDef<V>,
+  state: State<V>,
+): OpenFrame[] {
+  const out: OpenFrame[] = [];
   const paused = pausedBy(game, state);
   for (const fiber of fiberIds(state)) {
     if (!mayMove(state, fiber, paused)) continue;
@@ -59,7 +62,7 @@ export function waitingFrames<V>(game: GameDef<V>, state: State<V>): Waiting[] {
 export function actorsOf<V>(
   game: GameDef<V>,
   state: State<V>,
-  w: Waiting,
+  w: OpenFrame,
 ): PlayerId[] {
   if (w.kind.actors)
     return w.kind.actors(
@@ -96,7 +99,7 @@ export function waitingFor<V>(
   state: State<V>,
   player: PlayerId,
   action?: string,
-): Waiting | undefined {
+): OpenFrame | undefined {
   const mine = waitingFrames(game, state).filter((w) =>
     actorsOf(game, state, w).includes(player),
   );

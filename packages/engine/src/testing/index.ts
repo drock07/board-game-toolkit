@@ -11,6 +11,7 @@ import type {
   Input,
   PlayerId,
   State,
+  View,
   ViewEvent,
 } from "../types.js";
 import { replay, view, viewEvents } from "../views.js";
@@ -57,7 +58,8 @@ export function checkEvents<V>(
   events: readonly GameEvent<V>[],
   after: State<V>,
 ): void {
-  const pick = (s: State<V>) => ({
+  // What events rebuild; a view's `waiting` and `shown` come from the flow
+  const pick = (s: State<V> | View<V>) => ({
     vars: s.vars,
     zones: s.zones,
     entities: s.entities,
@@ -70,8 +72,8 @@ export function checkEvents<V>(
     const mine = viewEvents(game, events, player);
     if (
       !jsonEqual(
-        replay(view(game, before, player), mine),
-        view(game, after, player),
+        pick(replay(view(game, before, player), mine)),
+        pick(view(game, after, player)),
       )
     )
       throw new Error(

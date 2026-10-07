@@ -10,7 +10,6 @@ import {
   total,
   type Vars,
 } from "./rollFive.js";
-import { turnNode } from "./turn.js";
 
 const roll = rollFive.action("roll");
 const hold = rollFive.action("hold");
@@ -124,10 +123,9 @@ test("thirteen rounds each, then totals", () => {
 });
 
 test("types: updates are typed by the entity, limits and first by the actions", () => {
-  const { turn, action, step } = define<Vars>({ zones: [dice] }).withNodes([
-    ...defaultNodes,
-    turnNode,
-  ]);
+  const { turn, action, step } = define<Vars>({ zones: [dice] }).withNodes(
+    defaultNodes,
+  );
   step((tx) => {
     const d = tx.entities(dice)[0]!;
     tx.update(d, { held: true });
