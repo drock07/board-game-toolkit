@@ -17,14 +17,14 @@ export const REPO = "https://github.com/drock07/board-game-toolkit";
 export const sourceUrl = (path: string) =>
   `${REPO}/blob/main/examples/src/${path}`;
 
-/** Each game's `spec.ts`, as text, for the "How it works" tab. */
-const specs = import.meta.glob<string>("./games/*/spec.ts", {
+/** Each game's `game.ts`, as text, for the "How it works" tab. */
+const specs = import.meta.glob<string>("./games/*/game.ts", {
   query: "?raw",
   import: "default",
   eager: true,
 });
 export const specSource = (slug: string) =>
-  specs[`./games/${slug}/spec.ts`] ?? "";
+  specs[`./games/${slug}/game.ts`] ?? "";
 
 export const catalog: CatalogEntry[] = [
   {
@@ -44,13 +44,13 @@ export const catalog: CatalogEntry[] = [
     slug: "tic-tac-toe",
     group: "Examples",
     title: "Tic-Tac-Toe",
-    desc: "Take turns until the board is decided. Shows each over players from a random seat, and a minimax bot.",
-    tags: ["each", "Bots", "Vars"],
+    desc: "Take turns until the board is decided. Shows turns from a random seat, an endless session loop, and a minimax bot.",
+    tags: ["turns", "Bots", "Vars"],
     component: "TicTacToe",
     Page: lazy(() => import("./games/tic-tac-toe/TicTacToe")),
     notes: [
-      "Turns are an each over players, clockwise from a random first seat, repeating until the boardDecided condition holds. Each turn is a decision whose actor is the current player.",
-      "The computer is a bot: a function from its view and prompt to an input. The host runs it when its prompt opens, after a short delay, and the engine checks its input like anyone else's.",
+      'The board is nine cells in vars. A session loops forever: a step clears the board and draws a random starter, turns runs from that seat until the board is decided, a step records the result, and a prompt labelled "Play again" waits.',
+      "The computer is a bot: a function from its legal inputs (and its view) to one of them. The host runs it when its seat may act, after a short delay, and the engine checks its input like anyone else's.",
     ],
   },
   {

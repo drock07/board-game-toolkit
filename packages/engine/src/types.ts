@@ -485,6 +485,8 @@ export interface Waiting {
  */
 export interface View<V> {
   player: PlayerId;
+  /** Every seat, in order. */
+  players: readonly PlayerId[];
   vars: V;
   zones: Record<ZoneId, Ref[]>;
   entities: Record<Ref, Entity | HiddenEntity>;

@@ -2,8 +2,15 @@
 // what they should and that events replay to the new state and to each
 // player's new view.
 import { isPlainJson, jsonEqual, stableStringify } from "../json.js";
-import { apply, check, init, legalInputs, type InitOptions } from "../play.js";
-import { seededRandom } from "../rng.js";
+import {
+  actors,
+  apply,
+  check,
+  init,
+  legalInputs,
+  type InitOptions,
+} from "../play.js";
+import { seededRandom, type Random } from "../rng.js";
 import { hashJson } from "../serialize.js";
 import type {
   GameDef,
@@ -92,7 +99,8 @@ export function checkEvents<V>(
 }
 
 export interface FuzzOptions {
-  seeds: number;
+  /** How many seeds (`fuzz-0`, `fuzz-1`, …), or the seeds themselves. */
+  seeds: number | readonly string[];
   players: PlayerId[];
   maxInputs: number;
 }
@@ -106,17 +114,25 @@ export interface FuzzFailure {
 export function fuzz<V>(
   game: GameDef<V>,
   opts: FuzzOptions,
-): { runs: number; finished: number; failures: FuzzFailure[] } {
+): { runs: number; finished: number; inputs: number; failures: FuzzFailure[] } {
   const failures: FuzzFailure[] = [];
   let finished = 0;
-  for (let i = 0; i < opts.seeds; i++) {
-    const seed = `fuzz-${i}`;
+  let inputs = 0;
+  const seeds =
+    typeof opts.seeds === "number"
+      ? Array.from({ length: opts.seeds }, (_, i) => `fuzz-${i}`)
+      : opts.seeds;
+  for (const seed of seeds) {
     const bot = randomBot(seed);
     let s: State<V> = init(game, { players: opts.players, seed });
     let step = 0;
     try {
       checkViews(game, s);
-      for (; step < opts.maxInputs && s.status === "running"; step++) {
+      for (
+        ;
+        step < opts.maxInputs && s.status === "running";
+        step++, inputs++
+      ) {
         const legal = legalInputs(game, s);
         if (legal.length === 0) throw new Error("No legal input");
         for (const input of legal) {
@@ -138,7 +154,7 @@ export function fuzz<V>(
       failures.push({ seed, step, message: (e as Error).message });
     }
   }
-  return { runs: opts.seeds, finished, failures };
+  return { runs: seeds.length, finished, inputs, failures };
 }
 
 // --- Golden replays ----------------------------------------------------------
@@ -204,4 +220,54 @@ export function record<V>(
     },
     states,
   };
+}
+
+// --- Bots in tests -------------------------------------------------------------
+
+/**
+ * Picks a seat's input from its legal ones. The same shape as the React
+ * host's bots, but synchronous, so tests can play whole games.
+ */
+export type SyncBot<V, I> = (
+  legal: readonly I[],
+  ctx: { view: View<V>; player: PlayerId; random: Random },
+) => I;
+
+/**
+ * Plays `game` with bots: one for every seat, or one per seat by id. Stops
+ * when it ends, nobody can act, or after `maxInputs`. Every input is checked
+ * as `apply` would. Returns each state, starting with `init`'s, and the
+ * inputs, ready for a golden replay.
+ */
+export function playBots<V, I extends Input>(
+  game: GameDef<V>,
+  opts: InitOptions & {
+    bots: SyncBot<V, I> | Record<PlayerId, SyncBot<V, I>>;
+    maxInputs: number;
+  },
+): { states: State<V>[]; inputs: I[] } {
+  const states = [init(game, opts)];
+  const inputs: I[] = [];
+  const random = seededRandom(`bots:${opts.seed}`);
+  const botFor = (p: PlayerId) =>
+    typeof opts.bots === "function" ? opts.bots : opts.bots[p];
+  for (let i = 0; i < opts.maxInputs; i++) {
+    const s = states.at(-1)!;
+    if (s.status === "finished") break;
+    const player = actors(game, s).find((p) => botFor(p));
+    if (player === undefined) break;
+    const legal = legalInputs(game, s, player) as I[];
+    if (!legal.length) break;
+    const input = botFor(player)!(legal, {
+      view: view(game, s, player),
+      player,
+      random,
+    });
+    const out = apply(game, s, input);
+    if (!out.ok)
+      throw new Error(`Input ${i} by ${player} was rejected: ${out.reason}`);
+    inputs.push(input);
+    states.push(out.state);
+  }
+  return { states, inputs };
 }

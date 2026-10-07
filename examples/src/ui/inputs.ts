@@ -1,42 +1,41 @@
 import {
-  isHidden,
-  type GameTypes,
-  type Input,
-  type PlayerView,
-  type VisibleEntity,
+  viewEntities,
+  type Entity,
+  type View,
+  type ZoneRef,
 } from "@drock07/board-game-toolkit-engine";
 
-export type ActionInput = Extract<Input, { action: string }>;
+/** A legal input of the given action, from `g.legal`. */
+type Of<I, N> = Extract<I, { action: N }>;
 
 /** The legal inputs for an action, from `g.legal`. */
-export const actionInputs = (legal: readonly Input[], action: string) =>
-  legal.filter((i): i is ActionInput => "action" in i && i.action === action);
+export const actionInputs = <
+  I extends { action: string },
+  N extends I["action"],
+>(
+  legal: readonly I[],
+  action: N,
+) => legal.filter((i): i is Of<I, N> => i.action === action);
 
 /** The legal input for an action whose args match `where`. */
-export function findInput(
-  legal: readonly Input[],
-  action: string,
-  where: (args: Record<string, unknown>) => boolean = () => true,
-): ActionInput | undefined {
-  return actionInputs(legal, action).find((i) =>
-    where((i.args ?? {}) as Record<string, unknown>),
-  );
+export function findInput<
+  I extends { action: string; args: unknown },
+  N extends I["action"],
+>(
+  legal: readonly I[],
+  action: N,
+  where: (args: Of<I, N>["args"]) => boolean = () => true,
+): Of<I, N> | undefined {
+  return actionInputs(legal, action).find((i) => where(i.args));
 }
 
-/** The input that answers an open pause. */
-export const continueInput = (legal: readonly Input[]) =>
-  legal.find((i) => "continue" in i);
-
-/** A zone's entities as the viewer sees them: visible ones, or `null` for hidden. */
-export function zoneCards<T extends GameTypes>(
-  view: PlayerView<T>,
-  zone: string,
-): { id: string; entity: VisibleEntity<T> | null }[] {
-  const items = (view.zones as Record<string, { items: readonly string[] }>)[
-    zone
-  ]?.items;
-  return (items ?? []).map((id) => {
-    const e = view.entities[id];
-    return { id, entity: e && !isHidden(e) ? e : null };
-  });
+/** A zone's entities as the viewer sees them: visible ones, or `null` for hidden, keyed by ref. */
+export function zoneCards<V, P>(
+  view: View<V>,
+  zone: ZoneRef<P>,
+): { ref: string; entity: Entity<P> | null }[] {
+  return viewEntities(view, zone).map((e) => ({
+    ref: e.ref,
+    entity: "hidden" in e ? null : e,
+  }));
 }

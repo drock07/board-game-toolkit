@@ -44,6 +44,7 @@ export function view<V>(
     zones[zone] = ids.map((id) => state.entities[id]!.ref);
   return {
     player: viewer,
+    players: state.players,
     vars: state.vars,
     zones,
     entities,
