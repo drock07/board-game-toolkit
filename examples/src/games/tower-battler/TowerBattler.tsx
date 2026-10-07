@@ -1,14 +1,26 @@
 import type { DeepReadonly } from "@drock07/board-game-toolkit-engine";
-import { useGame, useGameEvent } from "@drock07/board-game-toolkit-react";
+import {
+  useGame,
+  useGameEffect,
+  useGameEvent,
+} from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { towerBattler } from ".";
+import { enemyAttack, towerBattler } from ".";
 import { GameFrame } from "../../site/GameFrame";
 import { Fan } from "../../ui/cards";
-import { continueInput, findInput, zoneCards } from "../../ui/inputs";
+import { findInput, zoneCards } from "../../ui/inputs";
 import { Banner, Button, Meter, Overlay, Stat, wait } from "../../ui/kit";
-import type { Card, Effect, Vars } from "./impl";
+import {
+  discard,
+  drawPile,
+  hand as handZone,
+  type Card,
+  type CardEffect,
+  type Hit,
+  type Vars,
+} from "./game";
 
 const CARD_BG: Record<string, string> = {
   Strike: "#dc2626",
@@ -35,7 +47,7 @@ function BattleCard({ card }: { card: DeepReadonly<Card> }) {
 }
 
 /** What each effect of a card would change, for the inspector. */
-function preview(effect: Effect, vars: Vars) {
+function preview(effect: CardEffect, vars: Vars) {
   switch (effect.type) {
     case "dealDamage":
       return {
@@ -58,27 +70,23 @@ function preview(effect: Effect, vars: Vars) {
 export default function TowerBattler() {
   const g = useGame(towerBattler, { players: ["p1"] });
   const [selected, setSelected] = useState<string | null>(null);
-  const [hit, setHit] = useState<{ damage: number; blocked: number } | null>(
-    null,
-  );
+  const [hit, setHit] = useState<Hit | null>(null);
   useGameEvent(g, "moved", () => wait(90));
-  useGameEvent(g, "custom", async (e) => {
-    if (e.name !== "enemyAttacked") return;
-    setHit(e.payload as { damage: number; blocked: number });
+  useGameEffect(g, enemyAttack, async (data) => {
+    setHit(data);
     await wait(900);
     setHit(null);
   });
 
-  const vars = g.view.vars as Vars;
+  const { vars } = g.view;
   const { player, enemy } = vars;
-  const hand = zoneCards(g.view, "hand");
-  const prompt = g.prompts[0];
+  const hand = zoneCards(g.view, handZone);
   const playInput = (id: string) =>
     findInput(g.legal, "playCard", (a) => a.card === id);
   const chosen = selected && playInput(selected) ? selected : null;
-  const chosenCard = hand.find((c) => c.id === chosen)?.entity?.props;
+  const chosenCard = hand.find((c) => c.entity?.id === chosen)?.entity?.props;
   const endTurn = findInput(g.legal, "endTurn");
-  const again = continueInput(g.legal);
+  const again = findInput(g.legal, "again");
 
   return (
     <GameFrame
@@ -178,27 +186,30 @@ export default function TowerBattler() {
         </AnimatePresence>
       </div>
       <div className="flex gap-5 font-mono text-xs text-subtle">
-        <span>draw · {g.view.zones.draw?.items.length ?? 0}</span>
-        <span>discard · {g.view.zones.discard?.items.length ?? 0}</span>
+        <span>draw · {g.view.zones[drawPile.id]?.length ?? 0}</span>
+        <span>discard · {g.view.zones[discard.id]?.length ?? 0}</span>
       </div>
       <div className="flex flex-col items-center gap-1.5">
         <Fan
-          items={hand.map((c) => ({ key: c.id, lifted: c.id === chosen }))}
+          items={hand.map((c) => ({
+            key: c.ref,
+            lifted: !!chosen && c.entity?.id === chosen,
+          }))}
           render={(i) => {
             const c = hand[i]!;
-            const card = c.entity!.props;
-            const playable = !!playInput(c.id);
+            const { id, props: card } = c.entity!;
+            const playable = !!playInput(id);
             return (
               <button
                 type="button"
-                disabled={prompt?.node !== "playerTurn"}
-                onClick={() => setSelected(c.id === chosen ? null : c.id)}
-                aria-pressed={c.id === chosen}
+                disabled={!endTurn}
+                onClick={() => setSelected(id === chosen ? null : id)}
+                aria-pressed={id === chosen}
                 aria-label={`${card.name}, costs ${card.cost}${playable ? "" : ", not enough energy"}`}
                 className={clsx(
                   "rounded-[7px]",
                   !playable && "brightness-105 saturate-[.3]",
-                  c.id === chosen && "ring-3 ring-accent",
+                  id === chosen && "ring-3 ring-accent",
                 )}
               >
                 <BattleCard card={card} />
@@ -208,7 +219,7 @@ export default function TowerBattler() {
         />
         <span className="text-[13px] text-muted">Hand ({hand.length})</span>
       </div>
-      {prompt?.node === "again" && !g.playing && (
+      {again && !g.playing && (
         <Overlay>
           {vars.result === "win" ? (
             <Banner tone="win" tag="WIN">

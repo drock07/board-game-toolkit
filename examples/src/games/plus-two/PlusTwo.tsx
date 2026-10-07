@@ -6,9 +6,15 @@ import { useState } from "react";
 import { plusTwo } from ".";
 import { GameFrame } from "../../site/GameFrame";
 import { BackRow, CardBack, ColorCard, Fan } from "../../ui/cards";
-import { continueInput, findInput, zoneCards } from "../../ui/inputs";
+import { findInput, zoneCards } from "../../ui/inputs";
 import { Button, Overlay, Stat, wait } from "../../ui/kit";
-import type { Types } from "./impl";
+import {
+  deck,
+  discard,
+  hand as handZone,
+  TURN_LABEL,
+  WINDOW_LABEL,
+} from "./game";
 
 const NAMES: Record<PlayerId, string> = { p1: "You", p2: "Bot 2", p3: "Bot 3" };
 const name = (p: PlayerId) => NAMES[p] ?? p;
@@ -18,23 +24,34 @@ export default function PlusTwo() {
   const g = useGame(plusTwo, {
     players: [
       "p1",
-      { id: "p2", controller: randomBot<Types>() },
-      { id: "p3", controller: randomBot<Types>() },
+      { id: "p2", controller: randomBot("p2") },
+      { id: "p3", controller: randomBot("p3") },
     ],
     botDelay: 800,
   });
   const [selected, setSelected] = useState<string | null>(null);
-  useGameEvent(g, "moved", (e) => wait(e.to === "discard" ? 450 : 70));
+  useGameEvent(g, "moved", (e) => wait(e.to === discard.id ? 450 : 70));
 
   const { vars, players } = g.view;
   const me = players.includes(g.viewer) ? g.viewer : players[0]!;
   const others = players.filter((p) => p !== me);
-  const hand = zoneCards(g.view, `hand:${me}`);
-  const top = zoneCards(g.view, "discard")[0];
+  const hand = zoneCards(g.view, handZone.of(me));
+  const top = zoneCards(g.view, discard)[0];
   const topCard = top?.entity?.props;
-  const deckCount = g.view.zones.deck?.items.length ?? 0;
-  const turnOf = g.view.prompts.find((p) => p.node === "turn")?.actors[0];
-  const mine = new Set(g.prompts.map((p) => p.node));
+  const deckCount = g.view.zones[deck.id]?.length ?? 0;
+  const waitsOn = (label: string) =>
+    g.view.waiting.find((w) => w.label === label)?.actors ?? [];
+  const turnOf = waitsOn(TURN_LABEL)[0];
+  // What the viewer is asked: their turn, the +2 window, or to play again
+  const mine = new Set(
+    g.legal.length
+      ? g.view.waiting
+          .filter((w) => w.actors.includes(g.viewer))
+          .map((w) => w.label)
+      : [],
+  );
+  const myTurn = mine.has(TURN_LABEL);
+  const inWindow = mine.has(WINDOW_LABEL);
   // A selected card is played or stacked, whichever is open
   const inputFor = (id: string) =>
     findInput(g.legal, "playCard", (a) => a.card === id) ??
@@ -43,7 +60,7 @@ export default function PlusTwo() {
   const draw = findInput(g.legal, "drawCard");
   const pass = findInput(g.legal, "pass");
   const accept = findInput(g.legal, "accept");
-  const again = continueInput(g.legal);
+  const again = findInput(g.legal, "again");
   const penalty = vars.penalty ?? 0;
 
   const play = () => {
@@ -73,20 +90,20 @@ export default function PlusTwo() {
       }
       actions={
         <>
-          {mine.has("stack") && (
+          {inWindow && (
             <Button variant="primary" disabled={!chosen} onClick={play}>
               Stack +2
             </Button>
           )}
           {accept && (
             <Button
-              variant={mine.has("stack") ? "secondary" : "primary"}
+              variant={inWindow ? "secondary" : "primary"}
               onClick={() => g.submit(accept)}
             >
               Take +{penalty}
             </Button>
           )}
-          {mine.has("turn") && (
+          {myTurn && (
             <>
               <Button variant="primary" disabled={!chosen} onClick={play}>
                 Play card
@@ -103,7 +120,7 @@ export default function PlusTwo() {
     >
       <div className="flex flex-wrap justify-center gap-x-40 gap-y-6">
         {others.map((p) => {
-          const items = g.view.zones[`hand:${p}`]?.items ?? [];
+          const items = g.view.zones[handZone.of(p).id] ?? [];
           const active = turnOf === p || vars.victim === p;
           return (
             <div key={p} className="flex flex-col items-center gap-2">
@@ -157,7 +174,7 @@ export default function PlusTwo() {
               <AnimatePresence mode="popLayout">
                 {top && topCard && (
                   <motion.div
-                    key={top.id}
+                    key={top.ref}
                     initial={{ opacity: 0, scale: 0.8, rotate: -8 }}
                     animate={{ opacity: 1, scale: 1, rotate: 0 }}
                   >
@@ -172,23 +189,27 @@ export default function PlusTwo() {
       </div>
       <div className="flex flex-col items-center gap-1.5">
         <Fan
-          items={hand.map((c) => ({ key: c.id, lifted: c.id === chosen }))}
+          items={hand.map((c) => ({
+            key: c.ref,
+            lifted: !!chosen && c.entity?.id === chosen,
+          }))}
           render={(i) => {
             const c = hand[i]!;
             if (!c.entity) return <CardBack size="md" color={BACK} />;
             const card = c.entity.props;
-            const playable = !!inputFor(c.id);
+            const id = c.entity.id;
+            const playable = !!inputFor(id);
             return (
               <button
                 type="button"
-                disabled={!mine.has("turn") && !mine.has("stack")}
-                onClick={() => setSelected(c.id === chosen ? null : c.id)}
-                aria-pressed={c.id === chosen}
+                disabled={!myTurn && !inWindow}
+                onClick={() => setSelected(id === chosen ? null : id)}
+                aria-pressed={id === chosen}
                 aria-label={`${card.color} ${card.value}${playable ? "" : ", can't play"}`}
                 className={clsx(
                   "rounded-md",
                   !playable && "brightness-105 saturate-[.3]",
-                  c.id === chosen && "ring-3 ring-accent",
+                  id === chosen && "ring-3 ring-accent",
                 )}
               >
                 <ColorCard color={card.color} value={card.value} />
@@ -200,7 +221,7 @@ export default function PlusTwo() {
           {me === "p1" ? "Your hand" : `${name(me)}'s hand`} ({hand.length})
         </span>
       </div>
-      {mine.has("again") && !g.playing && (
+      {again && !g.playing && (
         <Overlay>
           <div className="flex flex-col gap-1.5">
             <div className="eyebrow">Game over</div>

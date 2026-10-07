@@ -22,6 +22,8 @@ const PORTED = new Set([
   "blackjack",
   "crazy-eights",
   "sealed-bids",
+  "plus-two",
+  "tower-battler",
 ]);
 
 describe.each(catalog.filter((e) => PORTED.has(e.slug)))(
