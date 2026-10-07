@@ -8,9 +8,9 @@ import {
   pausedBy,
   readCtx,
   reader,
-  sameJson,
   stackOf,
 } from "./frames.js";
+import { jsonEqual } from "./json.js";
 import { seedRng } from "./rng.js";
 import { advance, contextFor, settle } from "./run.js";
 import { transact } from "./tx.js";
@@ -127,7 +127,7 @@ export function check<V>(
   const impl = game.impl.actions[input.action]!;
   const s = reader(game, state, w.fiber);
   if (impl.validate) return impl.validate(s, input.args, input.player);
-  return impl.enumerate(s, input.player).some((a) => sameJson(a, input.args))
+  return impl.enumerate(s, input.player).some((a) => jsonEqual(a, input.args))
     ? true
     : "That move isn't available";
 }

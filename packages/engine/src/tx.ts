@@ -4,12 +4,12 @@ import {
   boundActor,
   nearestFrame,
   nodeOf,
-  sameJson,
   scopeOf,
   stackOf,
   withStack,
   type FrameAt,
 } from "./frames.js";
+import { jsonEqual } from "./json.js";
 import { createRandom, type RngState } from "./rng.js";
 import type {
   EffectData,
@@ -172,12 +172,12 @@ export function transact<V>(
     },
   };
   body(tx);
-  if (!sameJson(state.vars, next.vars))
+  if (!jsonEqual(state.vars, next.vars))
     log.push({ type: "vars", vars: next.vars });
   let out = next;
   // A reaction's changes to the effect it reacts to are kept in the effect's frame
   for (const { where, data } of drafts.values()) {
-    if (sameJson(data, (where.frame.data as EffectData).data)) continue;
+    if (jsonEqual(data, (where.frame.data as EffectData).data)) continue;
     const stack = stackOf(out, where.fiber);
     out = withStack(
       out,

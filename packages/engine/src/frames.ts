@@ -224,9 +224,6 @@ export function scopeOf<V>(
   return kindOf(game, node).scope?.(node, at.frame);
 }
 
-export const sameJson = (a: unknown, b: unknown) =>
-  JSON.stringify(a) === JSON.stringify(b);
-
 export function readCtx<V>(
   game: GameDef<V>,
   state: State<V>,

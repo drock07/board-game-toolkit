@@ -209,3 +209,15 @@ test("fuzz: random play never breaks an invariant", () => {
   const report = fuzz(azul, { seeds: 12, players, maxInputs: 1500 });
   assert.deepEqual(report.failures, []);
 });
+
+test("an input's args match the enumerated ones whatever their key order", () => {
+  const s = init(azul, { players: ["ann", "bob"], seed: "keys" });
+  const legal = legalInputs(azul, s).filter(draft.is)[0]!;
+  const { from, color, to } = legal.args;
+  // Same args, keys in another order, as a host might send them
+  const reordered = { ...legal, args: { to, color, from } };
+  assert.deepEqual(
+    applyOrThrow(azul, s, reordered),
+    applyOrThrow(azul, s, legal),
+  );
+});
