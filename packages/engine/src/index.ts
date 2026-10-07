@@ -66,6 +66,7 @@ export {
   viewEvents,
 } from "./define/play.js";
 export type { InitOptions } from "./play.js";
+export { viewEntities } from "./views.js";
 export { canSee } from "./zones.js";
 
 // Errors
@@ -104,6 +105,7 @@ export type { Die, Random, RngState } from "./rng.js";
 export type {
   Applied,
   DeepReadonly,
+  EffectRef,
   Entity,
   EntityId,
   Exit,

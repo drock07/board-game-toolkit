@@ -1,3 +1,4 @@
+import { RulesError } from "./errors.js";
 import { fiberIds, kindOf, nodeOf, stackOf } from "./frames.js";
 import { actorsOf, waitingFrames } from "./play.js";
 import type {
@@ -13,6 +14,7 @@ import type {
   ViewEvent,
   Waiting,
   ZoneId,
+  ZoneRef,
 } from "./types.js";
 import { ROOT } from "./types.js";
 import { canSee } from "./zones.js";
@@ -50,6 +52,19 @@ export function view<V>(
     waiting: waitingOf(game, state),
     shown: shownTo(game, state, viewer),
   };
+}
+
+/**
+ * A zone's entities as a view shows them, top first: each is the entity, or
+ * a placeholder the viewer can't see into (narrow with an entity type's `is`).
+ */
+export function viewEntities<V, P>(
+  v: View<V>,
+  zone: ZoneRef<P>,
+): (Entity<P> | HiddenEntity)[] {
+  const refs = v.zones[zone.id];
+  if (!refs) throw new RulesError(`Unknown zone "${zone.id}"`);
+  return refs.map((ref) => v.entities[ref] as Entity<P> | HiddenEntity);
 }
 
 /** The open prompts: who each waits on, and its node's label. */
