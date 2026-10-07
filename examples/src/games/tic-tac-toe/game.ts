@@ -52,8 +52,10 @@ export function winningLine(marks: readonly Cell[]): readonly number[] | null {
 export const isFull = (marks: readonly Cell[]) =>
   marks.every((m) => m !== null);
 
+// #region core
 const { rules, action, loop, seq, step, turns, prompt } =
   define<Vars>().withNodes(defaultNodes);
+// #endregion core
 
 // #region actions
 export const placeMark = action("placeMark", {

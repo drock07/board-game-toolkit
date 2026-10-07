@@ -12,7 +12,8 @@
     "./games/*/Table": "./src/games/*/Table.tsx",
     "./site/*": "./src/site/*.tsx",
     "./ui/*": "./src/ui/*.tsx",
-    "./site/flowTree": "./src/site/flowTree.ts"
+    "./site/flowTree": "./src/site/flowTree.ts",
+    "./demos": "./src/demos/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -2,9 +2,9 @@ import {
   apply,
   init,
   legalInputs,
-  type ApplyResult,
-  type GameEvent,
-  type Input,
+  view,
+  viewEvents,
+  type ViewEvent,
 } from "@drock07/board-game-toolkit-engine";
 import { FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
 import { demos } from "board-game-toolkit-examples/demos";
@@ -12,16 +12,11 @@ import { describeEvent } from "board-game-toolkit-examples/site/flowTree";
 import { JsonView } from "board-game-toolkit-examples/site/JsonView";
 import { StrictMode, useState } from "react";
 
-/** A short label for an input's answer. */
-function label(input: Input, prompt: { label?: string }): string {
-  if ("action" in input) {
-    return input.args === undefined
-      ? input.action
-      : `${input.action} ${JSON.stringify(input.args)}`;
-  }
-  if ("choose" in input) return input.choose.map(String).join(" + ");
-  return prompt.label ?? "Continue";
-}
+/** A short label for an input: its action, and its args if it has any. */
+const label = (input: { action: string; args?: unknown }) =>
+  input.args === undefined
+    ? input.action
+    : `${input.action} ${JSON.stringify(input.args)}`;
 
 let seedCount = 0;
 const nextSeed = () => `playground-${++seedCount}`;
@@ -31,25 +26,39 @@ function Demo({ name }: { name: string }) {
   if (!demo) throw new Error(`No demo called "${name}"`);
   const { game, players } = demo;
   const start = () => init(game, { players, seed: nextSeed() });
-  const [res, setRes] = useState<ApplyResult>(start);
-  const [log, setLog] = useState<GameEvent[]>([]);
+  const [state, setState] = useState(start);
+  const [log, setLog] = useState<ViewEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // The demo answers for every seat, so it shows what everyone may see
+  const v = view(game, state, "spectator");
+  // A player waited on twice (their own prompt and a reaction) gets one row
+  const seen = new Set<string>();
+  const rows = v.waiting.flatMap((w) =>
+    w.actors
+      .filter((p) => !seen.has(p) && seen.add(p))
+      .map((player) => ({ player, label: w.label })),
+  );
 
-  const submit = (input: Input) => {
-    const next = apply(game, res.state, input);
-    if (!next.ok) {
-      setError(next.error.message);
+  const submit = (input: Parameters<typeof apply>[2]) => {
+    const out = apply(game, state, input);
+    if (!out.ok) {
+      setError(out.reason);
       return;
     }
     setError(null);
-    setRes(next);
-    setLog((l) => [...next.events, ...l].slice(0, 40));
+    setState(out.state);
+    setLog((l) =>
+      [...viewEvents(game, out.events, "spectator").reverse(), ...l].slice(
+        0,
+        40,
+      ),
+    );
   };
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[10px] border border-line bg-panel text-ink">
       <div className="overflow-x-auto border-b border-line bg-page p-4">
-        <FlowGraph game={game} flow={res.state.flow} />
+        <FlowGraph game={game} state={state} />
       </div>
       <div className="grid gap-px bg-line md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <section
@@ -61,7 +70,7 @@ function Demo({ name }: { name: string }) {
             <button
               type="button"
               onClick={() => {
-                setRes(start());
+                setState(start());
                 setLog([]);
                 setError(null);
               }}
@@ -70,33 +79,26 @@ function Demo({ name }: { name: string }) {
               Restart
             </button>
           </div>
-          {res.prompts.map((p) => (
+          {rows.map(({ player, label: title }) => (
             <div
-              key={p.id}
+              key={player}
               className="flex flex-col gap-2 rounded-lg border border-accent-line bg-accent-soft/50 p-3"
             >
               <div className="font-mono text-xs text-muted">
-                <span className="font-semibold text-accent">{p.node}</span> ·{" "}
-                {p.kind} · {p.actors.join(", ")}
+                <span className="font-semibold text-accent">{player}</span>
+                {title && <> · {title}</>}
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {p.actors.flatMap((player) =>
-                  legalInputs(game, res.state, player)
-                    .filter((i) => i.prompt === p.id)
-                    .map((input) => (
-                      <button
-                        key={`${player}:${JSON.stringify(input)}`}
-                        type="button"
-                        onClick={() => submit(input)}
-                        className="rounded-md border border-line-strong bg-panel px-2.5 py-1 font-mono text-xs hover:border-accent hover:text-accent"
-                      >
-                        {players.length > 1 && (
-                          <span className="text-subtle">{player}: </span>
-                        )}
-                        {label(input, p)}
-                      </button>
-                    )),
-                )}
+                {legalInputs(game, state, player).map((input) => (
+                  <button
+                    key={JSON.stringify(input)}
+                    type="button"
+                    onClick={() => submit(input)}
+                    className="rounded-md border border-line-strong bg-panel px-2.5 py-1 font-mono text-xs hover:border-accent hover:text-accent"
+                  >
+                    {label(input)}
+                  </button>
+                ))}
               </div>
             </div>
           ))}
@@ -107,7 +109,7 @@ function Demo({ name }: { name: string }) {
           )}
           <div className="flex flex-col gap-1.5">
             <span className="eyebrow">Vars</span>
-            <JsonView value={res.state.vars} />
+            <JsonView value={state.vars} />
           </div>
         </section>
         <section
@@ -117,9 +119,10 @@ function Demo({ name }: { name: string }) {
           <span className="eyebrow">Last events, newest first</span>
           {log.length ? (
             <ol className="flex max-h-72 flex-col gap-0.5 overflow-y-auto font-mono text-xs">
-              {log.map((e) => (
+              {log.map((e, i) => (
                 <li
-                  key={e.seq}
+                  // Newest first; entries only move down
+                  key={log.length - i}
                   className={e.type === "flow" ? "text-label" : "text-ink-2"}
                 >
                   {describeEvent(e)}

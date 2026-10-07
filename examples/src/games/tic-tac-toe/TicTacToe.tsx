@@ -45,10 +45,12 @@ function MarkIcon({ mark, className }: { mark: Mark; className?: string }) {
 }
 
 export default function TicTacToe() {
+  // #region host
   const g = useGame(ticTacToe, {
     players: ["p1", { id: "p2", controller: minimaxBot }],
   });
   useGameEvent(g, "vars", () => wait(150));
+  // #endregion host
 
   const { vars, players } = g.view;
   const { marks } = vars;

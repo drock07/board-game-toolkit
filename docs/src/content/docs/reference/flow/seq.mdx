@@ -1,33 +1,46 @@
 ---
 title: seq
-description: "Runs its children in order."
+description: Runs its children in order, then ends.
 sidebar:
   order: 1
 ---
 
 import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
 
-```ts
-seq(id, children, opts?)
-// { kind: "seq", id, children: [...] }
-```
+`seq` is "this, then this": a round that deals, plays and scores, or a game
+that sets up, plays and tallies. You write `seq(...children)`.
 
-Runs each child in turn. When the last one ends, the `seq` ends. An empty
-`seq` ends at once.
-
-A `seq` is the usual place to hang `exits` that cover several nodes, like
-Blackjack's `play` seq, which ends the moment the player busts no matter which
-child is running.
-
-| Option     | Type         | Meaning                     |
-| ---------- | ------------ | --------------------------- |
-| `children` | `FlowNode[]` | The nodes to run, in order. |
-
-Plus the [common options](/board-game-toolkit/reference/flow/overview/#options-every-node-takes).
+| Argument   | Type     | What it is                  |
+| ---------- | -------- | --------------------------- |
+| `children` | `Node[]` | The nodes to run, in order. |
 
 ## Demo
 
-A turn in three parts. Only `act` waits for you; `draw` and `cleanUp` run
-straight through.
+A round in four parts. The three steps run straight through; only the
+prompt waits for you.
 
 <Demo name="seq" />
+
+## Behavior
+
+- **One at a time.** Each child starts when the one before it ends. A child
+  that waits, like a `prompt`, holds the `seq` there until it's answered.
+- **Ends with its last child.** A `seq` with no children ends at once.
+- **No state of its own.** A `seq` doesn't bind a player or show anything;
+  it's a list.
+
+A `seq` is also the usual body for something that takes options, like a
+turn of several parts inside `turns`. Plus Two's turn is a play, then a
+reaction window, every turn:
+
+<Source file="games/plus-two/game.ts" region="rules" />
+
+To end a `seq` partway, when the player busts or the boss falls, wrap it
+in [`outcomes`](/board-game-toolkit/reference/flow/outcomes/).
+
+## See also
+
+- [step](/board-game-toolkit/reference/flow/step/): the usual children of a
+  `seq`.
+- [Flow](/board-game-toolkit/concepts/flow/): how the engine runs a tree.

@@ -106,6 +106,7 @@ describe("tic-tac-toe", () => {
   });
 });
 
+// #region golden
 test("golden replay", async () => {
   const { states, inputs } = playBots(ticTacToe, {
     players,
@@ -126,3 +127,4 @@ test("golden replay", async () => {
     "./golden.json",
   );
 });
+// #endregion golden

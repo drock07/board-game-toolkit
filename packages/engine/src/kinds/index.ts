@@ -1,3 +1,8 @@
+/**
+ * What a custom node kind is written against, and the built-in kinds.
+ *
+ * @module @drock07/board-game-toolkit-engine/kinds
+ */
 // The built-in node kinds, as modules the engine runs through its registry.
 // A custom kind is the same shape.
 import type { Kind } from "../types.js";

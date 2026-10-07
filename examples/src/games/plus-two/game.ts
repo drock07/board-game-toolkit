@@ -133,6 +133,7 @@ export const stackPlusTwo = action("stackPlusTwo", {
   execute: (tx, { card: id }, actor) => discardCard(tx, id, actor),
 });
 
+// #region accept
 export const accept = action("accept", {
   // A stack moves the penalty on, so only the newest +2's victim may take it
   validate: (s, actor) =>
@@ -144,6 +145,7 @@ export const accept = action("accept", {
     tx.vars.victim = null;
   },
 });
+// #endregion accept
 
 export const again = action("again", { execute: () => {} });
 // #endregion actions

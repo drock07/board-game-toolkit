@@ -1,58 +1,110 @@
 ---
 title: Simultaneous turns
-description: Let every player choose at once, keep their choices secret, and resolve the round when all are in.
+description: Let every player act at once, each on their own fiber, keep their choices secret, and decide what a reaction holds up.
 sidebar:
   order: 4
 ---
 
 import Source from "../../../components/Source.astro";
 
-Sealed bids, drafting, rock-paper-scissors, programming moves: some rounds
-have everyone choose at the same time. [Sealed Bids](/board-game-toolkit/examples/sealed-bids/)
-shows the pattern.
+Sealed bids, drafting, rock-paper-scissors, everyone hitting or standing
+against the dealer: some rounds have every player act at the same time. Two
+nodes do it: `everyone` when each player answers once, and `simultaneous`
+for anything longer.
 
-## A parallel each
+## Everyone answers once
 
-<Source file="games/sealed-bids/spec.ts" />
+`everyone(…actions)` waits for each player to take one of the actions, in
+any order. The node ends when all have answered.
+[Sealed Bids](/board-game-toolkit/examples/sealed-bids/) runs one per lot:
 
-`each(…, { mode: "parallel" })` runs its body for every player at once, each on
-its own fiber. After `offer`, every player has an open `bid` prompt. They can
-answer in any order; the `each` ends when all have, and `resolve` runs.
+<Source file="games/sealed-bids/game.ts" region="round" />
 
-`init` and `apply` return all the open prompts. With the React host, each
-player's `prompts` and `legal` hold only their own, so a hot-seat UI can
-switch viewers, and a networked UI shows each player their own.
+While it waits, `actors()` lists everyone who hasn't answered yet, and
+`view.waiting` has one entry per open prompt. Each player's legal inputs
+are only their own. A player who has bid is done; the others can still bid,
+in any order.
 
-## Keep choices secret
+Several players take the same action here, so `execute` tells them apart by
+its `actor` argument, the player who sent the input:
 
-If the choices are stored in a public var, everyone sees everyone's bid as soon
-as it's made. Declare the var with `visibility: "owner"` and keep it a record
-keyed by player:
+<Source file="games/sealed-bids/game.ts" region="placeBid" />
 
-```ts
-vars: {
-  bids: { visibility: "owner" },
-},
-```
+## Fibers
 
-Each player's view then holds only their own entry, and `vars` events sent to
-other players drop the patch. The round's `resolve` step reads all the bids
-from the full state.
+`everyone(…)` is shorthand for `simultaneous(prompt(…))`. `simultaneous(body)`
+runs its body once for every player at the same time, each on its own
+**fiber**: a separate stack of frames, bound to that player. Each fiber waits
+on its own player and moves on its own, and `simultaneous` ends when every
+fiber has finished.
 
-## Know who's acting
+The body can be any flow. Here everyone draws from one pile as often as
+they like, then stops, each with their own `turn`:
 
-In a parallel each, several players use the same action. The rules tell them
-apart with `scope.actor` in `validate` and `tx.scope.actor` in `execute`:
+<Source file="snippets/simultaneousTurns.ts" region="game" />
 
-<Source file="games/sealed-bids/impl.ts" region="placeBid" />
+- **`simultaneous(turn(…))`** gives each player their own turn, with its own
+  counts. One player stopping doesn't stop anyone else.
+- **Inside a fiber, the bound actor is the fiber's player.** A `prompt`
+  waits on them, `actor` in an action is them, and `s.actor` in a condition
+  is them. So a `branch` on `s.actor` can let some players sit a round out.
+- **The flow carries on after** the last fiber finishes.
+
+The [simultaneous demo](/board-game-toolkit/reference/flow/simultaneous/)
+is the same shape: everyone rolls toward a target at once.
+
+## What each player sees
+
+Fibers are private in what they show. A `turn` on bob's fiber shows its
+counts to bob, in `turnNode.shown(view)`, and not to anyone else: a view's
+`shown` holds the root flow's and the viewer's own fibers', never another
+player's. What every player sees is who the game is waiting on,
+`view.waiting`, because that's public at a real table too.
+
+Choices are a different matter. Anything a player chooses that others
+mustn't see until later belongs in a zone only they can see, not in vars.
+Sealed Bids puts each bid in the bidder's own `"owner"` zone:
+
+<Source file="games/sealed-bids/game.ts" region="box" />
+
+The other players' views hold a placeholder: they can see that you've bid,
+not how much. The round's last step reads every bid from the full state.
+See [Hidden information](/board-game-toolkit/guides/hidden-information/).
+
+## Reactions in a fiber
+
+The draw game's trap is an [ability](/board-game-toolkit/concepts/effects/)
+carried by a chip: when one enters your row, you must disarm it. It runs
+**on the fiber that caused it**, so it holds up only the player who drew
+it. While ann disarms her trap, bob keeps drawing.
+
+Sometimes a reaction must stop the whole table: everyone waits while a
+player resolves something that changes what the others may do. Give the
+ability `pause: "everyone"`:
+
+<Source file="snippets/simultaneousTurns.ts" region="held" />
+
+While a `pause: "everyone"` ability runs, no other fiber moves or takes
+input. `actors()` is just the player answering it. When it's done, every
+fiber carries on where it was.
+
+A player can have two prompts open at once: their own turn, and a reaction
+on someone else's fiber that asks them. An input goes to the prompt that
+offers its action.
 
 ## Variations
 
-- **Different choices per player**: use [`parallel`](/board-game-toolkit/reference/flow/parallel/)
-  with a branch per role instead of a parallel `each`.
-- **First answer wins**: `parallel` with `join: "race"`.
-- **A subset of players**: a parallel `each` over `{ ref: "listName" }`,
-  with a decision whose actor reads `scope.item`. Note that `"current"` only
-  works in an `each` over players.
-- **Reveal together**: keep choices in an `"owner"` var, then copy them to a
-  public var in the resolve step.
+- **First answer wins**: [`anyone`](/board-game-toolkit/reference/flow/anyone/)
+  waits for one answer from any of a set of players.
+- **Reveal together**: keep choices hidden in owner zones while everyone
+  chooses, then flip or move them to a public zone in the step after.
+- **Ending early**: an [outcome](/board-game-toolkit/concepts/outcomes/)
+  raised in one fiber cancels the others too, and carries on in the parent.
+
+## See also
+
+- [`simultaneous`](/board-game-toolkit/reference/flow/simultaneous/) and
+  [`everyone`](/board-game-toolkit/reference/flow/everyone/) in the reference,
+  with live demos.
+- [Card effects and reactions](/board-game-toolkit/guides/card-effects/).
+- [Flow](/board-game-toolkit/concepts/flow/): how fibers fit into the flow.

@@ -6,6 +6,7 @@ import {
   type Tx,
 } from "@drock07/board-game-toolkit-engine";
 
+// #region card
 /** What a card does when played, in order. */
 export type CardEffect =
   | { type: "dealDamage"; amount: number }
@@ -18,6 +19,7 @@ export interface Card {
   description: string;
   effects: CardEffect[];
 }
+// #endregion card
 
 // #region types
 export interface Vars {
@@ -183,6 +185,7 @@ export const towerBattler = rules({
         tx.vars = freshVars();
         drawCards(tx, 5);
       }),
+      // #region fight
       // Checked after every transaction, so the enemy can fall mid-turn
       outcomes(
         {
@@ -219,6 +222,7 @@ export const towerBattler = rules({
           ),
         ),
       ),
+      // #endregion fight
       prompt({ label: "Play again" }, again),
     ),
   ),

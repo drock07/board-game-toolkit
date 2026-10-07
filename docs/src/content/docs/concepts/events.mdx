@@ -1,101 +1,65 @@
 ---
-title: Transactions and events
-description: Rules change state only through a transaction, and every change is recorded as an event that can be replayed and animated.
+title: Events
+description: What apply reports about each change, how each player gets their share, and how events replay.
 sidebar:
-  order: 3
+  order: 5
 ---
 
 import Source from "../../../components/Source.astro";
 
-Rules code never edits a state directly. `setup`, steps, action `execute`
-and choices each receive a **transaction**, `tx`, and change state through it.
-When the handler returns, the engine commits the transaction: the new state,
-plus a list of **events** describing exactly what changed.
+Every change the engine makes is an **event**. `apply` returns them with the
+new state, in the order they happened. UIs animate them, logs show them, and
+each player gets only the ones they may see.
 
-## Ops
+<Source file="snippets/highCard.test.ts" region="events" />
 
-Each op changes entities or zones and appends one event:
+## The events
 
-| Op                                    | Does                                                                                                    | Event       |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------- |
-| `tx.create(type, props, zone, opts?)` | Creates an entity. Goes to the **bottom** by default, so creation order reads top-down. Returns its id. | `created`   |
-| `tx.move(ids, to, opts?)`             | Moves one entity, or several as a block in their current order. Goes to the **top** by default.         | `moved`     |
-| `tx.moveTop(from, to, count?, opts?)` | Moves the top `count` (default 1). Throws if there are fewer. Returns the ids.                          | `moved`     |
-| `tx.shuffle(zone)`                    | Shuffles a zone with the game's RNG.                                                                    | `shuffled`  |
-| `tx.flip(id, faceUp)`                 | Sets an entity's `faceUp`.                                                                              | `flipped`   |
-| `tx.destroy(id)`                      | Removes an entity.                                                                                      | `destroyed` |
+| Event       | When                                                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `created`   | `tx.create`: carries the new entity.                                                                                             |
+| `moved`     | `tx.move`, `tx.moveTop`: the entities, each one's old zone (`from`), the new zone (`to`), and `at: "bottom"` if they went under. |
+| `shuffled`  | `tx.shuffle`: the zone's entities in their new order, with new refs.                                                             |
+| `flipped`   | `tx.flip`, or a `"top"` zone turning its cards: the entity.                                                                      |
+| `updated`   | `tx.update`: the entity with its new props.                                                                                      |
+| `destroyed` | `tx.destroy`: the entity as it was.                                                                                              |
+| `vars`      | A transaction changed the vars: the new vars.                                                                                    |
+| `effect`    | `tx.cause`: the effect's `name` and `data`. See [Effects](/board-game-toolkit/concepts/effects/).                                |
+| `flow`      | What the flow waits on, or what nodes show, changed: `waiting` and `shown`.                                                      |
+| `ended`     | `tx.end`: the result.                                                                                                            |
 
-`opts` for `create`, `move` and `moveTop` is `{ at?, faceUp? }`. `at` is
-`"top"`, `"bottom"` or an index from the top. A move always resets `faceUp`:
-pass it again to keep a card face down as it moves.
+An event that touches an entity carries the entity **as it is afterwards**.
+That one choice is what makes the rest simple: replaying is a fold, and
+filtering per player is the same visibility check views use.
 
-Using an op wrongly, such as an unknown zone or entity, throws an `OpError`.
-That's a bug in the rules, not a bad move by a player.
+## Each player's share
 
-## Vars and locals
+`viewEvents(game, events, player)` is what one player may see of them:
 
-`tx.vars` is a draft: mutate it like a normal object.
+- An entity they can't see becomes a placeholder, `{ ref, zone, hidden }`. A
+  card dealt to someone else is still a `moved` event (they see a card go to
+  that hand), just not which card.
+- An `updated` to an entity they can't see is dropped.
+- An `effect` whispered to other players (its `to`) is dropped.
+- A `flow` event carries their own `shown`: the root flow's, and their own
+  fibers', never another player's.
 
-```ts
-tx.vars.player.hp -= damage;
-tx.vars.log.push("The dragon breathes fire");
-```
+## Replaying
 
-All the changes to vars in one transaction become **one** `vars` event,
-recorded as [immer](https://immerjs.github.io/immer/) patches. Locals work
-the same way through `tx.local(nodeId)`, as one `locals` event per node.
+`replay(view, events)` folds a player's events onto their old view, and gives
+exactly their new view. The same works on a whole state with the unfiltered
+events. That's how a host animates: it plays a player's events back one at a
+time, so the screen moves through every step, and when playback ends it's at
+the committed state.
 
-## Everything else on tx
+`fuzz` checks this on every input of every game: the events replay to the new
+state, and each player's share replays to their new view. A missing event
+fails it.
 
-| Member                                | Does                                                                                                                                                     |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tx.state`                            | The state, including this transaction's changes so far. Read-only.                                                                                       |
-| `tx.scope`                            | Who and what this code is running for: `actor`, `player`, `item`, `iteration`, `event`. See [Prompts and inputs](/board-game-toolkit/concepts/prompts/). |
-| `tx.random`                           | The seeded RNG: `int`, `float`, `pick`, `shuffle`, `roll`. See [Determinism](/board-game-toolkit/concepts/determinism/).                                 |
-| `tx.emit(name, payload?, visibleTo?)` | A `custom` event for the UI, like "the enemy attacked for 6". Changes no state. `visibleTo` limits who sees it.                                          |
-| `tx.exit(outcome)`                    | Ends the nearest node that handles `outcome`, once the transaction commits. See [Outcomes](/board-game-toolkit/concepts/outcomes/).                      |
-| `tx.end(result?)`                     | Finishes the game. `state.status` becomes `"finished"` and `state.result` holds `result`.                                                                |
+## Events in a UI
 
-## Events
-
-`apply` returns the events it produced, in order, each with a `seq` (its
-position in the game's whole history) and `input` (which input caused it):
-
-| Type        | Fields                                                            |
-| ----------- | ----------------------------------------------------------------- |
-| `created`   | `id`, `entity`, `at`                                              |
-| `moved`     | `ids`, `from` (one zone per id), `to`, `at`, `faceUp?`            |
-| `shuffled`  | `zone`, `order`                                                   |
-| `flipped`   | `id`, `faceUp`                                                    |
-| `destroyed` | `id`, `from`                                                      |
-| `vars`      | `patches`                                                         |
-| `locals`    | `node`, `patches`                                                 |
-| `custom`    | `name`, `payload`, `visibleTo`                                    |
-| `flow`      | `kind` (`enter`, `exit`, `prompt`, `resolve`), `node`, `outcome?` |
-| `ended`     | `result`                                                          |
-
-<Source file="snippets/concepts.test.ts" region="tx" title={false} />
-
-The `transact` helper (from `/testing`) runs a function in a transaction on any
-state, which is handy in tests.
-
-## Replaying events
-
-Events are a complete record of what changed. `reduceEvents(state, events)`
-applies them to an earlier state and rebuilds the later one's entities, zones,
-vars and status:
-
-<Source file="snippets/concepts.test.ts" region="reduce" title={false} />
-
-That's how the React host animates: it applies one event at a time to the
-state on screen, waiting for your animation between them. See
-[Animating events](/board-game-toolkit/guides/animating-events/). The
-[fuzzer](/board-game-toolkit/guides/testing/) checks this property after every input.
-
-## Events per player
-
-Events can reveal hidden information: a `moved` event names the card that was
-drawn. `viewEvents(game, before, events, viewer)` filters events for one
-player. Ids of entities they can't see become opaque, `custom` events respect
-`visibleTo`, and patches to hidden vars are dropped. See
-[Views](/board-game-toolkit/concepts/views/#events-per-player).
+With React, `useGameEvent(g, "moved", handler)` runs the handler as each
+`moved` event plays back, and waits for a promise it returns, so an
+animation can finish before the next event. `useGameEffect(g, effect,
+handler)` does the same for one effect, with its data typed. See
+[Animating events](/board-game-toolkit/guides/animating-events/).

@@ -33,8 +33,10 @@ export function useCrazyEightsTable(
   g: UseGameResult<Vars, ActionsIn<typeof crazyEights>>,
 ) {
   const [selected, setSelected] = useState<string | null>(null);
+  // #region playback
   // Deals run quickly; a single play gets a beat so you can follow the bots
   useGameEvent(g, "moved", (e) => wait(e.to === discardPile.id ? 450 : 70));
+  // #endregion playback
 
   const { vars, players } = g.view;
   // The viewer sits at the bottom; a spectator watches from p1's seat

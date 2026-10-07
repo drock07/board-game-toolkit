@@ -1,74 +1,70 @@
 ---
-title: Outcomes and guards
-description: How nodes end early with an outcome, through guards, tx.exit or an exit node, and how on flows handle them.
+title: Outcomes
+description: How a node ends early, through a guard checked after every change or an outcome raised by rules code.
 sidebar:
   order: 6
 ---
 
 import Source from "../../../components/Source.astro";
 
-Most nodes end normally: a `seq` runs out of children, a decision gets its
-answer. That normal ending is the outcome `"done"`. Board games also need to
-stop things early: you bust, so your turn and the dealer's are skipped; the
-boss dies mid-fight, so the whole run ends in victory. That's what
-**outcomes** are for.
+Most nodes end normally: a `seq` runs out of children, a prompt gets its
+answer. Games also need to stop things early. You bust, so your turn and the
+dealer's are skipped; the boss falls mid-fight, so the whole run ends in
+victory. That's what **outcomes** are for.
 
-## Guards: `exits`
+`outcomes(outcomes, body)` runs its body and lists the ways the body may end
+early. Each outcome has a name and, optionally:
 
-Any node can declare `exits`: named outcomes, each with a condition.
+- **`when`**: a guard, a condition that ends the body as soon as it holds.
+- **`then`**: a node to run after the body is cancelled.
 
-<Source file="games/tower-battler/spec.ts" title="tower-battler/spec.ts" />
+When an outcome happens, everything running inside the body is cancelled,
+`then` runs if there is one, and the `outcomes` node ends. The flow carries on
+after it.
 
-**Guards are checked after every transaction**, not just when the node
-starts or ends. So a card that deals the last point of damage ends the
-`rounds` loop on the spot, in the middle of the player's turn. Everything
-inside the loop is cancelled, and the flow carries on after it.
+<Source file="demos/outcomes.ts" region="game" />
 
-Guards are checked **outermost first**. If two guards hold at once, the one on
-the outer node wins. Dungeon Crawl relies on this: killing the boss also kills
-the monster in the room, and the outer `victory` guard wins over the inner
-`killed` one.
+## Guards
 
-## Handling an outcome: `on`
+**Guards are checked after every transaction**, not just between nodes. In
+the demo, a roll that takes the total over 10 ends the push-your-luck loop on
+the spot, even though the loop never finishes on its own.
 
-A node handles the outcomes named in its `exits` or `on`. When it ends with
-one, its `on` flow for that outcome runs (if there is one), and then the node
-is done, as if it had ended normally:
-
-<Source file="games/dungeon-crawl/spec.ts" title="dungeon-crawl/spec.ts" />
-
-Here `run` ends with `victory` or `defeat` from its guards, and its `on` map
-runs a different flow for each before the game's "Play again" pause.
+Guards are checked **outermost first**. If two hold at once, the one on the
+outer node wins. Dungeon Crawl relies on this: killing the dragon also kills
+the monster in the room, and the run's outer `victory` beats the fight's own
+`killed`.
 
 ## Raising an outcome
 
-Rules code can end a node too. `tx.exit(outcome)` raises an outcome when the
-transaction commits:
+An action's `execute` or a step may return `{ exit: "name" }` to raise an
+outcome by name. It unwinds to the nearest enclosing `outcomes` node that
+lists that name. An outcome doesn't need a `when` to be raised; Dungeon
+Crawl's `fled` has none:
 
-<Source file="games/dungeon-crawl/impl.ts" region="flee" />
+<Source file="games/dungeon-crawl/game.ts" region="combat" />
 
-A raised outcome **unwinds** the flow: it ends the current node, then its
-parent, and so on, until it reaches a node that handles it. Here the combat
-`fight` loop handles `fled` with `on: { fled: step("logFlee", "logFlee") }`.
-The rest of the handler that called `tx.exit` still runs, and the first
-`tx.exit` in a transaction wins.
+<Source file="games/dungeon-crawl/game.ts" region="flee" />
 
-The `exit` node does the same from the flow itself: `exit("giveUp", "forfeit")`
-raises `"forfeit"` when the flow reaches it. `defineGame` checks that some
-enclosing node handles it.
+Raising an outcome nothing handles is a bug in the game: it throws
+`UnhandledOutcomeError`.
 
-If an outcome unwinds all the way to the root without being handled,
-`apply` throws `UnhandledOutcomeError`: it's a bug in the game, since the
-spec should say where every outcome goes.
+## While the handler runs
 
-## A few rules
+While an outcome's `then` runs, its `outcomes` node checks no guards and
+catches nothing, so an outcome raised by the handler unwinds past it to the
+next one out.
 
-- `"done"` is the normal outcome. You can't raise it.
-- A node doesn't handle outcomes raised from its own `on` flows; they unwind
-  past it.
-- Guards aren't checked on a node while its `on` flow is running.
-- A guard is also checked as soon as its node is entered, before any of its
-  children run. Reset the state a guard watches **before** re-entering the
-  node, or it fires again at once. Dungeon Crawl generates a fresh dungeon
-  before its `run` seq for exactly this reason.
-- Cancelled nodes emit `flow` exit events, so a UI or trigger can see them end.
+## Outcomes and the rest of the flow
+
+- **Fibers.** An outcome that escapes one player's fiber in a `simultaneous`
+  cancels the others too, and carries on in the parent.
+- **Reactions.** If an effect's abilities are still running when a guard
+  fires, they finish first, and then the outcome's handler runs. What
+  happened still gets its reactions. See
+  [Effects and abilities](/board-game-toolkit/concepts/effects/).
+- **Tests.** There's no "outcome" event; an outcome shows in what it does.
+  Assert on that: the vars a handler sets, a waiting label, a zone's contents.
+
+See the [outcomes reference](/board-game-toolkit/reference/flow/outcomes/)
+for a live demo.

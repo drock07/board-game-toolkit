@@ -198,3 +198,47 @@ test("a loop shows which pass it's on", () => {
   s = applyOrThrow(game, s, tap.by("ann"));
   expect(loopNode.shown(view(game, s, "ann"))).toEqual({ pass: 3 });
 });
+
+test("a waiting node runs on entry: a turn whose until already holds never waits", () => {
+  const { rules, action, seq, step, turn, prompt } = define<{
+    n: number;
+  }>().withNodes(defaultNodes);
+  const skipped = action("skipped", { execute: () => {} });
+  const after = action("after", { execute: (tx) => tx.end() });
+  const game = rules({
+    players: 1,
+    setup: (tx) => void (tx.vars = { n: 0 }),
+    flow: seq(
+      turn({ until: () => true }, skipped),
+      prompt(after),
+      step(() => {}),
+    ),
+  });
+  const s = init(game, { players: ["ann"], seed: "x" });
+  expect(legalInputs(game, s, "ann").map((i) => i.action)).toEqual(["after"]);
+});
+
+test("turns counts the turns taken, not the seats skipped", () => {
+  const { rules, action, turns, prompt, step, seq } = define<{
+    n: number;
+  }>().withNodes(defaultNodes);
+  const go = action("go", { execute: () => {} });
+  const game = rules({
+    players: 3,
+    setup: (tx) => void (tx.vars = { n: 0 }),
+    flow: seq(
+      turns({ among: (s) => [s.players[0]!, s.players[2]!] }, prompt(go)),
+      step((tx) => tx.end()),
+    ),
+  });
+  let s = init(game, { players: ["a", "b", "c"], seed: "x" });
+  expect(turnsNode.shown(view(game, s, "a"))).toMatchObject({
+    player: "a",
+    turn: 1,
+  });
+  s = applyOrThrow(game, s, go.by("a"));
+  expect(turnsNode.shown(view(game, s, "a"))).toMatchObject({
+    player: "c",
+    turn: 2,
+  });
+});

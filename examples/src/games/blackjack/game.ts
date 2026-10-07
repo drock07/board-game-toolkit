@@ -127,6 +127,7 @@ export const blackjack = rules({
         deal(tx, dealer, false);
       }),
       // #endregion deal
+      // #region play
       // Guards are checked on entry and after every transaction: a natural
       // skips play entirely, and a bust skips the dealer's turn
       outcomes(
@@ -146,6 +147,7 @@ export const blackjack = rules({
           }),
         ),
       ),
+      // #endregion play
       step((tx) => {
         revealHoleCard(tx);
         const mine = cardsIn(tx, player);
@@ -178,6 +180,7 @@ export const blackjack = rules({
         tx.vars.result = result;
         tx.vars.bankroll += payout;
       }),
+      // #region broke
       branch(
         [
           {
@@ -192,6 +195,7 @@ export const blackjack = rules({
         ],
         prompt({ label: "Deal again" }, next),
       ),
+      // #endregion broke
     ),
   ),
 });

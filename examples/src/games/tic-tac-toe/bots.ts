@@ -42,6 +42,7 @@ function search(marks: Cell[], toMove: Mark, me: Mark): number {
  * Plays perfectly: scores each legal placement with minimax and takes the
  * best, breaking ties with its own RNG. Plays again when asked.
  */
+// #region bot
 export const minimaxBot: SyncBot<Vars, GameInput<typeof ticTacToe>> = (
   legal,
   { view, player, random },
@@ -64,3 +65,4 @@ export const minimaxBot: SyncBot<Vars, GameInput<typeof ticTacToe>> = (
   }
   return random.pick(choices);
 };
+// #endregion bot

@@ -1,4 +1,4 @@
-import { useGame, type UseGameResult } from "@drock07/board-game-toolkit-react";
+import { useGame } from "@drock07/board-game-toolkit-react";
 import { FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
 import {
   crazyEights,
@@ -24,7 +24,7 @@ function Demo({ spec }: { spec: ReactNode }) {
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-4 pb-3">
             <div className="flex flex-wrap gap-6">{stats}</div>
             <div className="flex items-center gap-2">
-              <StatusPill g={g as unknown as UseGameResult} />
+              <StatusPill g={g} />
               <button
                 type="button"
                 onClick={() => g.restart()}
@@ -42,12 +42,12 @@ function Demo({ spec }: { spec: ReactNode }) {
           </div>
         </section>
         <aside
-          aria-label="The game's spec"
+          aria-label="The game's rules"
           className="flex min-w-0 flex-col border-t border-line lg:border-t-0 lg:border-l"
         >
           <div className="flex h-11 shrink-0 items-center justify-between border-b border-line px-5">
-            <span className="eyebrow">crazy-eights/spec.ts</span>
-            <span className="text-xs text-subtle">the whole flow, as data</span>
+            <span className="eyebrow">crazy-eights/game.ts</span>
+            <span className="text-xs text-subtle">the rules and the flow</span>
           </div>
           {/* Absolute on wide screens, so the game sets the row's height */}
           <div className="relative max-h-96 flex-1 overflow-auto lg:max-h-none">
@@ -65,15 +65,15 @@ function Demo({ spec }: { spec: ReactNode }) {
             outlined nodes are running, filled ones wait for a player.
           </span>
         </div>
-        <FlowGraph game={crazyEights} flow={g.state.flow} />
+        <FlowGraph game={crazyEights} state={g.state} />
       </div>
     </div>
   );
 }
 
 /**
- * The landing page's demo: Crazy Eights against two bots, its spec, and its
- * flow graph lighting up as the game runs. `children` is the highlighted spec.
+ * The landing page's demo: Crazy Eights against two bots, its rules, and its
+ * flow graph lighting up as the game runs. `children` is the highlighted code.
  */
 export default function LandingDemo({ children }: { children?: ReactNode }) {
   return (

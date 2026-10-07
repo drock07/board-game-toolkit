@@ -1,10 +1,10 @@
 ---
 title: Board Game Toolkit
-description: A TypeScript toolkit for board games. Describe the flow as data, write the rules as small functions, and play it in React with bots, hidden information and replays.
+description: A TypeScript toolkit for board games. Write the rules and flow as typed values, run them on a pure engine, and play them in React with bots, hidden information and replays.
 template: splash
 hero:
-  title: Your game's flow is data.
-  tagline: Describe phases, turns and decisions as a JSON spec. A pure, deterministic engine runs it, and a React host plays it back with bots, hidden information and animation.
+  title: Your game's flow is a tree you can see.
+  tagline: Build rounds, turns and choices from typed nodes. A pure, deterministic engine runs them, and a React host plays the game with bots, hidden information and animation.
   actions:
     - text: Get started
       link: /board-game-toolkit/start/quickstart/
@@ -25,43 +25,45 @@ import Step from "../../components/Step.astro";
 
 <div class="not-content bgt-wide">
   <LandingDemo client:only="react">
-    <Source file="games/crazy-eights/spec.ts" title={false} />
+    <Source file="games/crazy-eights/game.ts" region="rules" title={false} />
   </LandingDemo>
   <p class="mt-3 text-sm text-subtle">
-    You play the bottom hand against two bots. Every move runs through the spec
+    You play the bottom hand against two bots. Every move runs through the flow
     on the right, and the graph below lights up the nodes that are running.
   </p>
 </div>
 
 <LandingSection
   eyebrow="How it fits together"
-  title="A spec, its rules, and a hook"
+  title="Actions, a flow, and a hook"
 >
   <Fragment slot="blurb">
     Three pieces make a game. Here they are for Tic-Tac-Toe, taken straight from
     the [example's source](/board-game-toolkit/examples/tic-tac-toe/).
   </Fragment>
   <div class="flex flex-col gap-10">
-    <Step n={1} title="Describe the flow">
+    <Step n={1} title="Write the actions">
       <Fragment slot="text">
-        The spec is plain data: zones, vars and a tree of flow nodes. Strings
-        like `"boardDecided"` name rules in the impl.
+        An action lists its legal arguments for bots and UIs, validates any
+        input, and changes the state through a transaction. Its arguments are
+        typed from what it lists.
       </Fragment>
-      <Source file="games/tic-tac-toe/spec.ts" region="spec" />
+      <Source file="games/tic-tac-toe/game.ts" region="actions" />
     </Step>
-    <Step n={2} title="Write the rules">
+    <Step n={2} title="Put them in order">
       <Fragment slot="text">
-        The impl gives each name a function. Actions validate, list their legal
-        arguments for bots, and change state through a transaction.
+        The flow is a tree of nodes: a loop of games, each a sequence of steps,
+        turns and prompts. The engine runs it and stops wherever it waits for a
+        player.
       </Fragment>
-      <Source file="games/tic-tac-toe/impl.ts" region="actions" />
+      <Source file="games/tic-tac-toe/game.ts" region="rules" />
     </Step>
     <Step n={3} title="Play it">
       <Fragment slot="text">
         `useGame` hosts the game: the viewer's view, their legal inputs, bots
         for the other seats, and event playback.
       </Fragment>
-      <Source file="snippets/MinimalBoard.tsx" region="board" />
+      <Source file="snippets/Board.tsx" region="board" />
     </Step>
   </div>
 </LandingSection>

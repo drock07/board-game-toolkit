@@ -1,6 +1,6 @@
 ---
 title: Crazy Eights
-description: "Shed your hand against two bots. Shows owner-only hands, a top-only discard pile, and choose for the wild color."
+description: "Shed your hand against two bots. Shows owner-only hands, a pile where only the top card shows, and an outcome that asks for the wild color."
 tableOfContents: false
 sidebar:
   order: 7
@@ -16,21 +16,44 @@ The first to empty their hand wins.
 
 ## How it works
 
-**Each zone declares who can see it.** Hands are per-player zones
-(`hand:p1`, `hand:p2`, …) with `visibility: "owner"`, the deck is `"hidden"`,
-and the discard pile is `"top"`: only its top card shows. Switch **Viewing as**
-in the inspector to see another seat's view. Bots get their own view too, so
-they can't cheat. See [Views and hidden information](/board-game-toolkit/concepts/views/).
+**Each zone says who may see it.** The cards are this game's own entity type,
+colored cards rather than the shared playing cards.
 
-**Playing an eight asks for a color.** The `playCard` action has a `then` flow:
-a `branch` that, when an eight was played, runs a `choose` prompt over the
-`colors` list. See [`choose`](/board-game-toolkit/reference/flow/choose/).
+<Source file="games/crazy-eights/game.ts" region="box" />
 
-<Source file="games/crazy-eights/spec.ts" />
+- **`deck`** is `"hidden"`: no one sees its cards.
+- **`discard`** is `"top"`: everyone sees its top card and nothing beneath.
+  The engine turns the covered card face down itself, as a `flipped` event
+  the page plays back.
+- **`hand`** is a zone family with `perPlayer: true`, one per seat, read as
+  `hand.of(p)`. `"owner"` visibility shows each to its owner only. Switch
+  **Viewing as** in the inspector to see another seat's view.
 
-The choice is applied by a `choices` entry, which gets the selected options:
+See [Views](/board-game-toolkit/concepts/views/).
 
-<Source file="games/crazy-eights/impl.ts" region="choices" />
+**The active color is a var.** It's public and doesn't move, so it lives in
+vars. An eight's player sets it; otherwise playing a card sets it to that
+card's color.
+
+**Playing an eight asks for a color.** Each turn is a prompt wrapped in
+`outcomes`. `playCard` returns `{ exit: "wild" }` when the card it played is
+an eight, and the `wild` outcome's `then` prompts the same player, still
+bound by `turns`, to call a color:
+
+<Source file="games/crazy-eights/game.ts" region="turns" />
+
+<Source file="games/crazy-eights/game.ts" region="actions" />
+
+- **`drawCard`** and **`pass`** are legal only when you can't play, so
+  `legalInputs` never offers a draw you aren't allowed to take.
+- **`drawCard`** reshuffles the discards, keeping the top card, when the deck
+  runs out.
+
+**The bots see what you see.** The two other seats are played by
+`simpleBot`. A bot gets the same legal inputs and its own view, so it sees
+only its own hand. See [Bots](/board-game-toolkit/guides/bots/).
+
+<Source file="games/crazy-eights/CrazyEights.tsx" region="host" />
 
 ## Source
 

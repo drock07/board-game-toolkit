@@ -1,0 +1,65 @@
+---
+title: simultaneous
+description: Runs its body once for every player at the same time, each on their own fiber.
+sidebar:
+  order: 10
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+`simultaneous` is for rounds where everyone plays at once and nobody waits
+for anybody: each player rolls until they stop, everyone drafts from their
+own pack. You write `simultaneous(body)`.
+
+| Argument | Type   | What it is                                            |
+| -------- | ------ | ----------------------------------------------------- |
+| `body`   | `Node` | What each player does. Any node, as deep as you like. |
+
+## Demo
+
+Both players roll toward 12 at the same time, each taking as many rolls as
+they like before they stop. The round ends when both have stopped.
+
+<Demo name="simultaneous" />
+
+## Fibers
+
+`simultaneous` starts one **fiber** per player, in seat order: a separate
+stack of frames running the body, bound to that player. Inside a fiber:
+
+- a `prompt` or `turn` waits on the fiber's player, and `s.actor` and
+  `tx.actor` are that player;
+- the fiber moves on its own: one player answering never waits for
+  another, and their prompts are open at the same time;
+- the fiber ends when its body does.
+
+`simultaneous` ends when every fiber has ended, and the flow carries on
+after it.
+
+## Behavior
+
+- **Waiting.** `view.waiting` has one entry per open prompt, in fiber
+  order, so a UI can show who's still deciding.
+- **Shown.** Each player sees what their own fiber's nodes show, on top of
+  what the shared flow shows: in the demo, `turnNode.shown(view)` is your
+  own turn's counts. See
+  [What nodes show](/board-game-toolkit/reference/flow/shown/).
+- **Outcomes.** An outcome raised in one fiber that no `outcomes` inside
+  that fiber handles cancels every fiber, and unwinds on from the
+  `simultaneous`. Guards on nodes outside it are checked as usual, and
+  cancel all the fibers when they fire.
+- **Reactions.** An ability set off in one fiber runs on that fiber, and
+  holds only that player; the others keep going. An ability with
+  `pause: "everyone"` holds every fiber while it runs. See
+  [Effects and abilities](/board-game-toolkit/reference/flow/effects/).
+- **Every player.** There's no option to choose the players. Branch on
+  `s.actor` in the body to give some players nothing to do.
+
+For one answer from each player, use the shorthand
+[`everyone`](/board-game-toolkit/reference/flow/everyone/).
+
+## See also
+
+- [Simultaneous turns](/board-game-toolkit/guides/simultaneous-turns/).
+- [Flow](/board-game-toolkit/concepts/flow/#several-flows-at-once).

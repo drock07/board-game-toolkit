@@ -1,133 +1,98 @@
 ---
-title: "State: entities, zones and vars"
-description: What a game state holds, how entities live in zones, what vars and locals are for, and how to read it all.
+title: State
+description: What a game's state holds, when to use a var or an entity, and how rules code changes it.
 sidebar:
-  label: State
-  order: 2
+  order: 3
 ---
 
 import Source from "../../../components/Source.astro";
 
-A game state is one JSON object. It's created by `init`, and every `apply`
-returns a new one. It holds:
+A game's state is one plain JSON object. It holds the players, the vars, every
+entity and the zones they're in, the seeded random number generator, and the
+flow's frames. Because it's JSON, you can save it, send it, diff it and
+replay to it. The engine never changes a state in place; `apply` returns a
+new one.
 
-| Field      | What it is                                                                          |
-| ---------- | ----------------------------------------------------------------------------------- |
-| `players`  | Player ids, in seat order.                                                          |
-| `entities` | Every entity, by id.                                                                |
-| `zones`    | Every zone, by id, with the ids of the entities in it.                              |
-| `vars`     | The game's own JSON data.                                                           |
-| `rng`      | The seeded random number generator's state.                                         |
-| `flow`     | Where the flow is: its fibers, frames, locals and open prompts.                     |
-| `status`   | `"running"`, or `"finished"` after `tx.end()`. `result` holds what `end` was given. |
-| `meta`     | The spec id and version, and counters for inputs, events and entity ids.            |
+## Vars or entities?
 
-<Source file="snippets/concepts.test.ts" region="state" title={false} />
+There are two places to keep things, and the choice is simple:
 
-The engine never changes a state in place. A new state shares every part the
-change didn't touch with the old one, so keeping old states around (for undo
-or a replay scrubber) is cheap. States are typed as deeply read-only to stop
-accidental writes.
+- **If it moves or hides, it's an entity in a zone.** Cards, tokens, dice that
+  sit somewhere, tiles. Zones say who may see what's in them, so hidden
+  information lives here, and so do the events a UI animates ("this card
+  moved from the deck to bob's hand").
+- **Otherwise, it's a var.** Scores, the round number, a grid of cells, the
+  active color in Crazy Eights. Vars are the same for every player.
 
-## Entities
+High Card's cards are entities; the scores and this round's plays are vars:
 
-An entity is a thing that can move: a card, a token, a die you want to track
-as an object. Each has:
+<Source file="snippets/highCard.ts" region="vars" />
 
-- an `id`, like `card#12`, made from its type and a counter. Ids are never
-  reused.
-- a `type`, like `"card"`, and `props`: its JSON data, typed per entity type.
-- the `zone` it's in.
-- an optional `faceUp`, which overrides the zone's visibility for this one
-  entity. See [Views](/board-game-toolkit/concepts/views/).
+:::caution[Don't put hidden ids in vars]
+Every player can read the vars. If you store the id of a card in a hidden
+zone in them, a player can follow that card. Keep references to hidden
+entities out of vars, or keep them only once the card is public, as High
+Card does with the ranks it records when cards are played.
+:::
 
-Create entities with `tx.create(type, props, zone)`, usually in `setup`. If a
-thing never moves or hides, like a score or a board of nine cells, a var is
-simpler.
+## Entities and zones
 
-## Zones
+An entity has an `id`, a `type`, its `props` and the `zone` it's in. Zones
+list their entities top first. You declare entity types and zones as handles,
+and pass the zones to `define`:
 
-A zone is an ordered list of entity ids: a deck, a hand, a discard pile.
-**Index 0 is the top.** Every entity is in exactly one zone.
+<Source file="snippets/highCard.ts" region="box" />
 
-Zones are declared in the spec:
+A zone handle names an instance: `deck`, `hand.of("ann")`, `factory.at(2)`.
+Reading through a handle is typed: `s.entities(hand.of(p))` returns
+`Entity<{ rank: number }>[]`.
 
-```ts
-zones: {
-  deck: { visibility: "hidden" },
-  discard: { visibility: "top" },
-  hand: { perPlayer: true, visibility: "owner" },
-  factory: { count: 5, visibility: "public" },
-},
-```
+## Changing state: transactions
 
-- A shared zone's id is its name: `deck`.
-- A **per-player** zone gets one zone per player, with ids like `hand:p1`
-  and `hand:p2`. Each one's `owner` is that player.
-- A **counted** zone gets one zone per index, `factory:0` to `factory:4`,
-  each with its `index`. With `perPlayer` too, each player gets the set:
-  `row:p1:0`. `s.zonesOf("factory")` lists them in order. See
-  [Boards and zone families](/board-game-toolkit/guides/boards/).
-- `visibility` says who can see the entities in it: `"public"`, `"hidden"`,
-  `"owner"`, `"top"`, or a custom rule. See [Views](/board-game-toolkit/concepts/views/).
-- `ordered: false` marks a zone whose order doesn't matter, as a hint for
-  UIs and tools. It defaults to `true`; the engine keeps every zone's order
-  either way.
+Rules code changes state through a transaction, `tx`: in a `step`, an
+action's `execute`, setup, or an effect's `resolve`. Its ops:
 
-With a type bundle, zone ids are typed: `"hand:p1"`, `"factory:2"` and
-`"deck"` are fine, `"dek"` is a compile error.
+| Op                                     | What it does                                                        |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| `tx.vars`                              | The vars, as a draft: change them in place, or assign a new object. |
+| `tx.create(type, props, zone)`         | Creates an entity at the bottom of a zone.                          |
+| `tx.move(ids, zone, { at?, faceUp? })` | Moves entities to the top of a zone (or `at: "bottom"`).            |
+| `tx.moveTop(from, to, count?, opts?)`  | Moves the top `count` entities from one zone to another.            |
+| `tx.shuffle(zone)`                     | Shuffles a zone with the seeded RNG.                                |
+| `tx.flip(id, faceUp)`                  | Turns an entity face up or down, whatever its zone's visibility.    |
+| `tx.update(entity, patch)`             | Changes some of an entity's props.                                  |
+| `tx.destroy(id)`                       | Removes an entity from the game.                                    |
+| `tx.random`                            | Seeded randomness: `int`, `float`, `pick`, `shuffle`, `roll(D6)`.   |
+| `tx.cause(effect, data)`               | Causes an [effect](/board-game-toolkit/concepts/effects/).          |
+| `tx.end(result)`                       | Ends the game.                                                      |
 
-## Vars
+Readers (`s` in conditions, `enumerate` and `validate`) have the same reading
+methods, `entities`, `count`, `entity`, `zones`, and the vars, read-only.
 
-Vars hold everything else: scores, whose turn it is to deal, the active color,
-a board. They're one JSON value, typically an object, set in `setup`:
+Each op is logged as an [event](/board-game-toolkit/concepts/events/). If
+rules code throws, `apply` throws too, and the state you passed is untouched.
 
-<Source file="games/tic-tac-toe/impl.ts" region="setup" />
+## Zone families
 
-Declare each top-level key in the spec's `vars` (`vars: { marks: {}, … }`) to
-give it a visibility and let expressions refer to it. Change vars through the
-transaction: `tx.vars.score += 1`, or assign `tx.vars` to replace them.
+`perPlayer` and `count` make a zone a **family** of instances, created at
+`init`. Here each player has three piles, and a shared pool shows only its
+top token:
 
-Vars, entity props and locals must be JSON: no `Date`, `Map`, `Set`, class
-instances or functions. `TypesFor` rejects them at compile time.
+<Source file="demos/families.ts" region="zones" />
 
-## Locals
+- **`perPlayer: true`**: one per player, `hand.of(p)`.
+- **`count: n`**: `n` numbered instances, `factory.at(i)`. `count` may also be
+  a function of the player count, `(players) => 2 * players + 1`.
+- **Both**: `piles.of(p, i)`.
 
-Locals are state that belongs to one node while it runs: the dice in the
-current turn, the monster in the current fight. A node with
-`locals: "freshDice"` calls `impl.locals.freshDice` each time it's entered,
-and the result is discarded when it ends. Nothing needs resetting between
-rounds.
+`s.zones(family, player?)` lists a family's instances in seat order, then
+index order. [Boards and zones](/board-game-toolkit/guides/boards/) shows them
+at work.
 
-<Source file="games/roll-five/impl.ts" region="locals" />
+## State that belongs to a moment
 
-Rules read and write them through the node's id. The type bundle can declare
-their shape per node: `TypesFor<typeof spec, { locals: { turn: TurnLocals } }>`.
-
-```ts
-const turn = tx.local("turn"); // a draft of the "turn" node's locals
-turn.rolls++;
-s.local("turn").rolls; // read-only, in conditions and validators
-```
-
-`tx.local()` with no id is the nearest enclosing node with locals. Locals are
-public: every player's view includes them.
-
-## Reading state in rules
-
-Conditions, validators, lists and visibility rules get a `StateReader`, a
-read-only view with helpers:
-
-| Member                     | Returns                                  |
-| -------------------------- | ---------------------------------------- |
-| `state`, `vars`, `players` | The raw state, its vars, the seat order. |
-| `zone(id)`                 | The zone. Throws on an unknown id.       |
-| `entity(id)`               | The entity, typed by the bundle.         |
-| `entities(zoneId)`         | The zone's entities, top first.          |
-| `top(zoneId)`              | The top entity, or `undefined`.          |
-| `count(zoneId)`            | How many entities the zone holds.        |
-| `local(nodeId?)`           | A running node's locals.                 |
-
-Transactions expose `tx.state` (reflecting changes made so far) and
-`tx.scope`, but not the reader helpers. Helpers that take
-`{ state }` work with both, as in Crazy Eights' `hand(s, player)`.
+Some state only matters while one node runs: how many times you've rolled
+this turn, who has answered so far. Nodes keep that in their own frames, so
+there's nothing in vars to reset. `turn` counts its answers per action, and
+UIs and rules read the counts with `turnNode.shown(view)` or
+`turnNode.shown(s)`. See [What nodes show](/board-game-toolkit/reference/flow/shown/).

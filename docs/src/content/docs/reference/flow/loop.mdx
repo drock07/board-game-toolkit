@@ -1,37 +1,53 @@
 ---
 title: loop
-description: "Runs its body repeatedly, a fixed number of times or until a condition."
+description: Repeats its body until a condition holds, or forever.
 sidebar:
-  order: 2
+  order: 3
 ---
 
 import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
 
-```ts
-loop(id, body, { times?, until?, while?, ...common })
-// { kind: "loop", id, body, times?, until?, while? }
-```
+`loop` repeats: rounds until the deck runs out, lots until they're all
+sold, or whole games forever. You write `loop(opts, body)`.
 
-Runs `body` again each time it ends. Each pass binds `scope.iteration`,
-counting from 0.
-
-| Option  | Type       | Meaning                                                                      |
-| ------- | ---------- | ---------------------------------------------------------------------------- |
-| `body`  | `FlowNode` | The node to repeat.                                                          |
-| `times` | `number`   | Run at most this many passes.                                                |
-| `while` | `Cond`     | Checked **before** each pass, including the first. Ends the loop when false. |
-| `until` | `Cond`     | Checked **after** each pass. Ends the loop when true.                        |
-
-With none of these, a loop runs forever, which is right for the outermost
-`session` loop of most games. `defineGame` rejects a loop that has no way to
-end (no `times`, `until`, `while` or `exits`) **and** whose body can never
-wait for input, since it would spin forever.
-
-To end a loop from inside, give it an `exits` guard, or raise an outcome it
-handles. See [Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+| Option  | Type             | What it is                                                                  |
+| ------- | ---------------- | --------------------------------------------------------------------------- |
+| `until` | `(s) => boolean` | Checked before every pass, the first included. The loop ends when it holds. |
+| `body`  | `Node`           | The node to repeat. The builder's second argument.                          |
 
 ## Demo
 
-Three rounds, then a summary pause. `startRound` reads `tx.scope.iteration`.
+Three rounds of a bet, counted in the vars, then a prompt to play again. The
+outer `loop({}, …)` plays forever.
 
 <Demo name="loop" />
+
+## Behavior
+
+- **`until` comes first.** It's checked before each pass, so a loop whose
+  `until` already holds runs its body zero times.
+- **No `until`, no end.** `loop({}, body)` repeats forever. That's right
+  for the outermost loop of a game that's played again and again, as in
+  every example. To end the game from inside, call `tx.end()`.
+- **It must wait somewhere.** A loop whose body never waits for input
+  spins; the engine throws `FlowStuckError` after 10,000 nodes.
+- **Ending it early.** `until` isn't checked mid-pass. To stop in the middle
+  of one, wrap the loop in
+  [`outcomes`](/board-game-toolkit/reference/flow/outcomes/) with a guard,
+  or raise an outcome from an action.
+
+## What it shows
+
+A running loop shows `{ pass }`: how many passes have started, this one
+included, from 1. Read it with `loopNode.shown(view)`; when loops are
+nested, you get the innermost. Use it for "Round 2" in a UI instead of
+keeping a counter in the vars:
+
+<Source file="snippets/flowShown.test.ts" region="innermost" />
+
+## See also
+
+- [turns](/board-game-toolkit/reference/flow/turns/): a loop around the
+  table, with `rounds`.
+- [What nodes show](/board-game-toolkit/reference/flow/shown/).

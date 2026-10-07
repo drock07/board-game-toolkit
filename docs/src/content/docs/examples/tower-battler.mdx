@@ -1,6 +1,6 @@
 ---
 title: TowerBattler
-description: "Deck-building combat against one enemy. Shows card effects resolved in one transaction, and exits checked mid-turn."
+description: "Deck-building combat against one enemy. Shows cards that resolve in one transaction, guards that end the fight mid-turn, and an effect the page animates."
 tableOfContents: false
 sidebar:
   order: 8
@@ -16,25 +16,48 @@ Bring its health to zero before it does the same to you.
 
 ## How it works
 
-**The fight ends the moment someone falls.** The `rounds` loop's exits are
-checked after every transaction, so a card that deals the last point of damage
-ends the loop at once, mid-turn. Both use inline expressions on vars. See
-[Outcomes and guards](/board-game-toolkit/concepts/outcomes/).
+**Cards are entities; the fighters are vars.** The draw pile is hidden, and
+the hand and discard pile are public. Health, block, energy and the enemy's
+next attack are numbers in vars.
 
-<Source file="games/tower-battler/spec.ts" />
+<Source file="games/tower-battler/game.ts" region="types" />
 
-**Cards are data.** Each card's props list its effects, and playing one
-resolves them all in the same transaction. Every change becomes an event, in
-order, so the page plays them back as damage, block and draws. See
-[Card effects](/board-game-toolkit/guides/card-effects/).
+**Cards are data.** Each card's props list what it does, in order. Playing
+one resolves all of it in the same transaction:
 
-<Source file="games/tower-battler/impl.ts" region="playCard" />
+<Source file="games/tower-battler/game.ts" region="playCard" />
 
-**The enemy's attack emits a custom event.** `tx.emit` adds a presentation-only
-event that changes no state. The page flashes the damage when it plays back.
-See [Animating events](/board-game-toolkit/guides/animating-events/).
+Every change is an event, in order, so the page plays a card back as its
+damage, block and draws. Drawing from an empty draw pile shuffles the
+discards back in first, inside the same transaction.
 
-<Source file="games/tower-battler/impl.ts" region="enemyAttack" />
+**Your turn stays open.** It's a `turn` node: you play as many cards as your
+energy allows, and `endTurn` returns `"end"`. Then a step discards your hand
+and the enemy attacks.
+
+**The fight ends the moment someone falls.** The fight is wrapped in
+`outcomes` whose guards are checked after every transaction:
+
+<Source file="games/tower-battler/game.ts" region="fight" />
+
+So a Strike that deals the last point of damage ends the fight mid-turn, and
+the enemy never attacks. See
+[Outcomes](/board-game-toolkit/concepts/outcomes/).
+
+**The enemy's attack is an effect.** A step works out how much your block
+stops and causes `enemyAttack` with the result. The effect's `resolve`
+applies the damage:
+
+<Source file="games/tower-battler/game.ts" region="enemyAttack" />
+
+Causing it is also an `effect` event, with the data typed. The page listens
+with `useGameEffect` and flashes the hit, holding playback until the
+animation is done:
+
+<Source file="games/tower-battler/TowerBattler.tsx" region="hit" />
+
+See [Effects and abilities](/board-game-toolkit/concepts/effects/) and
+[Animating events](/board-game-toolkit/guides/animating-events/).
 
 ## Source
 

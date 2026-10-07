@@ -1,32 +1,43 @@
 ---
 title: branch
-description: "Runs the first case whose condition holds, or an else flow."
+description: Runs the first case whose condition holds, or an otherwise node.
 sidebar:
   order: 4
 ---
 
 import Demo from "../../../../components/Demo.astro";
 
-```ts
-branch(id, [{ when, then }, ...], otherwise?, opts?)
-// { kind: "branch", id, cases: [{ when, then }], else? }
-```
+`branch` chooses what happens next from the state: a different prompt when
+you find treasure, a dealer's turn only if someone's still in. You write
+`branch(cases, otherwise?)`.
 
-Checks each case's `when` in order and runs the first one that holds. If none
-do, it runs `else`, or ends at once if there's no `else`. The `branch` ends
-when the chosen flow does.
-
-| Option  | Type                               | Meaning                                                  |
-| ------- | ---------------------------------- | -------------------------------------------------------- |
-| `cases` | `{ when: Cond; then: FlowNode }[]` | Checked in order; the first match runs.                  |
-| `else`  | `FlowNode`                         | Runs when no case matches. The builder's third argument. |
-
-`when` can be a named condition or an inline
-[expression](/board-game-toolkit/reference/spec/expressions/), as the demo shows.
+| Argument    | Type                               | What it is                                           |
+| ----------- | ---------------------------------- | ---------------------------------------------------- |
+| `cases`     | `{ when: (s) => boolean; then }[]` | Checked in order; the first whose `when` holds runs. |
+| `otherwise` | `Node`                             | Runs when no case holds. Optional.                   |
 
 ## Demo
 
-Roll a die: a six hits the jackpot step, other even rolls and odd rolls pause
-with different labels.
+A step rolls a die; a roll of 5 or 6 finds treasure, anything else finds
+nothing. Each leads to its own prompt.
 
 <Demo name="branch" />
+
+## Behavior
+
+- **Decided once.** The cases are checked when the `branch` starts. The
+  chosen node runs to its end even if the state changes so that another
+  case would hold.
+- **Nothing to do is fine.** With no case holding and no `otherwise`, the
+  `branch` ends at once.
+- **Ends with its choice.** The `branch` ends when the chosen node does.
+
+For a check that should hold the whole time, not just at the start, use a
+guard on [`outcomes`](/board-game-toolkit/reference/flow/outcomes/) instead.
+
+## See also
+
+- [loop](/board-game-toolkit/reference/flow/loop/): repeat while a
+  condition holds.
+- [Outcomes](/board-game-toolkit/concepts/outcomes/): end something the
+  moment a condition holds.

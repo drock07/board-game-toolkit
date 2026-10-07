@@ -1,57 +1,96 @@
 ---
 title: Dice and randomness
-description: Roll dice, hold some, and keep every roll replayable with the seeded RNG.
+description: Roll dice with the seeded RNG, define your own dice with typed faces, and keep every roll replayable.
 sidebar:
   order: 3
 ---
 
 import Source from "../../../components/Source.astro";
 
-[Roll Five](/board-game-toolkit/examples/roll-five/) is a five-dice game: roll up to three
-times a turn, holding dice between rolls, then score. This guide covers its
-dice.
+Dice, shuffles and random draws all come from one place: the seeded random
+number generator in the game's state. A game rolls the same numbers every
+time it's replayed from the same seed and inputs, so saves, replays and tests
+keep working however much luck is involved.
 
 ## Roll with tx.random
 
-All randomness goes through `tx.random`, which reads and advances the RNG
-stored in the state. The same seed and inputs always roll the same numbers.
+Rules code rolls through `tx.random`, in a step, an action's `execute`, or an
+effect's `resolve`. Here's [Roll Five](/board-game-toolkit/examples/roll-five/)
+rolling every die the player isn't holding:
 
-<Source file="games/roll-five/impl.ts" region="roll" />
+<Source file="games/roll-five/game.ts" region="roll" />
 
-`tx.random.roll(die)` picks one of a die's faces. The engine exports
-`D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` and `Fudge`, and a die is just
-`{ faces: [...] }`:
+`tx.random.roll(D6)` returns one of the die's faces. `tx.random` also has
+`int(n)`, `float()`, `pick(array)` and `shuffle(array)`; see
+[Determinism](/board-game-toolkit/concepts/determinism/) for the table.
+`tx.shuffle(zone)` shuffles a zone with the same generator.
 
-```ts
-const ACTION_DIE = { faces: ["attack", "attack", "defend", "special"] };
-tx.random.roll(ACTION_DIE);
-```
+Never use `Math.random()` in rules code. It isn't part of the state, so a
+replay rolls different numbers, and a save loads into a game that has
+already diverged.
 
-Never use `Math.random()` in rules: it breaks replays, saves and tests. See
-[Determinism](/board-game-toolkit/concepts/determinism/).
+## Dice are their faces
 
-## Keep the dice in locals
+A die is `{ faces: [...] }`, and a roll picks one face uniformly. The engine
+ships `D4`, `D6`, `D8`, `D10`, `D12`, `D20` and `D100`, whose faces are the
+numbers from 1, and `Fudge`, whose faces are two each of `-1`, `0` and `+1`.
 
-The dice belong to the current turn, so they live in the turn decision's
-locals, created fresh each time the node is entered:
+Your own dice are the same shape:
 
-<Source file="games/roll-five/spec.ts" />
+<Source file="snippets/dice.ts" region="dice" />
 
-<Source file="games/roll-five/impl.ts" region="locals" />
+- **The faces type the roll.** `roll` returns the die's face type: a
+  `number` for `D6`, `-1 | 0 | 1` for `Fudge`, and `"hit" | "miss" | "crit"
+| "shield"` for `combatDie`, because its faces are `as const`.
+- **Repeat a face to weight it.** Two of the combat die's six faces are
+  `"hit"`, so a hit comes up a third of the time.
+- **Faces can be any JSON**: strings, numbers, records. Annotate the die as
+  `Die<Yield>` to name the face type yourself. Faces must be JSON because a
+  roll's result usually ends up in the vars.
 
-## Rolling, holding, scoring
+Rolling them:
 
-`roll` and `toggleHold` have `ends: false`, so the decision stays open. `score`
-ends it, and the `rounds` loop moves on. Validators enforce the limits:
-"No rolls left", "Roll first".
+<Source file="snippets/dice.ts" region="roll" />
 
-## Dice as entities?
+## Where the dice live
 
-Use vars or locals for dice whose values matter only for now. Use entities if
-dice move between places (a pool, a player's tray) or can be hidden; their
-face goes in props, and a roll is an `execute` that writes the new face.
+A die whose value matters only for now belongs in the vars. Roll Five keeps
+this turn's five dice and which are held in `vars.dice` and `vars.held`, and
+the turn counts its own rolls, so there's no roll counter to reset:
 
-## Animate rolls
+<Source file="games/roll-five/game.ts" region="turn" />
 
-The roll's result is in the `locals` event as patches, so a UI can tumble the
-dice before showing it. See [Animating events](/board-game-toolkit/guides/animating-events/).
+`limits: { roll: 3 }` allows three rolls a turn, and `first: ["roll"]` makes
+rolling the only legal first answer. `toggleHold` reads the roll count in
+its `validate` with `turnNode.shown(s)`, so you can't hold after the last
+roll. See the
+[turn reference](/board-game-toolkit/reference/flow/turn/).
+
+Make dice **entities** instead when they move between places or can be
+hidden: a pool you draft from, a tray per player, a die rolled behind a
+screen. Put the face in the entity's props and roll with
+`tx.update(die, { face: tx.random.roll(D6) })`. The zone's visibility then
+decides who sees the result. See
+[Boards and zones](/board-game-toolkit/guides/boards/).
+
+## Randomness outside a game
+
+Bots, tools and tests sometimes need randomness of their own, apart from the
+game's. `seededRandom(seed)` makes a standalone generator with the same
+methods:
+
+<Source file="snippets/dice.test.ts" region="seeded" title={false} />
+
+Bots get one in their context, already seeded, so bot games replay too; see
+[Bots](/board-game-toolkit/guides/bots/).
+
+## Showing a roll
+
+A roll changes the vars, so it arrives in a UI as a `vars` event, and the
+turn's new roll count arrives with the `flow` event that follows it. Roll Five
+pauses on the `flow` event, so the dice and the count change together:
+
+<Source file="games/roll-five/RollFive.tsx" region="playback" />
+
+To tumble the dice first, return a longer promise from a `vars` handler. See
+[Animating events](/board-game-toolkit/guides/animating-events/).

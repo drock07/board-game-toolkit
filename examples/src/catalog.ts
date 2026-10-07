@@ -89,7 +89,7 @@ export const catalog: CatalogEntry[] = [
     Page: lazy(() => import("./games/dungeon-crawl/DungeonCrawl")),
     notes: [
       "The run is wrapped in outcomes with two guards, defeat at zero hp and victory when the dragon falls, checked after every transaction outermost first, so dying mid-fight or mid-trap ends the run at once and the boss's killing blow counts as victory rather than the fight's own killed guard. Fleeing is an outcome the flee action raises by returning { exit: \"fled\" }.",
-      "Combat, traps and treasure are plain JS constants composed into a branch, which is all a subflow is now. The fight's and trap's rolls live in small vars blocks set when the room starts and cleared when you leave it, and a trap is a turn that stays open through failed attempts until dismantling returns \"end\".",
+      "Combat, traps and treasure are plain JS constants composed into a branch: a piece of flow is a value, so reusing one is just using the constant. The fight's and trap's rolls live in small vars blocks set when the room starts and cleared when you leave it, and a trap is a turn that stays open through failed attempts until dismantling returns \"end\".",
     ],
   },
   {

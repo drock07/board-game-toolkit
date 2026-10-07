@@ -1,0 +1,77 @@
+---
+title: prompt
+description: Waits for the current player to take one of its actions, once.
+sidebar:
+  order: 6
+---
+
+import Demo from "../../../../components/Demo.astro";
+import Source from "../../../../components/Source.astro";
+
+A `prompt` is where the game stops and asks: play a card, place a mark,
+roll again. It waits for one answer from the current player, then ends. You
+write `prompt(opts?, ...actions)`.
+
+| Argument  | Type     | What it is                                                                                                      |
+| --------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `label`   | `string` | What players are told it's waiting for: "Play a card". In `view.waiting`. Optional, in an options object first. |
+| `actions` | handles  | The actions it offers, each made with `action(name, def)`.                                                      |
+
+## Demo
+
+Paint a square. `enumerate` lists every color; `validate` rules out the one
+you just used.
+
+<Demo name="prompt" />
+
+## Who answers
+
+A prompt waits on the player the flow is **bound** to there, the nearest
+of:
+
+- the player whose turn it is, from a `turns` above it;
+- the owner of a running ability, for a prompt inside one;
+- the fiber's player, inside `simultaneous` or `everyone`;
+- otherwise, the first seat.
+
+To wait on someone else, or on several players, use
+[`anyone`](/board-game-toolkit/reference/flow/anyone/) or
+[`everyone`](/board-game-toolkit/reference/flow/everyone/).
+
+## Legal inputs
+
+The prompt offers its actions; each action decides which args are legal:
+
+- **`enumerate(s, actor)`** lists the args the player could pass. An action
+  without args has one input, with no args.
+- **`validate(s, args, actor)`** returns `true`, or a reason the args are
+  illegal now. Without it, the enumerated args are the legal ones.
+
+`legalInputs(game, state, player)` lists every enumerated input that
+validates. An action whose inputs are all illegal is still in the prompt;
+a player just can't take it now.
+
+## How it ends
+
+The first legal answer ends the prompt, whatever `execute` returns, unless
+it returns `{ exit: "name" }`: that raises an outcome instead, which ends
+the prompt and everything up to the nearest
+[`outcomes`](/board-game-toolkit/reference/flow/outcomes/) that lists it.
+Crazy Eights raises `wild` when an eight is played:
+
+<Source file="games/crazy-eights/game.ts" region="turns" />
+
+For a turn of several answers, use
+[`turn`](/board-game-toolkit/reference/flow/turn/).
+
+## What it shows
+
+Nothing in `view.shown`. An open prompt is in `view.waiting`, with its
+`label` and its `actors`; see
+[What nodes show](/board-game-toolkit/reference/flow/shown/).
+
+## See also
+
+- [The model](/board-game-toolkit/concepts/model/): actions in full.
+- [turns](/board-game-toolkit/reference/flow/turns/): who the current
+  player is.

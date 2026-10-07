@@ -12,17 +12,16 @@ Board Game Toolkit is a TypeScript library for building turn-based games:
 card games, dice games, board games, and anything else where players take
 turns, make choices and hide information from each other.
 
-It splits a game into two parts:
+You describe a game in one place, with typed values:
 
-- A **spec**: plain JSON that describes the game's structure. Its zones (a
-  deck, a hand per player, a discard pile), its vars, and a **flow**: a tree of
-  nodes for rounds, turns, decisions and the order they happen in.
-- An **impl**: small, named TypeScript functions for the rules. The spec refers
-  to them by name: a step called `"dealSeven"`, a condition called
-  `"someHandEmpty"`, an action called `"playCard"`.
+- **The box**: entity types (a card, a die, a tile) and the zones they live in
+  (a deck, a hand per player, a discard pile), with who may see each zone.
+- **The rules**: the game's own state (its **vars**), the **actions** players
+  can take, and a **flow**: a tree of nodes for rounds, turns and choices, and
+  the order they happen in.
 
-A pure, deterministic engine runs the two together. A host, such as the React
-hook `useGame`, puts the game on screen.
+A pure, deterministic engine runs the game. A host, such as the React hook
+`useGame`, puts it on screen.
 
 <Architecture />
 
@@ -31,35 +30,36 @@ hook `useGame`, puts the game on screen.
 The engine's main function is
 
 ```ts
-apply(game, state, input) → { state, events, prompts }
+apply(game, state, input) → { ok, state, events }
 ```
 
-`state` is plain JSON. The engine never changes it in place. An `input` is a
-player answering a **prompt**: "p2 plays the red 7". The result is the new
-state, the **events** that got there ("card#14 moved from hand:p2 to
-discard"), and the prompts now waiting for a player.
+`state` is plain JSON, and the engine never changes it in place. An `input`
+is a player taking an action: "bob plays card#7". The result is the new state
+and the **events** that got there ("card#7 moved from bob's hand to the
+table"). An illegal input isn't an error: it comes back as
+`{ ok: false, reason }`.
 
 Because the state is JSON and the random number generator lives inside it, a
 game is fully determined by its seed and its inputs. That gives you saves,
-replays, undo and reproducible bug reports for free. And because each player
-gets a **view** that leaves out what they can't see, the same model works for a
+replays and reproducible bug reports for free. And because each player gets a
+**view** that leaves out what they can't see, the same model works for a
 hot-seat game, a bot, or a server sending each client only their own hand.
 
 ## What's in the box
 
-| Package                              | What it does                                                                                                        |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `@drock07/board-game-toolkit-engine` | The state model, the flow interpreter, views, the seeded RNG, and `/testing` helpers: replays, bots and fuzzing.    |
-| `@drock07/board-game-toolkit-react`  | `useGame` and `useGameEvent` for React, the framework-free `GameHost`, and `/devtools`: a live flow graph and more. |
+| Package                              | What it does                                                                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@drock07/board-game-toolkit-engine` | Entities and zones, the flow, views and events, effects and abilities, the seeded RNG, saves, and `/testing`: bots, replays, fuzzing.           |
+| `@drock07/board-game-toolkit-react`  | `useGame`, `useGameEvent` and `useGameEffect` for React, the framework-free `GameHost`, and `/devtools`: a live flow graph and fiber inspector. |
 
-The engine has one dependency (immer) and no UI. Use it on its own in Node, on
-a server, or with another UI framework.
+The engine has no dependencies and no UI. Use it on its own in Node, on a
+server, or with another UI framework.
 
 ## Is it a good fit?
 
 It's built for games where:
 
-- **Turns and phases have structure.** Rounds of turns, a decision that loops
+- **Turns and phases have structure.** Rounds of turns, a turn that stays open
   until you stand, everyone choosing at once, a reaction that interrupts the
   current player.
 - **Information is hidden.** Hands, face-down cards, secret bids.
@@ -81,21 +81,21 @@ between minor versions until 1.0.
   <LinkCard
     title="Quickstart"
     href="/board-game-toolkit/start/quickstart/"
-    description="Build Tic-Tac-Toe, from spec to a React board with a bot."
+    description="Build Tic-Tac-Toe, from its rules to a React board with a bot."
   />
   <LinkCard
     title="Examples"
     href="/board-game-toolkit/examples/"
-    description="Nine playable games, each with its spec and rules explained."
+    description="Nine playable games, each with its rules explained."
   />
   <LinkCard
-    title="Spec and impl"
-    href="/board-game-toolkit/concepts/spec-and-impl/"
-    description="How the two halves of a game connect, and why."
+    title="The model"
+    href="/board-game-toolkit/concepts/model/"
+    description="Entity types, zones, actions and rules, and how they fit."
   />
   <LinkCard
     title="Flow"
     href="/board-game-toolkit/concepts/flow/"
-    description="How the engine runs the flow tree and waits for players."
+    description="How the engine runs the flow and waits for players."
   />
 </CardGrid>

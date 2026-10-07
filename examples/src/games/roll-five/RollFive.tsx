@@ -166,6 +166,7 @@ function ScoreSheet({
 }
 
 export default function RollFive() {
+  // #region playback
   const g = useGame(rollFive, { players: ["p1"] });
   // A beat after each roll lands: the dice and the turn's roll count
   // update together, as the flow event plays back
@@ -173,9 +174,12 @@ export default function RollFive() {
 
   const { vars } = g.view;
   const { dice, held } = vars;
+  // #region shown
   // The turn counts its own rolls; undefined between games
   const turn = turnNode.shown(g.view);
   const rolls = turn?.counts.roll ?? 0;
+  // #endregion shown
+  // #endregion playback
   const round = CATEGORIES.filter((c) => vars.scores[c] !== null).length;
   const roll = findInput(g.legal, "roll");
   const again = findInput(g.legal, "again");

@@ -156,6 +156,7 @@ export const crazyEights = rules({
         tx.vars.activeColor = topCard(tx).color;
         tx.vars.winner = null;
       }),
+      // #region turns
       turns(
         {
           until: (s) => s.players.some((p) => s.count(hand.of(p)) === 0),
@@ -166,6 +167,7 @@ export const crazyEights = rules({
           prompt({ label: "Play or draw" }, playCard, drawCard, pass),
         ),
       ),
+      // #endregion turns
       step((tx) => {
         tx.vars.winner =
           tx.players.find((p) => tx.count(hand.of(p)) === 0) ?? null;

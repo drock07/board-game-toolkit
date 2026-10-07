@@ -1,6 +1,9 @@
-// Testing helpers: a seeded random bot, fuzzing, and checks that views hide
-// what they should and that events replay to the new state and to each
-// player's new view.
+/**
+ * Test tools: fuzzing, bots in tests, golden replays, and checks that views
+ * and events agree.
+ *
+ * @module @drock07/board-game-toolkit-engine/testing
+ */
 import { isPlainJson, jsonEqual, stableStringify } from "../json.js";
 import {
   actors,
@@ -139,7 +142,7 @@ export function fuzz<V>(
           const ok = check(game, s, input);
           if (ok !== true)
             throw new Error(
-              `enumerate offered an input validate rejects: ${ok}`,
+              `legalInputs offered an input check rejects: ${ok}`,
             );
         }
         const out = apply(game, s, bot(legal));

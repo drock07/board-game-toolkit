@@ -1,83 +1,116 @@
 ---
 title: Writing a bot
-description: Bots are functions from a player's view to one of their legal inputs. Write one, seat it, and test with it.
+description: A bot is a function from a seat's legal inputs and view to one of those inputs. Write one, seat it, and play whole games with bots in tests.
 sidebar:
   order: 8
 ---
 
 import Source from "../../../components/Source.astro";
 
-A bot answers prompts for a player. It's a function:
+A bot plays a seat. It's a function the host calls whenever that seat may
+act, `(legal, { view, player, random }) => input`: it gets the seat's legal
+inputs and what the seat may see, and returns one of the inputs.
 
-```ts
-type Bot<T> = (
-  view: PlayerView<T>, // what its player may see, nothing more
-  prompt: Prompt, // the prompt to answer
-  ctx: { player; legal; random },
-) => Input | Promise<Input>;
-```
+- **`legal`** is the seat's [legal inputs](/board-game-toolkit/concepts/model/)
+  right now, typed by the game's actions. Return one of them.
+- **`view`** is the seat's [view](/board-game-toolkit/concepts/views/). A bot
+  can't see other hands any more than a person can.
+- **`player`** is the seat it's playing.
+- **`random`** is a seeded generator for the bot's own choices, apart from
+  the game's. Use it for tie-breaks, so games with bots replay.
 
-- `view` is the player's [view](/board-game-toolkit/concepts/views/): a bot can't peek at
-  other hands any more than a person can.
-- `ctx.legal` lists the player's legal inputs for this prompt. Return one of
-  them.
-- `ctx.random` is the bot's own seeded RNG, separate from the game's. Use it
-  for tie-breaks so bot games are reproducible.
+The React host's `Bot` type may return a promise, for a bot that thinks in a
+Web Worker or asks a server. The testing entry point's `SyncBot` is the same
+shape without the promise, so tests can play whole games synchronously. A
+`SyncBot` works as a host bot too; the examples write theirs that way.
 
 ## The simplest bot
 
-`randomBot()` picks uniformly among the legal inputs. It's a good opponent for
-testing and a decent placeholder.
+`randomBot(seed)` picks uniformly among the legal inputs, from its own seeded
+generator. It's a fine first opponent, and what `fuzz` plays with.
 
-## A heuristic bot
+## A bot of your own
 
-Prefer some moves, fall back to random:
+Most bots look at a few kinds of input and prefer some. Roll Five's greedy
+bot scores the best category for its dice, rolling again first if that's
+worth less than 20:
 
-<Source file="snippets/guides.test.ts" region="centerBot" title={false} />
+<Source file="snippets/bots.ts" region="greedy" />
 
-Bots read the prompt's `node` to know what's being asked, since one bot
-usually handles every prompt in a game: the turn decision, a color choice,
-the "Play again" pause.
+- **Filter `legal` with the action handles.** `score.is` narrows an input to
+  that action, so `i.args.category` is typed.
+- **Read the view, not the state.** The dice are in `view.vars`, and the
+  turn's roll count in what the turn shows, `turnNode.shown(view)`.
+- **One bot answers every prompt.** The first answer of a turn must be a
+  roll, and between games the only input is "Play again", so the bot falls
+  back on whatever is legal.
 
-For stronger play, search: [Tic-Tac-Toe's minimax bot](/board-game-toolkit/examples/tic-tac-toe/)
-scores every legal move. For games with hidden information, a bot only knows
-its view, so it has to reason about what it can't see, or play by rules of
-thumb, like [Crazy Eights' bot](/board-game-toolkit/examples/crazy-eights/).
+## Smarter bots
+
+[Tic-Tac-Toe's bot](/board-game-toolkit/examples/tic-tac-toe/) searches. It
+scores every legal placement with minimax and takes the best, breaking ties
+with `random`, so it never loses:
+
+<Source file="games/tic-tac-toe/bots.ts" />
+
+A game with hidden information can't be searched the same way, because the
+bot only knows its view. [Crazy Eights' bot](/board-game-toolkit/examples/crazy-eights/)
+plays by rules of thumb from its own hand, the one zone it can see into:
+
+<Source file="games/crazy-eights/bots.ts" />
+
+`viewEntities(view, hand.of(player))` reads its hand, and `card.is` narrows
+each entry to a card with typed props; a placeholder wouldn't pass it.
 
 ## Seat a bot
 
-Give a seat a `controller`:
+Give a seat a `controller` in `useGame`:
 
-```tsx
-const g = useGame(crazyEights, {
-  players: [
-    "p1", // a human
-    { id: "p2", controller: simpleBot },
-    { id: "p3", controller: randomBot() },
-  ],
-  botDelay: 500, // ms before a bot answers, so people can follow
-});
-```
+<Source file="games/sealed-bids/SealedBids.tsx" region="host" />
 
-The host runs a bot when one of its prompts is open and event playback has
-finished. People set the pace: a `pause` that a human seat can answer is left
-to the human, even if a bot could answer it too. The engine checks the bot's input like anyone else's; if it's
-rejected, the host logs the error.
+- A bare id, like `"p1"`, is a human seat. Its legal inputs are in `g.legal`
+  when it's the viewer.
+- **`botDelay`** is how long a bot waits before answering, in milliseconds,
+  so people can follow. It defaults to 500.
 
-A bot may return a promise, for example to run a search in a Web Worker.
+The host asks a bot when its seat may act, has something legal to do, and
+event playback has finished. It hands the bot that seat's view of the
+committed state, and drops the answer if the game moved on while the bot was
+thinking. The engine checks a bot's input like anyone else's; if it's
+rejected, the host logs why.
 
-## Test with bots
+Bots' `random` is seeded from the game's seed, so a game with a fixed seed
+plays out the same way each time.
 
-`playBots` from `/testing` plays a whole game synchronously:
+## Bots in tests
 
-<Source file="snippets/guides.test.ts" region="playBots" title={false} />
+`playBots` from the testing entry point plays a game with bots, without a
+host:
 
-It stops when no bot can act, the game ends, or `maxInputs` is reached, and
-returns every result and input. Pass one bot for everyone or a bot per player.
+<Source file="snippets/bots.test.ts" region="playBots" title={false} />
 
-## Legal inputs need enumerate
+Pass one bot for every seat, or a bot per seat by id, for example
+`{ p1: minimaxBot, p2: randomBot("x") }`. It stops when the game ends, when
+no bot seat can act, or after `maxInputs`. It returns every state, starting
+with `init`'s, and the inputs, ready to record as a
+[golden replay](/board-game-toolkit/guides/testing/). Every input is checked
+as `apply` would, and a rejected one throws.
 
-`ctx.legal` comes from each action's `enumerate`. An action that takes args
-but has no `enumerate` is offered once, with no args, which its `validate`
-will usually reject, so bots never play it. If a bot ignores an action, check
-for a missing `enumerate`; `fuzz` warns about it too.
+Testing a bot is testing a claim about it. Tic-Tac-Toe's tests play minimax
+against itself and against `randomBot` for 20 seeds, and check that it always
+ties itself and never loses to random play.
+
+## Legal inputs come from enumerate
+
+A bot can only play what `legalInputs` offers, and an action with args offers
+what its `enumerate` lists. If a bot never plays some move, check that
+`enumerate` lists it. `enumerate` may list less than `validate` accepts:
+Blackjack's bets enumerate chip amounts and all-in, so bots bet those, while
+its `validate` accepts any whole amount up to the bankroll.
+
+## See also
+
+- [Testing](/board-game-toolkit/guides/testing/): `playBots`, `fuzz` and
+  golden replays.
+- [Hidden information](/board-game-toolkit/guides/hidden-information/): what
+  a bot's view leaves out.
