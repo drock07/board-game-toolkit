@@ -3,14 +3,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { blackjack } from ".";
 import { GameFrame } from "../../site/GameFrame";
 import { CardBack, PlayingCard } from "../../ui/cards";
-import {
-  actionInputs,
-  continueInput,
-  findInput,
-  zoneCards,
-} from "../../ui/inputs";
+import { actionInputs, findInput, zoneCards } from "../../ui/inputs";
 import { Banner, Button, OptionButton, Stat, wait } from "../../ui/kit";
-import { handTotal, type HandResult, type Types } from "./impl";
+import type { PlayingCard as Card } from "../shared/cards";
+import type { HandResult } from "./game";
+import { dealer as dealerZone, handTotal, player as playerZone } from "./game";
 
 const RESULT: Record<
   HandResult,
@@ -27,7 +24,7 @@ function Hand({
   cards,
 }: {
   label: string;
-  cards: ReturnType<typeof zoneCards<Types>>;
+  cards: ReturnType<typeof zoneCards<unknown, Card>>;
 }) {
   const visible = cards.flatMap((c) => (c.entity ? [c.entity.props] : []));
   const total =
@@ -80,9 +77,11 @@ export default function Blackjack() {
   useGameEvent(g, "flipped", () => wait(320));
 
   const { vars } = g.view;
-  const prompt = g.prompts[0];
-  const player = zoneCards(g.view, "player");
-  const dealer = zoneCards(g.view, "dealer");
+  // What the game waits on, by its prompt's label
+  const label = g.legal.length ? g.view.waiting[0]?.label : undefined;
+  // Zones list the top first; show cards in the order they were dealt
+  const player = zoneCards(g.view, playerZone).reverse();
+  const dealer = zoneCards(g.view, dealerZone).reverse();
   const result = vars.result ?? null;
   const bust =
     player.length > 0 &&
@@ -97,13 +96,14 @@ export default function Blackjack() {
     })[r];
 
   let actions = null;
-  if (prompt?.node === "bet") {
+  const go = findInput(g.legal, "continue");
+  if (label === "Place a bet") {
     actions = (
       <div className="flex flex-col items-center gap-2">
         <span className="eyebrow">Place a bet</span>
         <div className="flex flex-wrap justify-center gap-2">
           {actionInputs(g.legal, "placeBet").map((input) => {
-            const { amount } = input.args as { amount: number };
+            const { amount } = input.args;
             return (
               <OptionButton key={amount} onClick={() => g.submit(input)}>
                 {amount === vars.bankroll
@@ -115,7 +115,7 @@ export default function Blackjack() {
         </div>
       </div>
     );
-  } else if (prompt?.node === "playerTurn") {
+  } else if (label === "Hit or stand") {
     const hit = findInput(g.legal, "hit");
     const stand = findInput(g.legal, "stand");
     actions = (
@@ -132,11 +132,10 @@ export default function Blackjack() {
         </Button>
       </>
     );
-  } else if (prompt?.kind === "pause") {
-    const go = continueInput(g.legal);
+  } else if (go) {
     actions = (
-      <Button variant="primary" onClick={() => go && g.submit(go)}>
-        {prompt.label ?? "Continue"}
+      <Button variant="primary" onClick={() => g.submit(go)}>
+        {label ?? "Continue"}
       </Button>
     );
   }
@@ -157,7 +156,7 @@ export default function Blackjack() {
         {result && !g.playing && (
           <Banner tone={RESULT[result].tone} tag={RESULT[result].tag}>
             {message(result)}
-            {prompt?.node === "over" && " Out of money — the bank tops you up."}
+            {label === "Play again" && " Out of money — the bank tops you up."}
           </Banner>
         )}
       </div>

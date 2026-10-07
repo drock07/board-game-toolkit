@@ -16,7 +16,7 @@ import { EntryContext } from "../site/GameFrame";
 afterEach(cleanup);
 
 /** Games whose pages are ported so far; the rest join as they're ported. */
-const PORTED = new Set(["tic-tac-toe"]);
+const PORTED = new Set(["tic-tac-toe", "sandbox", "blackjack"]);
 
 describe.each(catalog.filter((e) => PORTED.has(e.slug)))(
   "$title page",
