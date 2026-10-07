@@ -34,12 +34,12 @@ export function parseZone(
 }
 
 /** A family's instances in seat order then index order; only `player`'s when given. */
-export function zonesOf<V>(
+export function zonesOf<V, P>(
   game: GameDef<V>,
   state: State<V>,
-  family: FamilyRef,
+  family: FamilyRef<P>,
   player?: PlayerId,
-): ZoneRef[] {
+): ZoneRef<P>[] {
   if (!game.spec.zones[family.name])
     throw new Error(`Unknown zone "${family.name}"`);
   const seat = (owner?: PlayerId) =>
@@ -61,6 +61,18 @@ export function itemsOf<V>(state: State<V>, zone: ZoneRef): EntityId[] {
   const items = state.zones[zone.id];
   if (!items) throw new Error(`Unknown zone "${zone.id}"`);
   return items;
+}
+
+/**
+ * A zone's entities, top first, typed by what its handle says it holds. This
+ * is where a handle's type is trusted: zones only receive entities of their
+ * type through `create` and `moveTop`, which the types check.
+ */
+export function entitiesOf<V, P>(
+  state: State<V>,
+  zone: ZoneRef<P>,
+): Entity<P>[] {
+  return itemsOf(state, zone).map((id) => state.entities[id] as Entity<P>);
 }
 
 export function entityOf<V>(state: State<V>, id: EntityId): Entity {

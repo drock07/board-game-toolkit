@@ -1,19 +1,21 @@
 // The box: entity types, effects and zones, as typed handles.
 import type {
+  EffectRef,
   Entity,
   FamilyRef,
   HiddenEntity,
   PlayerId,
+  Tx,
+  TypeRef,
   Visibility,
   ZoneDef,
-  ZoneId,
+  ZoneRef,
 } from "../types.js";
-import type { Tx } from "./types.js";
+
+export type { ZoneRef };
 
 /** An entity type with typed props: `const card = entity<Card>("card")`. */
-export interface EntityType<P> {
-  readonly name: string;
-  readonly __props?: P;
+export interface EntityType<P> extends TypeRef<P> {
   /** Narrows an entity to this type, so its props are typed. */
   readonly is: (e: Entity | HiddenEntity) => e is Entity<P>;
 }
@@ -29,9 +31,7 @@ export function entity<P>(name: string): EntityType<P> {
  * effect`. `to` limits who sees it in their events. Make one with `effect`
  * from `define`.
  */
-export interface Effect<V, T> {
-  readonly name: string;
-  readonly __data?: T;
+export interface Effect<V, T> extends EffectRef<T> {
   resolve?(tx: Tx<V>, data: T): void;
   to?(data: T): readonly PlayerId[];
   /** Reacting before it resolves: `ability({ on: attack.before, ... })`. */
@@ -44,17 +44,10 @@ export interface Before<V, T> {
   readonly timing: "before";
 }
 
-/** A zone instance that holds `P`: `deck`, `hand.of(player)`, `factory.at(2)`. */
-export interface ZoneRef<P> {
-  readonly id: ZoneId;
-  readonly __holds?: P;
-}
-
-interface ZoneBase<P> extends FamilyRef {
+interface ZoneBase<P> extends FamilyRef<P> {
   readonly def: ZoneDef;
   /** For `count` given as a function: registered at `define`. */
   readonly countOf?: (players: number) => number;
-  readonly __holds?: P;
 }
 
 export interface SharedZone<P> extends ZoneBase<P>, ZoneRef<P> {}

@@ -112,13 +112,17 @@ export interface Entity<P = unknown> {
 }
 
 /** Anything that names a zone instance: `"deck"`, `"hand:ann"`. */
-export interface ZoneRef {
+/** Anything that names a zone instance holding `P`: `"deck"`, `"hand:ann"`. */
+export interface ZoneRef<P = unknown> {
   readonly id: ZoneId;
+  readonly __holds?: P;
 }
 
 /** Anything that names an entity type. */
-export interface TypeRef {
+/** Anything that names an entity type with props `P`. */
+export interface TypeRef<P = unknown> {
   readonly name: string;
+  readonly __props?: P;
 }
 
 export interface Frame {
@@ -198,26 +202,39 @@ export type DeepReadonly<T> = T extends (infer U)[]
     : T;
 
 /** A zone family by definition name. */
-export interface FamilyRef {
+export interface FamilyRef<P = unknown> {
   readonly name: string;
+  readonly __holds?: P;
 }
 
-export interface Reader<V> {
+/** Anything that names an effect with data `T`. */
+export interface EffectRef<T = unknown> {
+  readonly name: string;
+  readonly __data?: T;
+}
+
+/**
+ * Reads a node's scope: what the nearest frame of that node shows the nodes
+ * under it (an ability's `AbilityScope`, an effect's data), or undefined
+ * outside one. Kind authors wrap it in typed accessors closed over the
+ * node's id, as an ability's `t.self` and `t.data` do.
+ */
+export interface Scoped {
+  scopeOf(node: string): unknown;
+}
+
+/** Read-only access to the game, for conditions, queries and legality. */
+export interface Reader<V> extends Scoped {
   readonly players: readonly PlayerId[];
   readonly vars: DeepReadonly<V>;
-  /** The player the flow is bound to here (whose turn, whose ability), if any. */
+  /** The player the flow is bound to here: whose turn it is, or whose ability is running. */
   readonly actor: PlayerId | undefined;
-  /**
-   * What the nearest frame of node `node` shows the nodes under it: an
-   * ability's `AbilityScope`, an effect's data. Undefined outside one.
-   */
-  scopeOf(node: string): unknown;
-  /** The zone's entities, top first. */
-  entities(zone: ZoneRef): readonly Entity[];
+  /** The zone's entities, top first, typed by what the zone holds. */
+  entities<P>(zone: ZoneRef<P>): readonly Entity<P>[];
   count(zone: ZoneRef): number;
   /** A family's instances in seat order then index order; only `player`'s when given. */
-  zones(family: FamilyRef, player?: PlayerId): ZoneRef[];
-  /** An entity by id. Throws on an unknown id. */
+  zones<P>(family: FamilyRef<P>, player?: PlayerId): ZoneRef<P>[];
+  /** An entity by id. Throws on an unknown id. Narrow it with an entity type's `is` to type its props. */
   entity(id: EntityId): Entity;
 }
 
@@ -226,32 +243,35 @@ export interface MoveOptions {
   faceUp?: boolean;
 }
 
-export interface Tx<V> {
+/**
+ * A transaction: what steps, actions and effects change the game through.
+ * Every change is logged as an event. In a transaction, an effect's scope
+ * is a draft whose changes are kept when the transaction ends.
+ */
+export interface Tx<V> extends Scoped {
   readonly players: readonly PlayerId[];
   vars: V;
   readonly actor: PlayerId | undefined;
-  /** As `Reader.scopeOf`. An effect's data is a draft: changes are kept when the transaction ends. */
-  scopeOf(node: string): unknown;
-  entities(zone: ZoneRef): readonly Entity[];
+  entities<P>(zone: ZoneRef<P>): readonly Entity<P>[];
   count(zone: ZoneRef): number;
-  zones(family: FamilyRef, player?: PlayerId): ZoneRef[];
+  zones<P>(family: FamilyRef<P>, player?: PlayerId): ZoneRef<P>[];
   entity(id: EntityId): Entity;
   /** Removes an entity from the game. */
   destroy(id: EntityId): void;
-  /** Changes some of an entity's props. Takes an id or anything with one. */
-  update(target: EntityId | { readonly id: EntityId }, patch: object): void;
-  /** Creates an entity at the bottom of `zone`. */
-  create(type: TypeRef, props: unknown, zone: ZoneRef): EntityId;
+  /** Changes some of an entity's props: `tx.update(d, { held: true })`. */
+  update<P>(entity: Entity<P>, patch: Partial<P>): void;
+  /** Creates an entity at the bottom of a zone that holds its type. */
+  create<P>(type: TypeRef<P>, props: P, zone: ZoneRef<P>): EntityId;
   /** Moves entities to the top of `to`, keeping their order. */
   move(
     ids: EntityId | readonly EntityId[],
     to: ZoneRef,
     opts?: MoveOptions,
   ): void;
-  /** Moves the top `count` (default 1) entities. Throws if there are fewer. */
-  moveTop(
-    from: ZoneRef,
-    to: ZoneRef,
+  /** Moves the top `count` (default 1) entities between zones holding the same type. Throws if there are fewer. */
+  moveTop<P>(
+    from: ZoneRef<P>,
+    to: ZoneRef<P>,
     count?: number,
     opts?: MoveOptions,
   ): EntityId[];
@@ -259,8 +279,8 @@ export interface Tx<V> {
   flip(id: EntityId, faceUp: boolean): void;
   readonly random: Random;
   end(result?: unknown): void;
-  /** Causes a registered effect: logged now, run (before, resolve, after) once this transaction ends. */
-  cause(effect: { readonly name: string }, data: unknown): void;
+  /** Causes an effect: logged now, run (abilities before it, its resolution, abilities after it) once this transaction ends. */
+  cause<T>(effect: EffectRef<T>, data: T): void;
 }
 
 export interface ActionImpl<V> {

@@ -22,7 +22,7 @@ import type {
   ZoneId,
   ZoneRef,
 } from "./types.js";
-import { entityOf, itemsOf, zonesOf } from "./zones.js";
+import { entitiesOf, entityOf, itemsOf, zonesOf } from "./zones.js";
 
 /** Runs `body` on a copy of `state`, appending what it did to `log`. */
 export function transact<V>(
@@ -95,7 +95,7 @@ export function transact<V>(
     set vars(v) {
       next.vars = v;
     },
-    entities: (zone) => items(zone).map((id) => next.entities[id]!),
+    entities: (zone) => entitiesOf(next, zone),
     count: (zone) => items(zone).length,
     zones: (family, player) => zonesOf(game, next, family, player),
     entity: (id) => entityOf(next, id),
@@ -105,8 +105,7 @@ export function transact<V>(
       delete next.entities[id];
       log.push({ type: "destroyed", entity: e });
     },
-    update(target, patch) {
-      const id = typeof target === "string" ? target : target.id;
+    update({ id }, patch) {
       const e = entityOf(next, id);
       next.entities[id] = { ...e, props: { ...(e.props as object), ...patch } };
       log.push({ type: "updated", entity: next.entities[id] });

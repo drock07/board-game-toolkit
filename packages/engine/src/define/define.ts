@@ -66,7 +66,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         ? def
         : {
             enumerate: () => [undefined],
-            execute: (tx, _args, actor) => def.execute(tx as never, actor),
+            execute: (tx, _args, actor) => def.execute(tx, actor),
             ...(def.validate && {
               validate: (s: never, _args: unknown, actor: PlayerId) =>
                 def.validate!(s, actor),
@@ -172,7 +172,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
     rules(def) {
       const p = def.players ?? 1;
       const impl: Impl<V> = {
-        setup: (tx) => def.setup(tx as never),
+        setup: (tx) => def.setup(tx),
         actions: {},
         steps: {},
         conditions: {},
@@ -201,15 +201,15 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
           return out;
         },
         cond(name, fn) {
-          impl.conditions[name] = fn as never;
+          impl.conditions[name] = fn;
           return name;
         },
         step(name, fn) {
-          impl.steps[name] = fn as never;
+          impl.steps[name] = fn;
           return name;
         },
         query(name, fn) {
-          impl.queries[name] = fn as never;
+          impl.queries[name] = fn;
           return name;
         },
         action(a) {
@@ -239,7 +239,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
       const effects = [...caused.values()].map((e) => {
         impl.effects[e.name] = {
           ...(e.resolve && {
-            resolve: (tx, data) => e.resolve!(tx as never, data),
+            resolve: (tx, data) => e.resolve!(tx, data),
           }),
           ...(e.to && { to: (data) => e.to!(data) }),
         };

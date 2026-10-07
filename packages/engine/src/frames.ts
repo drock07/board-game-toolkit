@@ -13,7 +13,7 @@ import {
   type Reader,
   type State,
 } from "./types.js";
-import { entityOf, itemsOf, zonesOf } from "./zones.js";
+import { entitiesOf, entityOf, itemsOf, zonesOf } from "./zones.js";
 
 // --- Helpers ----------------------------------------------------------------
 
@@ -68,7 +68,7 @@ export function reader<V>(
       return boundActor(game, state, fiber);
     },
     scopeOf: (node) => scopeOf(game, state, fiber, node),
-    entities: (zone) => itemsOf(state, zone).map((id) => state.entities[id]!),
+    entities: (zone) => entitiesOf(state, zone),
     count: (zone) => itemsOf(state, zone).length,
     zones: (family, player) => zonesOf(game, state, family, player),
     entity: (id) => entityOf(state, id),

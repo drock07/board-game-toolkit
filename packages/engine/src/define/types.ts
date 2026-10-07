@@ -1,86 +1,26 @@
 // The typed authoring layer: readers and transactions, actions, authored
 // nodes, games, the node-builder registry, abilities and `Core`.
-import type { Random } from "../rng.js";
 import type {
   AbilityNode,
   ActionImpl,
-  DeepReadonly,
   Entity,
   EntityId,
   Exit,
   GameDef,
   GameEvent,
   Kind,
-  MoveOptions,
   PlayerId,
+  Reader,
+  Scoped,
   Node as SpecNode,
+  Tx,
 } from "../types.js";
-import type {
-  Before,
-  Effect,
-  EntityType,
-  ZoneFamily,
-  ZoneRef,
-} from "./handles.js";
+import type { Before, Effect, EntityType, ZoneFamily } from "./handles.js";
 
 // --- Typed state access ----------------------------------------------------
 
-/**
- * Reads a node's scope: what the nearest frame of that node shows the nodes
- * under it. For kind authors, who wrap it in typed accessors closed over the
- * node's id, as an ability's `t.self` and `t.data` do.
- */
-export interface Scoped {
-  scopeOf(node: string): unknown;
-}
-
-export interface Reader<V> extends Scoped {
-  readonly players: readonly PlayerId[];
-  readonly vars: DeepReadonly<V>;
-  /** The player the flow is bound to here: whose turn it is, or whose ability is running. */
-  readonly actor: PlayerId | undefined;
-  /** The zone's entities, top first, typed by what the zone holds. */
-  entities<P>(zone: ZoneRef<P>): readonly Entity<P>[];
-  count(zone: ZoneRef<unknown>): number;
-  /** A family's instances in seat order then index order; only `player`'s when given. */
-  zones<P>(family: ZoneFamily<P>, player?: PlayerId): ZoneRef<P>[];
-  /** An entity by id. Narrow it with an entity type's `is` to type its props. */
-  entity(id: EntityId): Entity;
-}
-
-export interface Tx<V> extends Scoped {
-  readonly players: readonly PlayerId[];
-  vars: V;
-  readonly actor: PlayerId | undefined;
-  entities<P>(zone: ZoneRef<P>): readonly Entity<P>[];
-  count(zone: ZoneRef<unknown>): number;
-  zones<P>(family: ZoneFamily<P>, player?: PlayerId): ZoneRef<P>[];
-  entity(id: EntityId): Entity;
-  /** Removes an entity from the game. */
-  destroy(id: EntityId): void;
-  /** Changes some of an entity's props: `tx.update(d, { held: true })`. */
-  update<P>(entity: Entity<P>, patch: Partial<P>): void;
-  /** Creates an entity at the bottom of a zone that holds its type. */
-  create<P>(type: EntityType<P>, props: P, zone: ZoneRef<P>): EntityId;
-  move(
-    ids: EntityId | readonly EntityId[],
-    to: ZoneRef<unknown>,
-    opts?: MoveOptions,
-  ): void;
-  /** Moves the top `count` (default 1) entities between zones holding the same type. */
-  moveTop<P>(
-    from: ZoneRef<P>,
-    to: ZoneRef<P>,
-    count?: number,
-    opts?: MoveOptions,
-  ): EntityId[];
-  shuffle(zone: ZoneRef<unknown>): void;
-  flip(id: EntityId, faceUp: boolean): void;
-  readonly random: Random;
-  end(result?: unknown): void;
-  /** Causes an effect: abilities before it, its resolution, abilities after it, once this transaction ends. */
-  cause<T>(effect: Effect<never, T>, data: T): void;
-}
+// One `Reader` and one `Tx`: the engine's, which are typed by the handles
+export type { Reader, Scoped, Tx };
 
 // --- Actions ----------------------------------------------------------------
 
