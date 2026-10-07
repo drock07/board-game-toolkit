@@ -48,12 +48,16 @@ export function handTotal(hand: readonly PlayingCard[]): number {
 const isNatural = (hand: readonly PlayingCard[]) =>
   hand.length === 2 && handTotal(hand) === 21;
 
-/** A hand's cards in the order they were dealt (zones list the top first). */
+/** A hand's cards in the order they were dealt: each lands at the bottom. */
 const cardsIn = (s: Reader<Vars> | Tx<Vars>, hand: typeof player) =>
-  s
-    .entities(hand)
-    .map((e) => e.props)
-    .reverse();
+  s.entities(hand).map((e) => e.props);
+
+/** Deals the shoe's top card to the bottom of a hand, so hands read in deal order. */
+const deal = (tx: Tx<Vars>, hand: typeof player, faceUp?: boolean) =>
+  tx.moveTop(shoe, hand, 1, {
+    at: "bottom",
+    ...(faceUp !== undefined && { faceUp }),
+  });
 
 const totalIn = (s: Reader<Vars>, hand: typeof player) =>
   handTotal(cardsIn(s, hand));
@@ -85,7 +89,7 @@ export const placeBet = action("placeBet", {
 
 export const hit = action("hit", {
   validate: (s) => (totalIn(s, player) < 21 ? true : "You can't hit on 21"),
-  execute: (tx) => void tx.moveTop(shoe, player),
+  execute: (tx) => void deal(tx, player),
 });
 
 export const stand = action("stand", { execute: () => "end" });
@@ -117,10 +121,10 @@ export const blackjack = rules({
       prompt({ label: "Place a bet" }, placeBet),
       // #region deal
       step((tx) => {
-        tx.moveTop(shoe, player);
-        tx.moveTop(shoe, dealer);
-        tx.moveTop(shoe, player);
-        tx.moveTop(shoe, dealer, 1, { faceUp: false });
+        deal(tx, player);
+        deal(tx, dealer);
+        deal(tx, player);
+        deal(tx, dealer, false);
       }),
       // #endregion deal
       // Guards are checked on entry and after every transaction: a natural
@@ -138,8 +142,7 @@ export const blackjack = rules({
           ),
           step((tx) => {
             revealHoleCard(tx);
-            while (handTotal(cardsIn(tx, dealer)) < 17)
-              tx.moveTop(shoe, dealer);
+            while (handTotal(cardsIn(tx, dealer)) < 17) deal(tx, dealer);
           }),
         ),
       ),

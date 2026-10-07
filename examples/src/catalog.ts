@@ -101,7 +101,7 @@ export const catalog: CatalogEntry[] = [
     component: "CrazyEights",
     Page: lazy(() => import("./games/crazy-eights/CrazyEights")),
     notes: [
-      "Hands are per-player zones with owner visibility: switch “Viewing as” to see another seat's view. The discard zone is hidden, but each card is played onto it face up and the card underneath is flipped face down, so only the top card shows.",
+      "Hands are per-player zones with owner visibility: switch “Viewing as” to see another seat's view. The discard zone has top visibility, so everyone sees its top card and nothing beneath; the engine turns the covered card face down itself, as a flipped event the page plays back.",
       "Each player's turn is a prompt inside turns, wrapped in an outcomes node. Playing an eight returns { exit: \"wild\" }, and the outcome's then prompt asks the same player to call a color. Bots get the same legal inputs and view as you, so they see only their own hand.",
     ],
   },

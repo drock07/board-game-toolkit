@@ -62,8 +62,9 @@ export type EventHandler<V> = (
 
 export interface GameSnapshot<V, H> {
   /**
-   * The displayed view. Lags the committed state while events play back;
-   * meanwhile its `waiting` is empty, and `shown` is from before them.
+   * The displayed view. Lags the committed state while events play back,
+   * one event at a time (`shown` included); meanwhile its `waiting` is
+   * empty, since nothing can be answered until playback ends.
    */
   view: View<V>;
   /**

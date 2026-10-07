@@ -89,362 +89,6 @@
     },
     {
       "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "player": "p1",
-      "action": "continue"
-    },
-    {
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "player": "p1",
       "action": "hit"
     },
     {
@@ -476,6 +120,10 @@
       "args": {
         "amount": 10
       }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
     },
     {
       "player": "p1",
@@ -544,6 +192,361 @@
     {
       "player": "p1",
       "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
     },
     {
       "player": "p1",
@@ -584,5 +587,5 @@
       "action": "hit"
     }
   ],
-  "finalStateHash": "5cb70cf52118be795d0eec4065e47368"
+  "finalStateHash": "a8d5c762f5db4d64bfa1e019213704a0"
 }
