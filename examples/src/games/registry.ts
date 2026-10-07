@@ -9,8 +9,15 @@ import { sealedBids } from "./sealed-bids";
 import { ticTacToe } from "./tic-tac-toe";
 import { towerBattler } from "./tower-battler";
 
+/**
+ * Every example game, by catalog slug, with its types erased: code that
+ * handles any game reads states and views as `unknown` vars and passes
+ * inputs it got from `legalInputs`.
+ */
+export type AnyGame = Game<unknown, never>;
+
 /** Every example game, by catalog slug. */
-export const games: Record<string, Game> = {
+export const games: Record<string, AnyGame> = {
   sandbox,
   "tic-tac-toe": ticTacToe,
   blackjack,
@@ -20,4 +27,4 @@ export const games: Record<string, Game> = {
   "tower-battler": towerBattler,
   "sealed-bids": sealedBids,
   "plus-two": plusTwo,
-} as unknown as Record<string, Game>;
+} as unknown as Record<string, AnyGame>;
