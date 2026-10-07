@@ -254,10 +254,19 @@ export function playBots<V, I extends Input>(
   for (let i = 0; i < opts.maxInputs; i++) {
     const s = states.at(-1)!;
     if (s.status === "finished") break;
-    const player = actors(game, s).find((p) => botFor(p));
+    // The first bot seat that may act and has something legal to do: in an
+    // `anyone` window, seats with nothing to answer are still actors
+    let player: PlayerId | undefined;
+    let legal: I[] = [];
+    for (const p of actors(game, s)) {
+      if (!botFor(p)) continue;
+      legal = legalInputs(game, s, p) as I[];
+      if (legal.length) {
+        player = p;
+        break;
+      }
+    }
     if (player === undefined) break;
-    const legal = legalInputs(game, s, player) as I[];
-    if (!legal.length) break;
     const input = botFor(player)!(legal, {
       view: view(game, s, player),
       player,

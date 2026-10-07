@@ -75,6 +75,9 @@ export function reader<V>(
       return boundActor(game, state, fiber);
     },
     scopeOf: (node) => scopeOf(game, state, fiber, node),
+    get shown() {
+      return shownAlong(game, state, fiber);
+    },
     entities: (zone) => entitiesOf(state, zone),
     count: (zone) => itemsOf(state, zone).length,
     zones: (family, player) => zonesOf(game, state, family, player),
@@ -235,4 +238,23 @@ export function readCtx<V>(
     holds: (cond) => game.impl.conditions[cond]!(reader(game, state, fiber)),
     query: (name) => game.impl.queries[name]!(reader(game, state, fiber)),
   };
+}
+
+/**
+ * What kinds show along a fiber, by kind name: the frames rules code runs
+ * inside, innermost winning. The same data a view's `shown` carries for the
+ * fiber's player.
+ */
+export function shownAlong<V>(
+  game: GameDef<V>,
+  state: State<V>,
+  fiber: FiberId,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const { frame } of framesOutAt(state, fiber).reverse()) {
+    const node = nodeOf(game, frame.id);
+    const shown = kindOf(game, node).show?.(node, frame);
+    if (shown !== undefined) out[node.kind] = shown;
+  }
+  return out;
 }
