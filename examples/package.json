@@ -12,7 +12,6 @@
     "./games/*/Table": "./src/games/*/Table.tsx",
     "./site/*": "./src/site/*.tsx",
     "./ui/*": "./src/ui/*.tsx",
-    "./demos": "./src/demos/index.ts",
     "./site/flowTree": "./src/site/flowTree.ts"
   },
   "scripts": {
@@ -30,8 +29,10 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
     "@types/react": "catalog:",
     "@types/react-dom": "^19.0.0",
+    "jsdom": "^26.1.0",
     "react-dom": "^19.0.0",
     "typescript": "catalog:",
     "vite": "^6.0.0",

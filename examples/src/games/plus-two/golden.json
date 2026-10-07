@@ -7,112 +7,384 @@
   "seed": "golden",
   "inputs": [
     {
-      "prompt": "q1",
       "player": "p1",
       "action": "drawCard"
     },
     {
-      "prompt": "q2",
       "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#19"
-      }
-    },
-    {
-      "prompt": "q3",
-      "player": "p3",
       "action": "playCard",
       "args": {
         "card": "card#15"
       }
     },
     {
-      "prompt": "q4",
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#16"
+      }
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#28"
+        "card": "card#29"
       }
     },
     {
-      "prompt": "q5",
       "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#14"
-      }
-    },
-    {
-      "prompt": "q6",
-      "player": "p3",
       "action": "playCard",
       "args": {
         "card": "card#43"
       }
     },
     {
-      "prompt": "q7",
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#44"
+      }
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#52"
+        "card": "card#48"
       }
     },
     {
-      "prompt": "q8",
       "player": "p2",
       "action": "playCard",
       "args": {
-        "card": "card#42"
+        "card": "card#20"
       }
     },
     {
-      "prompt": "q9",
       "player": "p3",
       "action": "drawCard"
     },
     {
-      "prompt": "q10",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#47"
+        "card": "card#6"
       }
     },
     {
-      "prompt": "q11",
       "player": "p2",
       "action": "drawCard"
     },
     {
-      "prompt": "q12",
       "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#12"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#11"
+      }
+    },
+    {
+      "player": "p1",
       "action": "playCard",
       "args": {
         "card": "card#53"
       }
     },
     {
-      "prompt": "q13",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q14",
       "player": "p2",
       "action": "drawCard"
     },
     {
-      "prompt": "q15",
       "player": "p3",
       "action": "playCard",
       "args": {
-        "card": "card#10"
+        "card": "card#54"
       }
     },
     {
-      "prompt": "q16",
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#50"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#22"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#27"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "accept"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#18"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#32"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#41"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "accept"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#34"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#30"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#35"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#31"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#47"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#49"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#51"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#38"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#34"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#30"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#15"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#43"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#49"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#53"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#11"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#8"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -120,75 +392,81 @@
       }
     },
     {
-      "prompt": "q17",
       "player": "p2",
       "action": "drawCard"
     },
     {
-      "prompt": "q18",
       "player": "p3",
       "action": "playCard",
       "args": {
-        "card": "card#11"
+        "card": "card#20"
       }
     },
     {
-      "prompt": "q19",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#8"
+        "card": "card#18"
       }
     },
     {
-      "prompt": "q20",
       "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#17"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#24"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#16"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#26"
+      }
+    },
+    {
+      "player": "p3",
       "action": "drawCard"
     },
     {
-      "prompt": "q21",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#37"
-      }
-    },
-    {
-      "prompt": "q22",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q23",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#27"
+        "card": "card#28"
       }
     },
     {
-      "prompt": "q24",
       "player": "p3",
       "action": "stackPlusTwo",
       "args": {
-        "card": "card#55"
+        "card": "card#56"
       }
     },
     {
-      "prompt": "q27",
       "player": "p1",
       "action": "accept"
     },
     {
-      "prompt": "q28",
       "player": "p2",
       "action": "playCard",
       "args": {
-        "card": "card#49"
+        "card": "card#54"
       }
     },
     {
-      "prompt": "q29",
       "player": "p3",
       "action": "playCard",
       "args": {
@@ -196,39 +474,74 @@
       }
     },
     {
-      "prompt": "q30",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#24"
+        "card": "card#38"
       }
     },
     {
-      "prompt": "q31",
       "player": "p2",
       "action": "playCard",
       "args": {
-        "card": "card#25"
+        "card": "card#37"
       }
     },
     {
-      "prompt": "q32",
       "player": "p3",
       "action": "playCard",
       "args": {
-        "card": "card#11"
+        "card": "card#33"
       }
     },
     {
-      "prompt": "q33",
       "player": "p1",
       "action": "playCard",
       "args": {
-        "card": "card#8"
+        "card": "card#32"
       }
     },
     {
-      "prompt": "q34",
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#40"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#36"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#46"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#50"
+      }
+    },
+    {
       "player": "p2",
       "action": "playCard",
       "args": {
@@ -236,575 +549,24 @@
       }
     },
     {
-      "prompt": "q35",
       "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#40"
-      }
-    },
-    {
-      "prompt": "q37",
-      "player": "p1",
-      "action": "accept"
-    },
-    {
-      "prompt": "q38",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#39"
-      }
-    },
-    {
-      "prompt": "q39",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q40",
-      "player": "p3",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q41",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#34"
-      }
-    },
-    {
-      "prompt": "q42",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#48"
-      }
-    },
-    {
-      "prompt": "q43",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#51"
-      }
-    },
-    {
-      "prompt": "q44",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#23"
-      }
-    },
-    {
-      "prompt": "q45",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q46",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#16"
-      }
-    },
-    {
-      "prompt": "q47",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q48",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#26"
-      }
-    },
-    {
-      "prompt": "q49",
-      "player": "p3",
-      "action": "stackPlusTwo",
-      "args": {
-        "card": "card#41"
-      }
-    },
-    {
-      "prompt": "q51",
-      "player": "p1",
-      "action": "stackPlusTwo",
-      "args": {
-        "card": "card#12"
-      }
-    },
-    {
-      "prompt": "q50",
-      "player": "p2",
-      "action": "accept"
-    },
-    {
-      "prompt": "q55",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q56",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q57",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#11"
-      }
-    },
-    {
-      "prompt": "q58",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#6"
-      }
-    },
-    {
-      "prompt": "q59",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q60",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#43"
-      }
-    },
-    {
-      "prompt": "q61",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#29"
-      }
-    },
-    {
-      "prompt": "q62",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#15"
-      }
-    },
-    {
-      "prompt": "q63",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#19"
-      }
-    },
-    {
-      "prompt": "q64",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q65",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#46"
-      }
-    },
-    {
-      "prompt": "q66",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q67",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#47"
-      }
-    },
-    {
-      "prompt": "q68",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#19"
-      }
-    },
-    {
-      "prompt": "q69",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#16"
-      }
-    },
-    {
-      "prompt": "q70",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#17"
-      }
-    },
-    {
-      "prompt": "q71",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#44"
-      }
-    },
-    {
-      "prompt": "q72",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q73",
-      "player": "p3",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q74",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#52"
-      }
-    },
-    {
-      "prompt": "q75",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#38"
-      }
-    },
-    {
-      "prompt": "q76",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#34"
-      }
-    },
-    {
-      "prompt": "q77",
-      "player": "p1",
       "action": "playCard",
       "args": {
         "card": "card#7"
       }
     },
     {
-      "prompt": "q78",
       "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q79",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#30"
-      }
-    },
-    {
-      "prompt": "q80",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#33"
-      }
-    },
-    {
-      "prompt": "q81",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#46"
-      }
-    },
-    {
-      "prompt": "q82",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q83",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#47"
-      }
-    },
-    {
-      "prompt": "q84",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#32"
-      }
-    },
-    {
-      "prompt": "q85",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#28"
-      }
-    },
-    {
-      "prompt": "q86",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q87",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#0"
-      }
-    },
-    {
-      "prompt": "q88",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q89",
-      "player": "p2",
       "action": "playCard",
       "args": {
         "card": "card#13"
       }
     },
     {
-      "prompt": "q90",
-      "player": "p1",
-      "action": "stackPlusTwo",
-      "args": {
-        "card": "card#55"
-      }
-    },
-    {
-      "prompt": "q92",
-      "player": "p3",
-      "action": "stackPlusTwo",
-      "args": {
-        "card": "card#27"
-      }
-    },
-    {
-      "prompt": "q95",
-      "player": "p1",
+      "player": "p2",
       "action": "accept"
     },
     {
-      "prompt": "q96",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#17"
-      }
-    },
-    {
-      "prompt": "q97",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q98",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#9"
-      }
-    },
-    {
-      "prompt": "q99",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q100",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q101",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q102",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#17"
-      }
-    },
-    {
-      "prompt": "q103",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q104",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q105",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#16"
-      }
-    },
-    {
-      "prompt": "q106",
-      "player": "p3",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q107",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#25"
-      }
-    },
-    {
-      "prompt": "q108",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#39"
-      }
-    },
-    {
-      "prompt": "q109",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#32"
-      }
-    },
-    {
-      "prompt": "q110",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#33"
-      }
-    },
-    {
-      "prompt": "q111",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#35"
-      }
-    },
-    {
-      "prompt": "q112",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#28"
-      }
-    },
-    {
-      "prompt": "q113",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#37"
-      }
-    },
-    {
-      "prompt": "q114",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#40"
-      }
-    },
-    {
-      "prompt": "q116",
-      "player": "p3",
-      "action": "accept"
-    },
-    {
-      "prompt": "q117",
-      "player": "p3",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q118",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q119",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q120",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#26"
-      }
-    },
-    {
-      "prompt": "q122",
-      "player": "p1",
-      "action": "accept"
-    },
-    {
-      "prompt": "q123",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#22"
-      }
-    },
-    {
-      "prompt": "q124",
       "player": "p2",
       "action": "playCard",
       "args": {
@@ -812,65 +574,81 @@
       }
     },
     {
-      "prompt": "q125",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#43"
-      }
-    },
-    {
-      "prompt": "q126",
       "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#42"
-      }
-    },
-    {
-      "prompt": "q127",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#45"
-      }
-    },
-    {
-      "prompt": "q128",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q129",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#41"
-      }
-    },
-    {
-      "prompt": "q130",
-      "player": "p2",
       "action": "stackPlusTwo",
       "args": {
-        "card": "card#54"
+        "card": "card#27"
       }
     },
     {
-      "prompt": "q133",
-      "player": "p3",
+      "player": "p2",
       "action": "accept"
     },
     {
-      "prompt": "q134",
-      "player": "p2",
+      "player": "p3",
       "action": "playCard",
       "args": {
-        "card": "card#51"
+        "card": "card#20"
       }
     },
     {
-      "prompt": "q135",
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#28"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "accept"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#19"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#6"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#12"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
       "player": "p3",
       "action": "playCard",
       "args": {
@@ -878,23 +656,90 @@
       }
     },
     {
-      "prompt": "q136",
       "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#9"
-      }
+      "action": "drawCard"
     },
     {
-      "prompt": "q137",
       "player": "p2",
       "action": "playCard",
       "args": {
-        "card": "card#1"
+        "card": "card#35"
       }
     },
     {
-      "prompt": "q138",
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#41"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "accept"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#37"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#30"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#39"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "drawCard"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#25"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#40"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#53"
+      }
+    },
+    {
       "player": "p3",
       "action": "playCard",
       "args": {
@@ -902,91 +747,39 @@
       }
     },
     {
-      "prompt": "q139",
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#55"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "accept"
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
       "player": "p1",
       "action": "drawCard"
     },
     {
-      "prompt": "q140",
       "player": "p2",
       "action": "playCard",
       "args": {
-        "card": "card#0"
+        "card": "card#23"
       }
     },
     {
-      "prompt": "q141",
-      "player": "p3",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q142",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q143",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#42"
-      }
-    },
-    {
-      "prompt": "q144",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q145",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#29"
-      }
-    },
-    {
-      "prompt": "q146",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#42"
-      }
-    },
-    {
-      "prompt": "q147",
       "player": "p3",
       "action": "playCard",
       "args": {
-        "card": "card#15"
+        "card": "card#24"
       }
     },
     {
-      "prompt": "q148",
-      "player": "p1",
-      "action": "playCard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q149",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#4"
-      }
-    },
-    {
-      "prompt": "q150",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#10"
-      }
-    },
-    {
-      "prompt": "q151",
       "player": "p1",
       "action": "playCard",
       "args": {
@@ -994,72 +787,34 @@
       }
     },
     {
-      "prompt": "q152",
       "player": "p2",
       "action": "playCard",
       "args": {
-        "card": "card#24"
+        "card": "card#9"
       }
     },
     {
-      "prompt": "q153",
       "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#17"
-      }
-    },
-    {
-      "prompt": "q154",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q155",
-      "player": "p2",
-      "action": "playCard",
-      "args": {
-        "card": "card#2"
-      }
-    },
-    {
-      "prompt": "q156",
-      "player": "p3",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q157",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q158",
-      "player": "p2",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q159",
-      "player": "p3",
-      "action": "playCard",
-      "args": {
-        "card": "card#3"
-      }
-    },
-    {
-      "prompt": "q160",
-      "player": "p1",
-      "action": "drawCard"
-    },
-    {
-      "prompt": "q161",
-      "player": "p2",
       "action": "playCard",
       "args": {
         "card": "card#12"
       }
     },
     {
-      "prompt": "q162",
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#14"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "stackPlusTwo",
+      "args": {
+        "card": "card#56"
+      }
+    },
+    {
       "player": "p1",
       "action": "stackPlusTwo",
       "args": {
@@ -1067,10 +822,84 @@
       }
     },
     {
-      "prompt": "q165",
-      "player": "p2",
+      "player": "p3",
+      "action": "stackPlusTwo",
+      "args": {
+        "card": "card#13"
+      }
+    },
+    {
+      "player": "p1",
       "action": "accept"
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#2"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "drawCard"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#29"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "playCard",
+      "args": {
+        "card": "card#35"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#37"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#34"
+      }
+    },
+    {
+      "player": "p2",
+      "action": "drawCard"
+    },
+    {
+      "player": "p3",
+      "action": "playCard",
+      "args": {
+        "card": "card#31"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "again"
+    },
+    {
+      "player": "p1",
+      "action": "playCard",
+      "args": {
+        "card": "card#27"
+      }
+    },
+    {
+      "player": "p3",
+      "action": "stackPlusTwo",
+      "args": {
+        "card": "card#42"
+      }
     }
   ],
-  "finalStateHash": "8aeb7ba6424757212dcaa03a3e078747"
+  "finalStateHash": "e9460d8434aee04417d84687f5dc3532"
 }

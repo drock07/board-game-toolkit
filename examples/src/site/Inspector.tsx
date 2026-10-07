@@ -1,9 +1,8 @@
-import type {
-  Game,
-  GameState,
-  PlayerId,
-} from "@drock07/board-game-toolkit-engine";
-import type { UseGameResult } from "@drock07/board-game-toolkit-react";
+import type { PlayerId, State } from "@drock07/board-game-toolkit-engine";
+import {
+  flowActivity,
+  type GraphGame,
+} from "@drock07/board-game-toolkit-react/devtools";
 import {
   Listbox,
   ListboxButton,
@@ -19,7 +18,8 @@ import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import clsx from "clsx";
 import { useMemo, type ReactNode } from "react";
 import { sourceUrl, specSource, type CatalogEntry } from "../catalog";
-import { describeEvent, flowActivity, flowRows } from "./flowTree";
+import { describeEvent, flowRows } from "./flowTree";
+import type { FrameHost } from "./GameFrame";
 import { JsonView } from "./JsonView";
 
 function Section({
@@ -60,9 +60,9 @@ function Chip({ on, children }: { on: boolean; children: ReactNode }) {
   );
 }
 
-function FlowTree({ game, state }: { game: Game; state: GameState }) {
+function FlowTree({ game, state }: { game: GraphGame; state: State<unknown> }) {
   const rows = useMemo(() => flowRows(game), [game]);
-  const { active, waiting } = flowActivity(state);
+  const { active, waiting } = flowActivity(game, state);
   // Show the top of the tree, and open subtrees only along the active path
   const shown = rows.filter(
     (r) => r.depth <= 1 || (r.parent !== undefined && active.has(r.parent)),
@@ -114,14 +114,14 @@ function FlowTree({ game, state }: { game: Game; state: GameState }) {
   );
 }
 
-function Actions({ g }: { g: UseGameResult }) {
+function Actions({ g }: { g: FrameHost }) {
   if (g.playing)
     return <p className="text-sm text-subtle">Playing back events…</p>;
   if (g.view.status === "finished")
     return <p className="text-sm text-subtle">The game is over.</p>;
-  if (!g.prompts.length) {
-    const others = g.view.prompts
-      .map((p) => `${p.actors.join(", ")} (${p.node})`)
+  if (!g.legal.length) {
+    const others = g.view.waiting
+      .map((w) => `${w.actors.join(", ")}${w.label ? ` (${w.label})` : ""}`)
       .join("; ");
     return (
       <p className="text-sm text-subtle">
@@ -129,32 +129,22 @@ function Actions({ g }: { g: UseGameResult }) {
       </p>
     );
   }
+  // The viewer's legal actions, each with how many ways it can be taken
+  const counts = new Map<string, number>();
+  for (const i of g.legal)
+    counts.set(i.action, (counts.get(i.action) ?? 0) + 1);
+  const mine = g.view.waiting.find((w) => w.actors.includes(g.viewer));
   return (
-    <div className="flex flex-col gap-2">
-      {g.prompts.map((p) => {
-        const legal = g.legal.filter((i) => i.prompt === p.id);
-        return (
-          <div key={p.id} className="flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[11px] text-label">{p.node}</span>
-            {p.kind === "decision" &&
-              p.actions!.map((a) => (
-                <Chip
-                  key={a.name}
-                  on={legal.some((i) => "action" in i && i.action === a.name)}
-                >
-                  {a.name}
-                </Chip>
-              ))}
-            {p.kind === "choose" && (
-              <Chip on={legal.length > 0}>
-                choose {p.min === p.max ? p.min : `${p.min}–${p.max}`} of{" "}
-                {p.options!.length}
-              </Chip>
-            )}
-            {p.kind === "pause" && <Chip on>continue</Chip>}
-          </div>
-        );
-      })}
+    <div className="flex flex-wrap items-center gap-1.5">
+      {mine?.label && (
+        <span className="font-mono text-[11px] text-label">{mine.label}</span>
+      )}
+      {[...counts].map(([action, n]) => (
+        <Chip key={action} on>
+          {action}
+          {n > 1 ? ` ×${n}` : ""}
+        </Chip>
+      ))}
     </div>
   );
 }
@@ -163,7 +153,7 @@ function ViewerPicker({
   g,
   names,
 }: {
-  g: UseGameResult;
+  g: FrameHost;
   names: Record<PlayerId, string>;
 }) {
   const options = [...g.seats.map((s) => s.id), "spectator"];
@@ -204,7 +194,7 @@ export function Inspector({
   names,
   panels,
 }: {
-  g: UseGameResult;
+  g: FrameHost;
   entry: CatalogEntry;
   names: Record<PlayerId, string>;
   panels: { title: string; content: ReactNode }[];
@@ -212,8 +202,7 @@ export function Inspector({
   const game = g.host.game;
   const events = g.log.slice(-12).reverse();
   const files = [
-    `games/${entry.slug}/spec.ts`,
-    `games/${entry.slug}/impl.ts`,
+    `games/${entry.slug}/game.ts`,
     `games/${entry.slug}/${entry.component}.tsx`,
   ];
   return (
@@ -239,8 +228,8 @@ export function Inspector({
                 <ViewerPicker g={g} names={names} />
               </Section>
             )}
-            <Section title={`Flow · ${game.spec.id}`}>
-              <FlowTree game={game} state={g.state as GameState} />
+            <Section title="Flow">
+              <FlowTree game={game} state={g.state} />
             </Section>
             <Section title="Actions">
               <Actions g={g} />
@@ -256,14 +245,13 @@ export function Inspector({
             <Section title="Events" aside={`${g.log.length} seen`}>
               {events.length ? (
                 <ol className="flex flex-col gap-1 font-mono text-xs">
-                  {events.map((e) => (
+                  {events.map((e, i) => (
                     <li
-                      key={`${e.input}-${e.seq}`}
+                      // Newest first; the log only grows at the end
+                      key={g.log.length - i}
                       className={clsx(
                         "truncate",
-                        e.type === "flow" || e.type === "locals"
-                          ? "text-label"
-                          : "text-ink-2",
+                        e.type === "vars" ? "text-label" : "text-ink-2",
                       )}
                       title={describeEvent(e)}
                     >
@@ -297,7 +285,7 @@ export function Inspector({
                 <p key={n}>{n}</p>
               ))}
             </div>
-            <Section title="spec.ts">
+            <Section title="game.ts">
               <pre className="overflow-x-auto rounded-lg bg-code px-3.5 py-3 font-mono text-xs/[1.6] text-on-code">
                 {specSource(entry.slug)}
               </pre>

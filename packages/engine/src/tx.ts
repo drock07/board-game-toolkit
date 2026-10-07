@@ -5,6 +5,7 @@ import {
   nearestFrame,
   nodeOf,
   scopeOf,
+  shownAlong,
   stackOf,
   withStack,
   type FrameAt,
@@ -90,6 +91,9 @@ export function transact<V>(
       return boundActor(game, state, fiber);
     },
     scopeOf: scope,
+    get shown() {
+      return shownAlong(game, state, fiber);
+    },
     get vars() {
       return next.vars;
     },

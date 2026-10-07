@@ -5,7 +5,6 @@
   "seed": "golden",
   "inputs": [
     {
-      "prompt": "q1",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -13,22 +12,18 @@
       }
     },
     {
-      "prompt": "q2",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q3",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q4",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q5",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -36,27 +31,22 @@
       }
     },
     {
-      "prompt": "q6",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q7",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q8",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q9",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q10",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -64,17 +54,14 @@
       }
     },
     {
-      "prompt": "q11",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q12",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q13",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -82,17 +69,14 @@
       }
     },
     {
-      "prompt": "q14",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q15",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q16",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -100,68 +84,18 @@
       }
     },
     {
-      "prompt": "q17",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q18",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q19",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q20",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q21",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q22",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q23",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q24",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q25",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q26",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q27",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q28",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -169,58 +103,18 @@
       }
     },
     {
-      "prompt": "q29",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q30",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q31",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q32",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q33",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q34",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q35",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q36",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q37",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q38",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -228,27 +122,33 @@
       }
     },
     {
-      "prompt": "q39",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q40",
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q41",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q42",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q43",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -256,17 +156,14 @@
       }
     },
     {
-      "prompt": "q44",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q45",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q46",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -274,40 +171,18 @@
       }
     },
     {
-      "prompt": "q47",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q48",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q49",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q50",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q51",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q52",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q53",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -315,40 +190,18 @@
       }
     },
     {
-      "prompt": "q54",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q55",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q56",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q57",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q58",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q59",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q60",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -356,22 +209,14 @@
       }
     },
     {
-      "prompt": "q61",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q62",
       "player": "p1",
-      "action": "stand"
+      "action": "continue"
     },
     {
-      "prompt": "q63",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q64",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -379,22 +224,18 @@
       }
     },
     {
-      "prompt": "q65",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q66",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q67",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q68",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -402,107 +243,22 @@
       }
     },
     {
-      "prompt": "q69",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q70",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q71",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q72",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q73",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q74",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q75",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q76",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q77",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q78",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q79",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q80",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q81",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q82",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q83",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q84",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q85",
       "player": "p1",
-      "continue": true
+      "action": "hit"
     },
     {
-      "prompt": "q86",
+      "player": "p1",
+      "action": "continue"
+    },
+    {
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -510,22 +266,18 @@
       }
     },
     {
-      "prompt": "q87",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q88",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q89",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q90",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -533,27 +285,41 @@
       }
     },
     {
-      "prompt": "q91",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q92",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q93",
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q94",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q95",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -561,81 +327,18 @@
       }
     },
     {
-      "prompt": "q96",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q97",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q98",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q99",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q100",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q101",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q102",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q103",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q104",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q105",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q106",
-      "player": "p1",
-      "action": "hit"
-    },
-    {
-      "prompt": "q107",
       "player": "p1",
       "action": "stand"
     },
     {
-      "prompt": "q108",
       "player": "p1",
-      "continue": true
+      "action": "continue"
     },
     {
-      "prompt": "q109",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -643,58 +346,14 @@
       }
     },
     {
-      "prompt": "q110",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q111",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q112",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q113",
-      "player": "p1",
-      "action": "stand"
-    },
-    {
-      "prompt": "q114",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q115",
-      "player": "p1",
-      "action": "placeBet",
-      "args": {
-        "amount": 10
-      }
-    },
-    {
-      "prompt": "q116",
       "player": "p1",
       "action": "hit"
     },
     {
-      "prompt": "q117",
       "player": "p1",
-      "action": "stand"
+      "action": "continue"
     },
     {
-      "prompt": "q118",
-      "player": "p1",
-      "continue": true
-    },
-    {
-      "prompt": "q119",
       "player": "p1",
       "action": "placeBet",
       "args": {
@@ -702,10 +361,228 @@
       }
     },
     {
-      "prompt": "q120",
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
+      "player": "p1",
+      "action": "hit"
+    },
+    {
+      "player": "p1",
+      "action": "stand"
+    },
+    {
+      "player": "p1",
+      "action": "continue"
+    },
+    {
+      "player": "p1",
+      "action": "placeBet",
+      "args": {
+        "amount": 10
+      }
+    },
+    {
       "player": "p1",
       "action": "hit"
     }
   ],
-  "finalStateHash": "448af94ca8269c004ce1f1fc722d29b0"
+  "finalStateHash": "5cb70cf52118be795d0eec4065e47368"
 }

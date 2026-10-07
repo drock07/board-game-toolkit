@@ -9,6 +9,18 @@ test.each(Object.entries(games))(
   (_, game) => {
     const html = renderToStaticMarkup(createElement(FlowGraph, { game }));
     const drawn = [...html.matchAll(/data-node="([^"]+)"/g)].map((m) => m[1]);
-    expect(drawn.sort()).toEqual([...game.nodes.keys()].sort());
+    // Every node in the spec: the flow, abilities and effects, by id
+    const ids = new Set<string>();
+    const walk = (n: { id: string; kind: string }) => {
+      ids.add(n.id);
+      for (const c of game.kinds[n.kind]!.children(n)) walk(c);
+    };
+    for (const root of [
+      game.spec.flow,
+      ...(game.spec.abilities ?? []),
+      ...(game.spec.effects ?? []),
+    ])
+      walk(root);
+    expect(drawn.sort()).toEqual([...ids].sort());
   },
 );

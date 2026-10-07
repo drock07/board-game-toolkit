@@ -242,6 +242,12 @@ export interface Scoped {
 /** Read-only access to the game, for conditions, queries and legality. */
 export interface Reader<V> extends Scoped {
   readonly players: readonly PlayerId[];
+  /**
+   * What kinds show here, by kind name, as in a view's `shown`: read it
+   * through a kind's definition, `turnNode.shown(s)?.counts.roll`, e.g. in
+   * an action's `validate`.
+   */
+  readonly shown: Record<string, unknown>;
   readonly vars: DeepReadonly<V>;
   /** The player the flow is bound to here: whose turn it is, or whose ability is running. */
   readonly actor: PlayerId | undefined;
@@ -266,6 +272,8 @@ export interface MoveOptions {
  */
 export interface Tx<V> extends Scoped {
   readonly players: readonly PlayerId[];
+  /** As `Reader.shown`. */
+  readonly shown: Record<string, unknown>;
   vars: V;
   readonly actor: PlayerId | undefined;
   entities<P>(zone: ZoneRef<P>): readonly Entity<P>[];
@@ -485,6 +493,8 @@ export interface Waiting {
  */
 export interface View<V> {
   player: PlayerId;
+  /** Every seat, in order. */
+  players: readonly PlayerId[];
   vars: V;
   zones: Record<ZoneId, Ref[]>;
   entities: Record<Ref, Entity | HiddenEntity>;

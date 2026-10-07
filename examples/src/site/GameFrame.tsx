@@ -1,9 +1,11 @@
 import type {
-  GameState,
-  GameTypes,
   PlayerId,
+  State,
+  View,
+  ViewEvent,
 } from "@drock07/board-game-toolkit-engine";
 import type { UseGameResult } from "@drock07/board-game-toolkit-react";
+import type { GraphGame } from "@drock07/board-game-toolkit-react/devtools";
 import { WrenchScrewdriverIcon } from "@heroicons/react/20/solid";
 import clsx from "clsx";
 import { createContext, use, useState, type ReactNode } from "react";
@@ -13,19 +15,39 @@ import { Inspector } from "./Inspector";
 
 export const EntryContext = createContext<CatalogEntry | null>(null);
 
-/** The flow node to show in the status pill, and whether it's the viewer's. */
-function status(g: UseGameResult): { label: string; mine: boolean } {
+/** What the site reads from any game's `useGame`, whatever its types. */
+export interface FrameHost {
+  view: View<unknown>;
+  state: State<unknown>;
+  legal: readonly { action: string }[];
+  playing: boolean;
+  viewer: PlayerId;
+  seed: string;
+  log: readonly ViewEvent<unknown>[];
+  seats: { id: PlayerId; bot: boolean }[];
+  setViewer: (viewer: PlayerId) => void;
+  restart: (seed?: string) => void;
+  host: { game: GraphGame };
+}
+
+/** What the status pill says the game waits on, and whether it's the viewer. */
+function status(g: FrameHost): { label: string; mine: boolean } {
   if (g.playing) return { label: "playing back", mine: false };
   if (g.view.status === "finished") return { label: "finished", mine: false };
-  const mine = g.prompts[0];
-  if (mine) return { label: mine.node, mine: true };
-  const other = g.view.prompts[0];
+  const mine = g.legal.length
+    ? g.view.waiting.find((w) => w.actors.includes(g.viewer))
+    : undefined;
+  if (mine) return { label: mine.label ?? "your move", mine: true };
+  const other = g.view.waiting[0];
   if (other)
-    return { label: `${other.node} · ${other.actors.join(", ")}`, mine: false };
+    return {
+      label: `${other.label ?? "waiting"} · ${other.actors.join(", ")}`,
+      mine: false,
+    };
   return { label: "running", mine: false };
 }
 
-export function StatusPill({ g }: { g: UseGameResult }) {
+export function StatusPill({ g }: { g: FrameHost }) {
   const { label, mine } = status(g);
   return (
     <div
@@ -51,7 +73,7 @@ export function StatusPill({ g }: { g: UseGameResult }) {
  * The game page shell from the mockups: header, stats and status, the stage,
  * one row of actions, and the inspector.
  */
-export function GameFrame<T extends GameTypes>({
+export function GameFrame<V, H>({
   g,
   stats,
   above,
@@ -61,7 +83,7 @@ export function GameFrame<T extends GameTypes>({
   stageClassName,
   children,
 }: {
-  g: UseGameResult<T>;
+  g: UseGameResult<V, H>;
   stats?: ReactNode;
   /** A panel between the stats and the stage, like Roll Five's score sheet. */
   above?: ReactNode;
@@ -75,7 +97,7 @@ export function GameFrame<T extends GameTypes>({
 }) {
   const entry = use(EntryContext)!;
   // The frame reads only what every game has
-  const host = g as unknown as UseGameResult;
+  const host: FrameHost = g;
   const [devtools, setDevtools] = useState(false);
   return (
     <div className="flex h-full flex-col">
@@ -149,8 +171,9 @@ export function GameFrame<T extends GameTypes>({
       {devtools && (
         <DevtoolsPanel
           onClose={() => setDevtools(false)}
+          title={entry.title}
           game={host.host.game}
-          state={host.state as GameState}
+          state={host.state}
         />
       )}
     </div>

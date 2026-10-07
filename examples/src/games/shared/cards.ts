@@ -1,7 +1,7 @@
-import type {
-  GameTypes,
-  Tx,
-  ZoneIdOf,
+import {
+  entity,
+  type Tx,
+  type ZoneRef,
 } from "@drock07/board-game-toolkit-engine";
 
 export const SUITS = ["clubs", "diamonds", "hearts", "spades"] as const;
@@ -28,18 +28,14 @@ export interface PlayingCard {
   rank: Rank;
 }
 
-/** Any game whose entities include standard playing cards. */
-export type WithPlayingCards = GameTypes & { entities: { card: PlayingCard } };
+/**
+ * The playing-card entity type. Games share this one handle: a game may
+ * have only one entity type named "card".
+ */
+export const card = entity<PlayingCard>("card");
 
 /** Creates a standard 52-card deck in `zone`, in suit then rank order. */
-export function createDeck<T extends WithPlayingCards>(
-  tx: Tx<T>,
-  zone: ZoneIdOf<T>,
-): void {
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      // The props are a PlayingCard; TypeScript can't see that through the generic
-      tx.create("card", { suit, rank }, zone);
-    }
-  }
+export function createDeck<V>(tx: Tx<V>, zone: ZoneRef<PlayingCard>): void {
+  for (const suit of SUITS)
+    for (const rank of RANKS) tx.create(card, { suit, rank }, zone);
 }

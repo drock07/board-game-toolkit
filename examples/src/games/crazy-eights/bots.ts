@@ -1,50 +1,43 @@
 import {
-  isHidden,
-  type Bot,
-  type Input,
-  type PlayerView,
+  viewEntities,
+  type GameInput,
 } from "@drock07/board-game-toolkit-engine";
-import { COLORS, type Card, type Color, type Types } from "./impl";
-
-/** The bot's own cards, from its view: its hand is the one zone it can see into. */
-function myCards(view: PlayerView<Types>, player: string): Card[] {
-  const items = view.zones[`hand:${player}`]?.items ?? [];
-  return items.flatMap((id) => {
-    const e = view.entities[id];
-    return e && !isHidden(e) ? [e.props] : [];
-  });
-}
+import type { SyncBot } from "@drock07/board-game-toolkit-engine/testing";
+import {
+  card,
+  COLORS,
+  hand,
+  type Color,
+  type crazyEights,
+  type Vars,
+} from "./game";
 
 /**
- * Plays its first playable card, preferring non-eights; after an eight, picks
- * the color it holds most of. Draws or passes when it must.
+ * Plays its first playable card, preferring non-eights; after an eight, calls
+ * the color it holds most of. Draws or passes when it must. It sees only its
+ * own view: its hand is the one zone it can see into.
  */
-export const simpleBot: Bot<Types> = (
-  view,
-  prompt,
-  { player, legal, random },
+export const simpleBot: SyncBot<Vars, GameInput<typeof crazyEights>> = (
+  legal,
+  { view, player, random },
 ) => {
-  if (prompt.node === "wildColor") {
+  const mine = viewEntities(view, hand.of(player)).filter(card.is);
+  const colors = legal.filter((i) => i.action === "setColor");
+  if (colors.length) {
     const counts = new Map<Color, number>(COLORS.map((c) => [c, 0]));
-    for (const card of myCards(view, player)) {
-      counts.set(card.color, counts.get(card.color)! + 1);
-    }
+    for (const { props } of mine)
+      counts.set(props.color, counts.get(props.color)! + 1);
     const best = [...counts].sort((a, b) => b[1] - a[1])[0]![0];
-    return (
-      legal.find((i) => "choose" in i && i.choose[0] === best) ??
-      random.pick(legal)
-    );
+    return colors.find((i) => i.args.color === best) ?? random.pick(legal);
   }
-  if (prompt.node === "turn") {
-    const plays = legal.filter(
-      (i): i is Extract<Input, { action: string }> =>
-        "action" in i && i.action === "playCard",
-    );
-    const isEight = (i: (typeof plays)[number]) => {
-      const e = view.entities[(i.args as { card: string }).card];
-      return e !== undefined && !isHidden(e) && e.props.value === 8;
-    };
-    return plays.find((i) => !isEight(i)) ?? plays[0] ?? legal[0]!;
-  }
-  return random.pick(legal);
+  // A turn: play a non-eight if it can, else an eight, else draw or pass
+  const plays = legal.filter((i) => i.action === "playCard");
+  const isEight = (id: string) =>
+    mine.find((e) => e.id === id)?.props.value === 8;
+  return (
+    plays.find((i) => !isEight(i.args.card)) ??
+    plays[0] ??
+    legal.find((i) => i.action !== "again") ??
+    random.pick(legal)
+  );
 };

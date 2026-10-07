@@ -5,206 +5,29 @@
   "seed": "golden",
   "inputs": [
     {
-      "prompt": "q1",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q2",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q3",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q4",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q5",
       "player": "p1",
       "action": "discard",
       "args": {
-        "card": "card#24"
+        "card": "card#25"
       }
     },
     {
-      "prompt": "q6",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#19"
-      }
-    },
-    {
-      "prompt": "q7",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q8",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#27"
-      }
-    },
-    {
-      "prompt": "q9",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q10",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#7"
-      }
-    },
-    {
-      "prompt": "q11",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q12",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#9"
-      }
-    },
-    {
-      "prompt": "q13",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#44"
-      }
-    },
-    {
-      "prompt": "q14",
       "player": "p1",
       "action": "shuffleBack"
     },
     {
-      "prompt": "q15",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#18"
-      }
-    },
-    {
-      "prompt": "q16",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q17",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q18",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#11"
-      }
-    },
-    {
-      "prompt": "q19",
-      "player": "p1",
-      "action": "shuffleBack"
-    },
-    {
-      "prompt": "q20",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q21",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q22",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#48"
-      }
-    },
-    {
-      "prompt": "q23",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q24",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#32"
-      }
-    },
-    {
-      "prompt": "q25",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q26",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#43"
-      }
-    },
-    {
-      "prompt": "q27",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#16"
-      }
-    },
-    {
-      "prompt": "q28",
-      "player": "p1",
-      "action": "shuffleBack"
-    },
-    {
-      "prompt": "q29",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q30",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q31",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q32",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#44"
-      }
-    },
-    {
-      "prompt": "q33",
       "player": "p1",
       "action": "discard",
       "args": {
@@ -212,7 +35,22 @@
       }
     },
     {
-      "prompt": "q34",
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "shuffleBack"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
       "player": "p1",
       "action": "discard",
       "args": {
@@ -220,25 +58,76 @@
       }
     },
     {
-      "prompt": "q35",
       "player": "p1",
       "action": "discard",
       "args": {
-        "card": "card#0"
+        "card": "card#10"
       }
     },
     {
-      "prompt": "q36",
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#37"
+      }
+    },
+    {
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q37",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q38",
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#45"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#29"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "shuffleBack"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#17"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#52"
+      }
+    },
+    {
       "player": "p1",
       "action": "discard",
       "args": {
@@ -246,25 +135,6 @@
       }
     },
     {
-      "prompt": "q39",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q40",
-      "player": "p1",
-      "action": "shuffleBack"
-    },
-    {
-      "prompt": "q41",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q42",
       "player": "p1",
       "action": "discard",
       "args": {
@@ -272,136 +142,79 @@
       }
     },
     {
-      "prompt": "q43",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q44",
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#43"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
       "player": "p1",
       "action": "shuffleBack"
     },
     {
-      "prompt": "q45",
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#9"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#4"
+      }
+    },
+    {
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q46",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#24"
-      }
-    },
-    {
-      "prompt": "q47",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q48",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q49",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q50",
       "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#20"
-      }
+      "action": "draw"
     },
     {
-      "prompt": "q51",
       "player": "p1",
       "action": "shuffleBack"
     },
     {
-      "prompt": "q52",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q53",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#30"
-      }
-    },
-    {
-      "prompt": "q54",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#15"
-      }
-    },
-    {
-      "prompt": "q55",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q56",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q57",
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q58",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#1"
-      }
-    },
-    {
-      "prompt": "q59",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#42"
-      }
-    },
-    {
-      "prompt": "q60",
-      "player": "p1",
-      "action": "shuffleBack"
-    },
-    {
-      "prompt": "q61",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#12"
-      }
-    },
-    {
-      "prompt": "q62",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q63",
-      "player": "p1",
-      "action": "shuffleBack"
-    },
-    {
-      "prompt": "q64",
       "player": "p1",
       "action": "discard",
       "args": {
@@ -409,12 +222,6 @@
       }
     },
     {
-      "prompt": "q65",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q66",
       "player": "p1",
       "action": "discard",
       "args": {
@@ -422,79 +229,130 @@
       }
     },
     {
-      "prompt": "q67",
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#1"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#3"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#46"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#27"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#16"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#37"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#5"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#35"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#22"
+      }
+    },
+    {
       "player": "p1",
       "action": "shuffleBack"
     },
     {
-      "prompt": "q68",
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#25"
+      }
+    },
+    {
       "player": "p1",
       "action": "draw"
     },
     {
-      "prompt": "q69",
       "player": "p1",
       "action": "discard",
       "args": {
-        "card": "card#47"
+        "card": "card#41"
       }
     },
     {
-      "prompt": "q70",
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#29"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
       "player": "p1",
       "action": "shuffleBack"
     },
     {
-      "prompt": "q71",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q72",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q73",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q74",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#30"
-      }
-    },
-    {
-      "prompt": "q75",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q76",
-      "player": "p1",
-      "action": "draw"
-    },
-    {
-      "prompt": "q77",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#12"
-      }
-    },
-    {
-      "prompt": "q78",
-      "player": "p1",
-      "action": "discard",
-      "args": {
-        "card": "card#13"
-      }
-    },
-    {
-      "prompt": "q79",
       "player": "p1",
       "action": "discard",
       "args": {
@@ -502,10 +360,72 @@
       }
     },
     {
-      "prompt": "q80",
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#23"
+      }
+    },
+    {
       "player": "p1",
       "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#39"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "shuffleBack"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#52"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#27"
+      }
+    },
+    {
+      "player": "p1",
+      "action": "shuffleBack"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "draw"
+    },
+    {
+      "player": "p1",
+      "action": "discard",
+      "args": {
+        "card": "card#14"
+      }
     }
   ],
-  "finalStateHash": "2a687ddae5c91095a74af3544ca3c17a"
+  "finalStateHash": "3437ea5e3cc44ee629790e07a6961ca3"
 }

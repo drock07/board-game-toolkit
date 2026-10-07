@@ -2,168 +2,179 @@ import {
   apply,
   init,
   randomBot,
-  replay,
-  type ApplyResult,
-  type Input,
-  type Tx,
+  replayInputs,
+  view,
+  type Applied,
+  type EntityId,
+  type State,
 } from "@drock07/board-game-toolkit-engine";
 import {
-  checkInvariants,
   hashState,
   playBots,
-  transact,
 } from "@drock07/board-game-toolkit-engine/testing";
 import { describe, expect, test } from "vitest";
-import { towerBattler } from ".";
-import { intentFor, type Types } from "./impl";
-
-type Result = ApplyResult<Types>;
-
-function ok(res: ReturnType<typeof apply<Types>>): Result {
-  if (!res.ok) throw new Error(`${res.error.code}: ${res.error.message}`);
-  return res;
-}
+import { again, endTurn, playCard, towerBattler } from ".";
+import {
+  discard,
+  drawPile,
+  hand,
+  intentFor,
+  TURN_LABEL,
+  type Card,
+  type Vars,
+} from "./game";
 
 const start = (seed = "t") => init(towerBattler, { players: ["p1"], seed });
-const prompt = (r: Result) => r.prompts[0]!;
-const input = (r: Result, action: string, card?: string): Input => ({
-  prompt: prompt(r).id,
-  player: "p1",
-  action,
-  ...(card ? { args: { card } } : {}),
-});
 
-/** Edits a state mid-turn; the flow (and its open prompt) is unchanged. */
-function edit(r: Result, fn: (tx: Tx<Types>) => void): Result {
-  return { ...r, state: transact(r.state, fn).state };
+function ok(out: Applied<Vars>) {
+  if (!out.ok) throw new Error(out.reason);
+  return out;
 }
 
-/** Puts a card named `name` on top of the hand, from wherever it is. */
-function toHand(tx: Tx<Types>, name: string): string {
-  const id = Object.values(tx.state.entities).find(
-    (e) => e.props.name === name,
-  )!.id;
-  tx.move(id, "hand");
-  return id;
+const ids = (s: State<Vars>, z: { id: string }) => s.zones[z.id]!;
+const label = (s: State<Vars>) => view(towerBattler, s, "p1").waiting[0]?.label;
+
+/** Edits a state between inputs; the flow (and its open prompt) is unchanged. */
+function edit(s: State<Vars>, fn: (s: State<Vars>) => void): State<Vars> {
+  const out = structuredClone(s);
+  fn(out);
+  return out;
 }
 
-const handNames = (r: Result) =>
-  r.state.zones.hand.items.map((id) => r.state.entities[id]!.props.name);
+/** Moves a card named `name` to the top of the hand, from wherever it is. */
+function toHand(s: State<Vars>, name: string): EntityId {
+  const e = Object.values(s.entities).find(
+    (e) => (e.props as Card).name === name,
+  )!;
+  s.zones[e.zone] = s.zones[e.zone]!.filter((x) => x !== e.id);
+  s.zones[hand.id] = [e.id, ...s.zones[hand.id]!.filter((x) => x !== e.id)];
+  s.entities[e.id] = { ...e, zone: hand.id };
+  return e.id;
+}
 
 describe("tower battler", () => {
   test("starts with five cards, full energy and the enemy's intent", () => {
-    const r = start();
-    expect(r.state.zones.hand.items).toHaveLength(5);
-    expect(r.state.vars).toMatchObject({
+    const s = start();
+    expect(ids(s, hand)).toHaveLength(5);
+    expect(s.vars).toMatchObject({
       player: { hp: 50, energy: 3, block: 0 },
       enemy: { hp: 40, intent: 8 },
       turn: 1,
     });
-    expect(prompt(r)).toMatchObject({ node: "playerTurn" });
+    expect(label(s)).toBe(TURN_LABEL);
   });
 
   test("cards cost energy and resolve their effects", () => {
-    let r = edit(start(), (tx) => {
-      toHand(tx, "Bash");
-      tx.vars.player.energy = 2;
+    let bash = "";
+    let s = edit(start(), (s) => {
+      bash = toHand(s, "Bash");
+      s.vars.player.energy = 2;
     });
-    const bash = r.state.zones.hand.items[0]!;
-    r = ok(apply(towerBattler, r.state, input(r, "playCard", bash)));
-    expect(r.state.vars.enemy.hp).toBe(32);
-    expect(r.state.vars.player).toMatchObject({ energy: 0, block: 2 });
-    const another = r.state.zones.hand.items[0]!;
+    s = ok(apply(towerBattler, s, playCard.by("p1", { card: bash }))).state;
+    expect(s.vars.enemy.hp).toBe(32);
+    expect(s.vars.player).toMatchObject({ energy: 0, block: 2 });
+    // The turn stays open, but nothing is affordable now
+    expect(label(s)).toBe(TURN_LABEL);
+    const another = ids(s, hand)[0]!;
     expect(
-      apply(towerBattler, r.state, input(r, "playCard", another)),
-    ).toMatchObject({ ok: false, error: { message: "Not enough energy" } });
+      apply(towerBattler, s, playCard.by("p1", { card: another })),
+    ).toEqual({ ok: false, reason: "Not enough energy" });
   });
 
-  test("the enemy falling mid-turn wins at once (guards run after every action)", () => {
-    let r = edit(start(), (tx) => {
-      toHand(tx, "Strike");
-      tx.vars.enemy.hp = 6;
+  test("the enemy falling mid-turn wins at once (outcomes are checked after every action)", () => {
+    let strike = "";
+    let s = edit(start(), (s) => {
+      strike = toHand(s, "Strike");
+      s.vars.enemy.hp = 6;
     });
-    r = ok(
-      apply(
-        towerBattler,
-        r.state,
-        input(r, "playCard", r.state.zones.hand.items[0]),
-      ),
-    );
-    expect(r.state.vars.result).toBe("win");
-    expect(prompt(r).node).toBe("again");
+    const out = ok(apply(towerBattler, s, playCard.by("p1", { card: strike })));
+    s = out.state;
+    expect(s.vars.result).toBe("win");
+    expect(label(s)).toBe("Play again");
     // The enemy never attacked
-    expect(r.events.some((e) => e.type === "custom")).toBe(false);
-    expect(r.state.vars.player.hp).toBe(50);
+    expect(out.events.some((e) => e.type === "effect")).toBe(false);
+    expect(s.vars.player.hp).toBe(50);
   });
 
   test("drawing two with one card left reshuffles the discards instead of failing", () => {
     let sprint = "";
-    let r = edit(start(), (tx) => {
-      sprint = toHand(tx, "Sprint");
-      tx.move(tx.state.zones.draw.items.slice(1), "discard");
+    const s = edit(start(), (s) => {
+      sprint = toHand(s, "Sprint");
+      const rest = ids(s, drawPile).slice(1);
+      s.zones[drawPile.id] = ids(s, drawPile).slice(0, 1);
+      s.zones[discard.id] = rest;
+      for (const id of rest)
+        s.entities[id] = { ...s.entities[id]!, zone: discard.id };
     });
-    expect(r.state.zones.draw.items).toHaveLength(1);
-    const before = r.state.zones.hand.items.length;
-    r = ok(apply(towerBattler, r.state, input(r, "playCard", sprint)));
-    expect(r.state.zones.hand.items).toHaveLength(before - 1 + 2);
+    expect(ids(s, drawPile)).toHaveLength(1);
+    const before = ids(s, hand).length;
+    const out = ok(apply(towerBattler, s, playCard.by("p1", { card: sprint })));
+    expect(ids(out.state, hand)).toHaveLength(before - 1 + 2);
     expect(
-      r.events.some((e) => e.type === "shuffled" && e.zone === "draw"),
+      out.events.some((e) => e.type === "shuffled" && e.zone === drawPile.id),
     ).toBe(true);
-    expect(checkInvariants(r.state)).toEqual([]);
   });
 
   test("ending the turn: the enemy attacks through block, then a new turn starts", () => {
-    let r = edit(start(), (tx) => {
-      tx.vars.player.block = 3;
+    const s = edit(start(), (s) => {
+      s.vars.player.block = 3;
     });
-    r = ok(apply(towerBattler, r.state, input(r, "endTurn")));
-    expect(r.state.vars.player).toMatchObject({ hp: 45, block: 0, energy: 3 });
-    expect(r.state.vars).toMatchObject({
+    const out = ok(apply(towerBattler, s, endTurn.by("p1")));
+    expect(out.events).toContainEqual(
+      expect.objectContaining({
+        type: "effect",
+        name: "enemyAttack",
+        data: { damage: 5, blocked: 3 },
+      }),
+    );
+    expect(out.state.vars.player).toMatchObject({
+      hp: 45,
+      block: 0,
+      energy: 3,
+    });
+    expect(out.state.vars).toMatchObject({
       turn: 2,
       enemy: { intent: intentFor(2) },
     });
-    expect(r.state.zones.hand.items).toHaveLength(5);
+    expect(ids(out.state, hand)).toHaveLength(5);
     expect(intentFor(3)).toBe(14);
   });
 
   test("falling to zero loses; playing again rebuilds the deck", () => {
-    let r = edit(start(), (tx) => {
-      tx.vars.player.hp = 1;
+    let s = edit(start(), (s) => {
+      s.vars.player.hp = 1;
     });
-    r = ok(apply(towerBattler, r.state, input(r, "endTurn")));
-    expect(r.state.vars.result).toBe("lose");
-    expect(prompt(r).node).toBe("again");
-    r = ok(
-      apply(towerBattler, r.state, {
-        prompt: prompt(r).id,
-        player: "p1",
-        continue: true,
-      }),
-    );
-    expect(r.state.vars).toMatchObject({
+    s = ok(apply(towerBattler, s, endTurn.by("p1"))).state;
+    expect(s.vars.result).toBe("lose");
+    expect(s.vars.turn).toBe(1);
+    expect(label(s)).toBe("Play again");
+    s = ok(apply(towerBattler, s, again.by("p1"))).state;
+    expect(s.vars).toMatchObject({
       result: null,
       player: { hp: 50 },
       enemy: { hp: 40 },
     });
-    expect(handNames(r)).toHaveLength(5);
-    expect(r.state.zones.discard.items).toHaveLength(0);
+    expect(ids(s, hand)).toHaveLength(5);
+    expect(ids(s, discard)).toHaveLength(0);
   });
 });
 
 test("golden replay", async () => {
-  const { results, inputs } = playBots(towerBattler, {
+  const { states, inputs } = playBots(towerBattler, {
     players: ["p1"],
     seed: "golden",
-    bots: randomBot(),
+    bots: randomBot("golden"),
     maxInputs: 120,
   });
   const golden = {
     players: ["p1"],
     seed: "golden",
     inputs,
-    finalStateHash: hashState(results.at(-1)!.state),
+    finalStateHash: hashState(states.at(-1)!),
   };
-  expect(hashState(replay(towerBattler, golden))).toBe(golden.finalStateHash);
+  expect(hashState(replayInputs(towerBattler, golden, golden.inputs))).toBe(
+    golden.finalStateHash,
+  );
   await expect(JSON.stringify(golden, null, 2) + "\n").toMatchFileSnapshot(
     "./golden.json",
   );
