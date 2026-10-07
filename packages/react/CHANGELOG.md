@@ -1,5 +1,18 @@
 # @drock07/board-game-toolkit-react
 
+## 0.2.0
+
+### Minor Changes
+
+- [#60](https://github.com/drock07/board-game-toolkit/pull/60) [`447b284`](https://github.com/drock07/board-game-toolkit/commit/447b284dcda0a83f49b5cf0a2fe0903ba11eeda1) Thanks [@drock07](https://github.com/drock07)! - Zones can have `visibility: "top"`: everyone sees only the top entity, and the engine manages `faceUp` as the top changes. `move` and `moveTop` take `{ at: "bottom" }`. A `flow` event at the end of each input carries what the flow waits on and what its kinds show, so views replay exactly and a host's view stays in step during playback. `turns` shows `{ player, turn, round }` and `loop` shows `{ pass }` (`turnsNode.shown(view)`, `loopNode.shown(view)`). A kind's `show` receives a read context.
+
+- [#60](https://github.com/drock07/board-game-toolkit/pull/60) [`e769da3`](https://github.com/drock07/board-game-toolkit/commit/e769da356711cd80dcb20f0248ff86628fadf74e) Thanks [@drock07](https://github.com/drock07)! - The React host runs on the rewritten engine. `useGame` returns `actors` (who may act now) and the viewer's typed `legal` inputs instead of `prompts`. Events play back onto the viewer's view, and `submit` returns a rejection reason. Bots are `(legal, { view, player, random }) => input`, so the engine's `randomBot(seed)` fits as is. They answer whenever their seat may act. New `useGameEffect(g, effect, (data, view) => …)` is typed by the effect. The devtools draw any spec, custom kinds included, through each kind's `children()`; `FiberInspector` shows the root stack, the fibers and the pending interrupt queue. In the engine, views gain `waiting` (open prompts with optional labels) and `shown` (what kinds publish, such as `turnNode.shown(view)`). `turn` is a built-in kind, and `viewEntities(view, zone)` reads a zone from a view. Setup `options` and the `pause` prompt kind are gone.
+
+### Patch Changes
+
+- Updated dependencies [[`d59510f`](https://github.com/drock07/board-game-toolkit/commit/d59510f77b754800b57c38135e9703610e4d2152), [`e6317fe`](https://github.com/drock07/board-game-toolkit/commit/e6317feb3817143503df114a00854737ccd1519e), [`3faf41c`](https://github.com/drock07/board-game-toolkit/commit/3faf41ce2c62fe38600afc6a23d6b0abf11467e5), [`cc2f136`](https://github.com/drock07/board-game-toolkit/commit/cc2f136b315374b366c649e28d14edeab11fb4b4), [`1277960`](https://github.com/drock07/board-game-toolkit/commit/1277960edcc20b6979b7dba9b74537e3faa5ef20), [`04430bc`](https://github.com/drock07/board-game-toolkit/commit/04430bce80f4f8ea27e1f210b858f152de7b8a71), [`447b284`](https://github.com/drock07/board-game-toolkit/commit/447b284dcda0a83f49b5cf0a2fe0903ba11eeda1), [`e769da3`](https://github.com/drock07/board-game-toolkit/commit/e769da356711cd80dcb20f0248ff86628fadf74e)]:
+  - @drock07/board-game-toolkit-engine@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

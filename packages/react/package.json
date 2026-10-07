@@ -1,6 +1,6 @@
 {
   "name": "@drock07/board-game-toolkit-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "React host for the board game toolkit engine",
   "type": "module",
   "sideEffects": false,
