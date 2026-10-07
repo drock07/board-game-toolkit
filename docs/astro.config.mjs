@@ -92,10 +92,6 @@ export default defineConfig({
               label: "Flow nodes",
               items: [{ autogenerate: { directory: "reference/flow" } }],
             },
-            {
-              label: "Spec",
-              items: [{ autogenerate: { directory: "reference/spec" } }],
-            },
             engineApiSidebar,
             reactApiSidebar,
           ],

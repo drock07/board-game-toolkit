@@ -2,17 +2,17 @@
 // Which example shows which feature. Spec features are read from the
 // compiled games, and rules and UI features from their source, so the table
 // can't fall out of date.
-import type { FlowNode, Game } from "@drock07/board-game-toolkit-engine";
+import type { SpecNode } from "@drock07/board-game-toolkit-engine/kinds";
 import { catalog } from "board-game-toolkit-examples/catalog";
-import { games } from "board-game-toolkit-examples/registry";
+import { games, type AnyGame } from "board-game-toolkit-examples/registry";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { href } from "../lib/links";
 import { examplesRoot } from "../lib/source";
 
 interface Ctx {
-  game: Game;
-  nodes: FlowNode[];
+  game: AnyGame;
+  nodes: SpecNode[];
   /** The game folder's source, concatenated. */
   source: string;
   ui: string;
@@ -26,7 +26,7 @@ interface Feature {
   has: (c: Ctx) => boolean;
 }
 
-const some = (c: Ctx, f: (n: FlowNode) => boolean) => c.nodes.some(f);
+const kind = (c: Ctx, k: string) => c.nodes.some((n) => n.kind === k);
 const zoneVis = (c: Ctx, v: string) =>
   Object.values(c.game.spec.zones).some((z) => z.visibility === v);
 
@@ -34,186 +34,61 @@ const groups: { title: string; features: Feature[] }[] = [
   {
     title: "Flow",
     features: [
-      {
-        name: "Turns over players",
-        code: "each",
-        link: "reference/flow/each/",
-        has: (c) => some(c, (n) => n.kind === "each" && "players" in n.over),
-      },
-      {
-        name: "Simultaneous turns",
-        code: 'mode: "parallel"',
-        link: "reference/flow/each/",
-        has: (c) =>
-          some(c, (n) => n.kind === "each" && n.mode === "parallel"),
-      },
-      {
-        name: "Repeating rounds",
-        code: "loop",
-        link: "reference/flow/loop/",
-        has: (c) => some(c, (n) => n.kind === "loop"),
-      },
-      {
-        name: "Branches",
-        code: "branch",
-        link: "reference/flow/branch/",
-        has: (c) => some(c, (n) => n.kind === "branch"),
-      },
-      {
-        name: "A decision that stays open",
-        code: "ends: false",
-        link: "reference/flow/decision/",
-        has: (c) =>
-          some(
-            c,
-            (n) =>
-              n.kind === "decision" &&
-              Object.values(n.actions).some((a) => a.ends === false),
-          ),
-      },
-      {
-        name: "Picking from options",
-        code: "choose",
-        link: "reference/flow/choose/",
-        has: (c) => some(c, (n) => n.kind === "choose"),
-      },
-      {
-        name: "Racing responses",
-        code: 'parallel, join: "race"',
-        link: "reference/flow/parallel/",
-        has: (c) =>
-          some(c, (n) => n.kind === "parallel" && n.join === "race"),
-      },
-      {
-        name: "Guards that end a node",
-        code: "exits",
-        link: "concepts/outcomes/",
-        has: (c) => some(c, (n) => !!n.exits),
-      },
-      {
-        name: "Raised outcomes",
-        code: "tx.exit",
-        link: "concepts/outcomes/",
-        has: (c) => /tx\.exit\(/.test(c.source),
-      },
-      {
-        name: "Reusable subflows",
-        code: "subflow",
-        link: "reference/flow/subflow/",
-        has: (c) => some(c, (n) => n.kind === "use"),
-      },
-      {
-        name: "Per-node state",
-        code: "locals",
-        link: "concepts/state/",
-        has: (c) => some(c, (n) => !!n.locals),
-      },
-      {
-        name: "Interrupts",
-        code: "triggers",
-        link: "reference/spec/triggers/",
-        has: (c) => (c.game.spec.triggers?.length ?? 0) > 0,
-      },
+      { name: "Turns in seat order", code: "turns", link: "reference/flow/turns/", has: (c) => kind(c, "turns") },
+      { name: "A turn that stays open", code: "turn", link: "reference/flow/turn/", has: (c) => kind(c, "turn") },
+      { name: "Repeating rounds", code: "loop", link: "reference/flow/loop/", has: (c) => kind(c, "loop") },
+      { name: "Branches", code: "branch", link: "reference/flow/branch/", has: (c) => kind(c, "branch") },
+      { name: "Everyone at once", code: "simultaneous", link: "reference/flow/simultaneous/", has: (c) => kind(c, "simultaneous") },
+      { name: "First answer wins", code: "anyone", link: "reference/flow/anyone/", has: (c) => kind(c, "anyone") },
+      { name: "Ways to end early", code: "outcomes", link: "reference/flow/outcomes/", has: (c) => kind(c, "outcomes") },
+      { name: "Raised outcomes", code: "{ exit }", link: "reference/flow/outcomes/", has: (c) => /exit: "/.test(c.source) },
+      { name: "Labelled prompts", code: "label", link: "reference/flow/prompt/", has: (c) => /label: "/.test(c.source) },
     ],
   },
   {
     title: "State and visibility",
     features: [
-      {
-        name: "Per-player zones",
-        code: "perPlayer",
-        link: "concepts/state/",
-        has: (c) =>
-          Object.values(c.game.spec.zones).some((z) => z.perPlayer),
-      },
-      {
-        name: "Hidden decks",
-        code: '"hidden"',
-        link: "concepts/views/",
-        has: (c) => zoneVis(c, "hidden"),
-      },
-      {
-        name: "Hands only their owner sees",
-        code: '"owner"',
-        link: "concepts/views/",
-        has: (c) => zoneVis(c, "owner"),
-      },
-      {
-        name: "Only the top card shows",
-        code: '"top"',
-        link: "concepts/views/",
-        has: (c) => zoneVis(c, "top"),
-      },
-      {
-        name: "Face-down cards in public zones",
-        code: "faceUp",
-        link: "concepts/views/",
-        has: (c) => /faceUp:/.test(c.source),
-      },
-      {
-        name: "Secret per-player vars",
-        code: 'vars: "owner"',
-        link: "concepts/views/",
-        has: (c) =>
-          Object.values(c.game.spec.vars ?? {}).some(
-            (v) => v.visibility === "owner",
-          ),
-      },
-      {
-        name: "Dice and shuffles",
-        code: "tx.random",
-        link: "concepts/determinism/",
-        has: (c) => /tx\.(random|shuffle)\b/.test(c.source),
-      },
+      { name: "Per-player zones", code: "perPlayer", link: "concepts/state/", has: (c) => Object.values(c.game.spec.zones).some((z) => z.perPlayer) },
+      { name: "Hidden decks", code: '"hidden"', link: "concepts/views/", has: (c) => zoneVis(c, "hidden") },
+      { name: "Hands only their owner sees", code: '"owner"', link: "concepts/views/", has: (c) => zoneVis(c, "owner") },
+      { name: "Only the top card shows", code: '"top"', link: "concepts/views/", has: (c) => zoneVis(c, "top") },
+      { name: "Face-down cards in public zones", code: "faceUp", link: "concepts/views/", has: (c) => /faceUp:/.test(c.source) },
+      { name: "Dice and shuffles", code: "tx.random", link: "concepts/determinism/", has: (c) => /tx\.(random|shuffle)\b/.test(c.source) },
     ],
   },
   {
-    title: "Hosting",
+    title: "Effects and hosting",
     features: [
-      {
-        name: "Bots",
-        code: "controller",
-        link: "guides/bots/",
-        has: (c) => /controller:/.test(c.ui),
-      },
-      {
-        name: "Custom events",
-        code: "tx.emit",
-        link: "guides/animating-events/",
-        has: (c) => /tx\.emit\(/.test(c.source),
-      },
-      {
-        name: "Paced playback",
-        code: "useGameEvent",
-        link: "guides/animating-events/",
-        has: (c) => /useGameEvent\(/.test(c.ui),
-      },
+      { name: "Effects", code: "effect", link: "concepts/effects/", has: (c) => (c.game.spec.effects?.length ?? 0) > 0 },
+      { name: "Abilities", code: "ability", link: "concepts/effects/", has: (c) => (c.game.spec.abilities?.length ?? 0) > 0 },
+      { name: "Bots", code: "controller", link: "guides/bots/", has: (c) => /controller:/.test(c.ui) },
+      { name: "Paced playback", code: "useGameEvent", link: "guides/animating-events/", has: (c) => /useGameEvent\(/.test(c.ui) },
+      { name: "Effects on screen", code: "useGameEffect", link: "guides/animating-events/", has: (c) => /useGameEffect\(/.test(c.ui) },
+      { name: "What a node shows", code: ".shown(view)", link: "reference/flow/shown/", has: (c) => /\.shown\(/.test(c.ui) },
     ],
   },
 ];
 
-function walk(node: FlowNode, out: FlowNode[]) {
-  out.push(node);
-  const n = node as unknown as Record<string, unknown>;
-  const kids: unknown[] = [
-    n.body,
-    n.else,
-    ...((n.children as unknown[]) ?? []),
-    ...((n.cases as { then: unknown }[]) ?? []).map((x) => x.then),
-    ...Object.values((n.on as object) ?? {}),
-    ...Object.values((n.actions as Record<string, { then?: unknown }>) ?? {}).map(
-      (a) => a.then,
-    ),
-  ];
-  for (const k of kids) if (k) walk(k as FlowNode, out);
+/** Every node of a game: the flow, abilities and effects, through each kind's children. */
+function nodesOf(game: AnyGame): SpecNode[] {
+  const out: SpecNode[] = [];
+  const walk = (n: SpecNode) => {
+    out.push(n);
+    for (const c of game.kinds[n.kind]?.children(n) ?? []) walk(c);
+  };
+  for (const root of [
+    game.spec.flow,
+    ...(game.spec.abilities ?? []),
+    ...(game.spec.effects ?? []),
+  ])
+    walk(root);
+  return out;
 }
 
 const root = examplesRoot();
 const entries = catalog.map((e) => {
   const game = games[e.slug]!;
-  const nodes: FlowNode[] = [];
-  walk(game.flow, nodes);
-  for (const t of game.triggers) walk(t.def.flow, nodes);
+  const nodes = nodesOf(game);
   const dir = join(root, "games", e.slug);
   const files = readdirSync(dir).filter(
     (f) => /\.tsx?$/.test(f) && !f.includes(".test."),

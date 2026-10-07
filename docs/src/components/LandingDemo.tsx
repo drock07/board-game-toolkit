@@ -1,4 +1,4 @@
-import { useGame, type UseGameResult } from "@drock07/board-game-toolkit-react";
+import { useGame } from "@drock07/board-game-toolkit-react";
 import { FlowGraph } from "@drock07/board-game-toolkit-react/devtools";
 import {
   crazyEights,
@@ -24,7 +24,7 @@ function Demo({ spec }: { spec: ReactNode }) {
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-4 pb-3">
             <div className="flex flex-wrap gap-6">{stats}</div>
             <div className="flex items-center gap-2">
-              <StatusPill g={g as unknown as UseGameResult} />
+              <StatusPill g={g} />
               <button
                 type="button"
                 onClick={() => g.restart()}
@@ -65,7 +65,7 @@ function Demo({ spec }: { spec: ReactNode }) {
             outlined nodes are running, filled ones wait for a player.
           </span>
         </div>
-        <FlowGraph game={crazyEights} flow={g.state.flow} />
+        <FlowGraph game={crazyEights} state={g.state} />
       </div>
     </div>
   );
