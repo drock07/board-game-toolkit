@@ -65,6 +65,16 @@ export {
 export type { InitOptions } from "./play.js";
 export { canSee } from "./zones.js";
 
+// Errors
+export {
+  AbilityLoopError,
+  FlowEndedWithoutEndError,
+  FlowStuckError,
+  GameDefinitionError,
+  RulesError,
+  UnhandledOutcomeError,
+} from "./errors.js";
+
 // Randomness
 export { D10, D100, D12, D20, D4, D6, D8, Fudge } from "./dice.js";
 export { seededRandom } from "./rng.js";

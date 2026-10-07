@@ -1,4 +1,5 @@
 // `define`: binds a game's vars and lowers its rules into a spec and impl.
+import { GameDefinitionError, RulesError } from "../errors.js";
 import * as kinds from "../kinds/index.js";
 import type {
   AbilityNode,
@@ -40,7 +41,7 @@ const effectNodeId = (name: string) => `effect.${name}`;
 /** The running ability's scope, read through its node id. */
 const abilityScope = (s: Scoped, id: string): AbilityScope => {
   const scope = s.scopeOf(id) as AbilityScope | undefined;
-  if (!scope) throw new Error(`Not inside ability "${id}"`);
+  if (!scope) throw new RulesError(`Not inside ability "${id}"`);
   return scope;
 };
 
@@ -52,8 +53,17 @@ const dataOf = (e: GameEvent) => (e.type === "effect" ? e.data : undefined);
 export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
   const zones: Record<string, ZoneDef> = {};
   const zoneCounts: Record<string, (players: number) => number> = {};
+  // Entity types by name: `is()` narrows by name, so a name means one type
+  const types = new Map<string, EntityType<unknown>>();
   for (const z of box.zones ?? []) {
-    if (zones[z.name]) throw new Error(`Two zones are named "${z.name}"`);
+    if (zones[z.name])
+      throw new GameDefinitionError(`Two zones are named "${z.name}"`);
+    const known = types.get(z.holds.name);
+    if (known && known !== z.holds)
+      throw new GameDefinitionError(
+        `Two different entity types are named "${z.holds.name}": declare it once and share the handle`,
+      );
+    types.set(z.holds.name, z.holds);
     zones[z.name] = z.def;
     if (z.countOf) zoneCounts[z.name] = z.countOf;
   }
@@ -92,7 +102,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
       } = {},
     ) {
       if (declared.has(name))
-        throw new Error(`Two effects are named "${name}"`);
+        throw new GameDefinitionError(`Two effects are named "${name}"`);
       const e = { name, ...def } as Effect<V, T>;
       (e as { before: Before<V, T> }).before = { effect: e, timing: "before" };
       declared.set(name, e);
@@ -171,6 +181,16 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
     },
     rules(def) {
       const p = def.players ?? 1;
+      const [min, max] = typeof p === "number" ? [p, p] : p;
+      if (
+        !Number.isInteger(min) ||
+        !Number.isInteger(max) ||
+        min < 1 ||
+        min > max
+      )
+        throw new GameDefinitionError(
+          `players must be a whole number from 1, or [min, max] with min <= max; got ${JSON.stringify(p)}`,
+        );
       const impl: Impl<V> = {
         setup: (tx) => def.setup(tx),
         actions: {},
@@ -189,7 +209,9 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         const spec = n.lower(l);
         const known = modules[spec.kind];
         if (known && known !== n.module)
-          throw new Error(`Two different kinds are named "${spec.kind}"`);
+          throw new GameDefinitionError(
+            `Two different kinds are named "${spec.kind}"`,
+          );
         modules[spec.kind] = n.module;
         return spec;
       };
@@ -214,7 +236,9 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         },
         action(a) {
           if (handles.has(a.name) && handles.get(a.name) !== a)
-            throw new Error(`Two different actions are named "${a.name}"`);
+            throw new GameDefinitionError(
+              `Two different actions are named "${a.name}"`,
+            );
           handles.set(a.name, a);
           impl.actions[a.name] = (a as unknown as { impl: ActionImpl<V> }).impl;
           return a.name;
@@ -225,12 +249,25 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
       const caused = new Map<string, Effect<V, unknown>>();
       const addEffect = (e: Effect<V, unknown>) => {
         if (caused.has(e.name) && caused.get(e.name) !== e)
-          throw new Error(`Two different effects are named "${e.name}"`);
+          throw new GameDefinitionError(
+            `Two different effects are named "${e.name}"`,
+          );
         caused.set(e.name, e);
       };
       for (const e of declared.values()) addEffect(e);
       const abilities = (def.abilities ?? []).map((a) => {
         const { node, matches, effect, who } = a.lower(l);
+        if (node.in !== undefined) {
+          const z = zones[node.in];
+          if (!z)
+            throw new GameDefinitionError(
+              `Ability "${node.id}" is carried in zone "${node.in}", which isn't one of this game's zones`,
+            );
+          if (z.holds !== node.of)
+            throw new GameDefinitionError(
+              `Ability "${node.id}" is carried by "${node.of}", but zone "${node.in}" holds "${z.holds}"`,
+            );
+        }
         impl.abilities[node.id] = matches as never;
         if (who) impl.abilityOwners[node.id] = who as never;
         if (effect) addEffect(effect);
@@ -253,10 +290,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
       if (effects.length) modules.effect = kinds.effect;
       return {
         spec: {
-          players:
-            typeof p === "number"
-              ? { min: p, max: p }
-              : { min: p[0], max: p[1] },
+          players: { min, max },
           zones,
           flow,
           ...(abilities.length && { abilities }),

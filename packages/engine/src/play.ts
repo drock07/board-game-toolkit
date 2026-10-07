@@ -165,7 +165,9 @@ export interface InitOptions {
 export function init<V>(game: GameDef<V>, opts: InitOptions): State<V> {
   const { min, max } = game.spec.players;
   if (opts.players.length < min || opts.players.length > max) {
-    throw new Error(`This game takes ${min} to ${max} players`);
+    throw new RangeError(
+      `This game takes ${min} to ${max} players, not ${opts.players.length}`,
+    );
   }
   indexAll(game);
   const zones: Record<ZoneId, EntityId[]> = {};

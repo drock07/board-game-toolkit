@@ -1,5 +1,10 @@
 import { interrupt, isReady, triggered } from "./effects.js";
 import {
+  FlowEndedWithoutEndError,
+  FlowStuckError,
+  UnhandledOutcomeError,
+} from "./errors.js";
+import {
   fiberIds,
   isInterrupt,
   kindOf,
@@ -115,7 +120,7 @@ export function raise<V>(
     const stack = stackOf(s, fiber);
     if (!stack.length) {
       if (fiber === ROOT)
-        throw new Error(
+        throw new UnhandledOutcomeError(
           `Outcome "${outcome}" was raised but no enclosing node handles it`,
         );
       const { parent, at } = s.fibers[fiber]!;
@@ -230,6 +235,8 @@ export function settle<V>(
   log: GameEvent<V>[],
 ): State<V> {
   let s = state;
+  // The last nodes run, for a stuck flow's error
+  const recent: string[] = [];
   for (let guard = 0; guard < MAX_STEPS; guard++) {
     if (s.status === "finished") return s;
     const fired = guards(game, s, log);
@@ -249,7 +256,7 @@ export function settle<V>(
       const stack = stackOf(s, fiber);
       if (!stack.length) {
         if (fiber === ROOT)
-          throw new Error(
+          throw new FlowEndedWithoutEndError(
             "The flow finished without ending the game: call tx.end() in a last step",
           );
         s = finishFiber(s, fiber);
@@ -262,6 +269,8 @@ export function settle<V>(
       const kind = kindOf(game, node);
       if (kind.actions) continue; // waiting for input
       const frame = { ...top };
+      recent.push(node.id);
+      if (recent.length > 12) recent.shift();
       const ctx = contextFor(game, s, log, fiber);
       const next = kind.run(node, frame, ctx as KindCtx<unknown>);
       s = ctx.state;
@@ -272,5 +281,8 @@ export function settle<V>(
     }
     if (!ran) return s;
   }
-  throw new Error(`The flow ran ${MAX_STEPS} steps without waiting for input`);
+  throw new FlowStuckError(
+    `The flow ran ${MAX_STEPS} steps without waiting for input`,
+    recent,
+  );
 }

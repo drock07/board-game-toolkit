@@ -1,3 +1,4 @@
+import { GameDefinitionError, RulesError } from "./errors.js";
 import {
   ROOT,
   type AbilityNode,
@@ -20,7 +21,9 @@ import { entitiesOf, entityOf, itemsOf, zonesOf } from "./zones.js";
 export function kindOf<V>(game: GameDef<V>, node: Node): Kind {
   const kind = game.kinds[node.kind];
   if (!kind)
-    throw new Error(`Node "${node.id}" has unknown kind "${node.kind}"`);
+    throw new GameDefinitionError(
+      `Node "${node.id}" has unknown kind "${node.kind}"`,
+    );
   return kind;
 }
 
@@ -29,7 +32,8 @@ export function index<V>(
   node: Node,
   into = new Map<string, Node>(),
 ): Map<string, Node> {
-  if (into.has(node.id)) throw new Error(`Duplicate node id "${node.id}"`);
+  if (into.has(node.id))
+    throw new GameDefinitionError(`Duplicate node id "${node.id}"`);
   into.set(node.id, node);
   for (const child of kindOf(game, node).children(node))
     index(game, child, into);
@@ -51,7 +55,10 @@ export function indexAll<V>(game: GameDef<V>): Map<string, Node> {
 
 export function nodeOf<V>(game: GameDef<V>, id: string): Node {
   const node = indexAll(game).get(id);
-  if (!node) throw new Error(`Unknown node "${id}"`);
+  if (!node)
+    throw new RulesError(
+      `Unknown node "${id}": is this state from another version of the game?`,
+    );
   return node;
 }
 

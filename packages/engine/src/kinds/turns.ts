@@ -1,4 +1,5 @@
 // Players taking turns in seat order.
+import { RulesError } from "../errors.js";
 import type { Kind, Node, PlayerId } from "../types.js";
 
 type Of<K extends string> = Extract<Node, { kind: K }>;
@@ -30,7 +31,7 @@ export const turns: Kind<Of<"turns">> = {
       const first = n.from === undefined ? players[0] : ctx.query(n.from);
       const start = players.indexOf(first as PlayerId);
       if (start < 0)
-        throw new Error(
+        throw new RulesError(
           `"${n.id}" starts with unknown player "${String(first)}"`,
         );
       f.data = { start, step: -1 } satisfies TurnsData;
@@ -50,6 +51,10 @@ export const turns: Kind<Of<"turns">> = {
     }
     return "done";
   },
-  actor: (n, f, { state }) =>
-    state.players[seatAt(n, state.players.length, f.data as TurnsData)]!,
+  // No one's turn until the first one starts: the frame is pushed before it runs
+  actor: (n, f, { state }) => {
+    const d = f.data as TurnsData | undefined;
+    if (!d || d.step < 0) return undefined;
+    return state.players[seatAt(n, state.players.length, d)];
+  },
 };

@@ -1,3 +1,4 @@
+import { RulesError } from "./errors.js";
 import type {
   Entity,
   EntityId,
@@ -41,7 +42,7 @@ export function zonesOf<V, P>(
   player?: PlayerId,
 ): ZoneRef<P>[] {
   if (!game.spec.zones[family.name])
-    throw new Error(`Unknown zone "${family.name}"`);
+    throw new RulesError(`Unknown zone "${family.name}"`);
   const seat = (owner?: PlayerId) =>
     owner === undefined ? -1 : state.players.indexOf(owner);
   return Object.keys(state.zones)
@@ -59,7 +60,7 @@ export function zonesOf<V, P>(
 
 export function itemsOf<V>(state: State<V>, zone: ZoneRef): EntityId[] {
   const items = state.zones[zone.id];
-  if (!items) throw new Error(`Unknown zone "${zone.id}"`);
+  if (!items) throw new RulesError(`Unknown zone "${zone.id}"`);
   return items;
 }
 
@@ -77,7 +78,7 @@ export function entitiesOf<V, P>(
 
 export function entityOf<V>(state: State<V>, id: EntityId): Entity {
   const e = state.entities[id];
-  if (!e) throw new Error(`Unknown entity "${id}"`);
+  if (!e) throw new RulesError(`Unknown entity "${id}"`);
   return e;
 }
 
