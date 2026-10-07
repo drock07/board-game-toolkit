@@ -37,16 +37,16 @@ export function index<V>(
   return into;
 }
 
-const indexes = new WeakMap<GameDef<never>, Map<string, Node>>();
+const indexes = new WeakMap<object, Map<string, Node>>();
 
 /** Every node by id: the flow, each ability and each effect. Built once per game. */
 export function indexAll<V>(game: GameDef<V>): Map<string, Node> {
-  const known = indexes.get(game as GameDef<never>);
+  const known = indexes.get(game);
   if (known) return known;
   const into = index(game, game.spec.flow);
   for (const a of game.spec.abilities ?? []) index(game, a, into);
   for (const e of game.spec.effects ?? []) index(game, e, into);
-  indexes.set(game as GameDef<never>, into);
+  indexes.set(game, into);
   return into;
 }
 

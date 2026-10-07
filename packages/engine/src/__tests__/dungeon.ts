@@ -1,7 +1,14 @@
 // Dungeon Crawl. One player explores a 5×5 grid: monsters to fight or flee,
 // treasure to take, traps to dismantle, a boss in the far corner. Dying
 // anywhere ends the run in defeat; killing the boss ends it in victory.
-import { defaultNodes, define, type Reader, type Tx } from "../index.js";
+import {
+  D20,
+  D6,
+  defaultNodes,
+  define,
+  type Reader,
+  type Tx,
+} from "../index.js";
 import { turnNode } from "./turn.js";
 
 export const SIZE = 5;
@@ -102,8 +109,8 @@ const roomAt = (s: S) => s.vars.grid[s.vars.player.row]![s.vars.player.col]!;
 const here = (tx: Tx<Vars>) =>
   tx.vars.grid[tx.vars.player.row]![tx.vars.player.col]!;
 const log = (tx: Tx<Vars>, line: string) => void tx.vars.log.push(line);
-const d20 = (tx: Tx<Vars>) => tx.random.int(1, 20);
-const d6 = (tx: Tx<Vars>) => tx.random.int(1, 6);
+const d20 = (tx: Tx<Vars>) => tx.random.roll(D20);
+const d6 = (tx: Tx<Vars>) => tx.random.roll(D6);
 
 function reveal(tx: Tx<Vars>, row: number, col: number) {
   for (const [dr, dc] of NEIGHBORS)
@@ -151,7 +158,7 @@ function generate(tx: Tx<Vars>): Room[][] {
   ];
   // Fisher–Yates with the game's rng
   for (let i = cells.length - 1; i > 0; i--) {
-    const j = tx.random.int(0, i);
+    const j = tx.random.int(i + 1);
     [cells[i], cells[j]] = [cells[j]!, cells[i]!];
   }
   cells.forEach(([r, c], i) => {

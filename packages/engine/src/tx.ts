@@ -7,7 +7,7 @@ import {
   stackOf,
   withStack,
 } from "./frames.js";
-import { nextRandom } from "./random.js";
+import { createRandom, type RngState } from "./rng.js";
 import type {
   EffectData,
   EntityId,
@@ -37,6 +37,7 @@ export function transact<V>(
   const next: State<V> = {
     ...state,
     vars: structuredClone(state.vars),
+    rng: [...state.rng] as RngState,
     entities: { ...state.entities },
     zones: { ...state.zones },
     flow: [...state.flow],
@@ -67,6 +68,8 @@ export function transact<V>(
       entities: ids.map((id) => next.entities[id]!),
     });
   };
+  // Draws advance this transaction's own copy of the state
+  const random = createRandom(() => next.rng);
   const tx: Tx<V> = {
     players: state.players,
     get actor() {
@@ -123,9 +126,7 @@ export function transact<V>(
     shuffle(zone) {
       const order = [...items(zone)];
       for (let i = order.length - 1; i > 0; i--) {
-        const [rng, value] = nextRandom(next.rng);
-        next.rng = rng;
-        const j = Math.floor(value * (i + 1));
+        const j = random.int(i + 1);
         [order[i], order[j]] = [order[j]!, order[i]!];
       }
       next.zones[zone.id] = order;
@@ -147,13 +148,7 @@ export function transact<V>(
       next.entities[id] = { ...e, faceUp };
       log.push({ type: "flipped", entity: next.entities[id] });
     },
-    random: {
-      int(min, max) {
-        const [rng, value] = nextRandom(next.rng);
-        next.rng = rng;
-        return min + Math.floor(value * (max - min + 1));
-      },
-    },
+    random,
     end(result) {
       next.status = "finished";
       next.result = result;

@@ -1,3 +1,5 @@
+import type { Random, RngState } from "./rng.js";
+
 export type PlayerId = string;
 export type EntityId = string;
 export type ZoneId = string;
@@ -148,7 +150,7 @@ export interface Fiber {
 export interface State<V> {
   players: PlayerId[];
   vars: V;
-  rng: number;
+  rng: RngState;
   entities: Record<EntityId, Entity>;
   /** Zone id → entity ids, top first. */
   zones: Record<ZoneId, EntityId[]>;
@@ -257,7 +259,7 @@ export interface Tx<V> {
   ): EntityId[];
   shuffle(zone: ZoneRef): void;
   flip(id: EntityId, faceUp: boolean): void;
-  random: { int(min: number, max: number): number };
+  readonly random: Random;
   end(result?: unknown): void;
   /** Logs a custom event, for everyone or only the players in `to`. */
   emit(

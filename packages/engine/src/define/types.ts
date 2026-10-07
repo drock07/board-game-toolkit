@@ -1,4 +1,5 @@
 // The typed authoring layer: readers and transactions, actions, authored
+import type { Random } from "../rng.js";
 import type {
   AbilityNode,
   ActionImpl,
@@ -66,7 +67,7 @@ export interface Tx<V> {
   ): EntityId[];
   shuffle(zone: ZoneRef<unknown>): void;
   flip(id: EntityId, faceUp: boolean): void;
-  random: { int(min: number, max: number): number };
+  readonly random: Random;
   end(result?: unknown): void;
   /** Logs a custom event, for everyone or only the players in `to`. */
   emit<T>(event: EventType<T>, data: T, opts?: { to?: PlayerId[] }): void;

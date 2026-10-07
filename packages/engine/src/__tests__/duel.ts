@@ -238,7 +238,7 @@ export const flow = seq(
                       prevented: false,
                     });
                   const theirs = tx.entities(hand.of(target!));
-                  const pick = theirs[tx.random.int(0, theirs.length - 1)]!;
+                  const pick = tx.random.pick(theirs);
                   tx.move(pick.id, hand.of(actor));
                 },
               }),
