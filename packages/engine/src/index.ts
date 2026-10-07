@@ -65,6 +65,33 @@ export {
 export type { InitOptions } from "./play.js";
 export { canSee } from "./zones.js";
 
+// Errors
+export {
+  AbilityLoopError,
+  FlowEndedWithoutEndError,
+  FlowStuckError,
+  GameDefinitionError,
+  RulesError,
+  UnhandledOutcomeError,
+} from "./errors.js";
+
+// Saving and loading
+export { stableStringify } from "./json.js";
+export type { Json, JsonCompatible } from "./json.js";
+export {
+  FORMAT_VERSION,
+  SAVE_FORMAT,
+  SPEC_FORMAT,
+  SaveError,
+  fromJSON,
+  hashJson,
+  load,
+  replayInputs,
+  save,
+  specHash,
+  toJSON,
+} from "./serialize.js";
+
 // Randomness
 export { D10, D100, D12, D20, D4, D6, D8, Fudge } from "./dice.js";
 export { seededRandom } from "./rng.js";

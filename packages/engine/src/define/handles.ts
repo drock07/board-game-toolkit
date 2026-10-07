@@ -46,6 +46,8 @@ export interface Before<V, T> {
 
 interface ZoneBase<P> extends FamilyRef<P> {
   readonly def: ZoneDef;
+  /** The entity type it holds, so `define` can check that type names are unique. */
+  readonly holds: EntityType<P>;
   /** For `count` given as a function: registered at `define`. */
   readonly countOf?: (players: number) => number;
 }
@@ -127,7 +129,7 @@ export function zone<P>(
     visibility: opts.visibility ?? "public",
   };
   if (opts.perPlayer) def.perPlayer = true;
-  const base: ZoneBase<P> = { name, def };
+  const base: ZoneBase<P> = { name, def, holds: opts.holds };
   if (typeof opts.count === "function") {
     def.count = { ref: name };
     (base as { countOf?: Count }).countOf = opts.count;

@@ -1,6 +1,8 @@
+import { AbilityLoopError } from "./errors.js";
 import {
   depthOf,
   framesOut,
+  isInterrupt,
   mayMove,
   nearestEffect,
   reader,
@@ -92,9 +94,18 @@ export function triggered<V>(
     out.push(...hits.sort((x, y) => seat(owner(x)) - seat(owner(y))));
   }
   if (out.length && depth > MAX_DEPTH) {
-    const what = "ability" in out[0]! ? out[0].ability : out[0]!.effect;
-    throw new Error(
+    const first = out[0]!;
+    const what =
+      "ability" in first
+        ? first.ability
+        : game.spec.effects!.find((e) => e.name === first.effect)!.id;
+    const chain = framesOut(s, fiber)
+      .filter((f) => isInterrupt(game, f))
+      .map((f) => f.id)
+      .reverse();
+    throw new AbilityLoopError(
       `"${what}" fired ${depth} interrupts deep: an ability is probably triggering itself`,
+      [...chain, what],
     );
   }
   return out;

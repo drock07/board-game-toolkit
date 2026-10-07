@@ -1,14 +1,15 @@
 import { isEffect, triggered } from "./effects.js";
+import { RulesError } from "./errors.js";
 import {
   boundActor,
   nearestFrame,
   nodeOf,
-  sameJson,
   scopeOf,
   stackOf,
   withStack,
   type FrameAt,
 } from "./frames.js";
+import { jsonEqual } from "./json.js";
 import { createRandom, type RngState } from "./rng.js";
 import type {
   EffectData,
@@ -61,7 +62,7 @@ export function transact<V>(
     const from: ZoneId[] = [];
     for (const id of ids) {
       const e = next.entities[id];
-      if (!e) throw new Error(`Unknown entity "${id}"`);
+      if (!e) throw new RulesError(`Unknown entity "${id}"`);
       from.push(e.zone);
       next.zones[e.zone] = items({ id: e.zone }).filter((x) => x !== id);
     }
@@ -124,7 +125,7 @@ export function transact<V>(
     moveTop(from, to, count = 1, opts) {
       const ids = items(from).slice(0, count);
       if (ids.length < count)
-        throw new Error(
+        throw new RulesError(
           `"${from.id}" has ${ids.length} entities, not ${count}`,
         );
       place(ids, to, opts);
@@ -151,7 +152,7 @@ export function transact<V>(
     },
     flip(id, faceUp) {
       const e = next.entities[id];
-      if (!e) throw new Error(`Unknown entity "${id}"`);
+      if (!e) throw new RulesError(`Unknown entity "${id}"`);
       next.entities[id] = { ...e, faceUp };
       log.push({ type: "flipped", entity: next.entities[id] });
     },
@@ -163,7 +164,7 @@ export function transact<V>(
     },
     cause({ name }, data) {
       if (!isEffect(game, name))
-        throw new Error(
+        throw new RulesError(
           `"${name}" isn't one of this game's effects: declare it with \`effect\` before calling \`rules\``,
         );
       const to = game.impl.effects[name]?.to?.(data);
@@ -171,12 +172,12 @@ export function transact<V>(
     },
   };
   body(tx);
-  if (!sameJson(state.vars, next.vars))
+  if (!jsonEqual(state.vars, next.vars))
     log.push({ type: "vars", vars: next.vars });
   let out = next;
   // A reaction's changes to the effect it reacts to are kept in the effect's frame
   for (const { where, data } of drafts.values()) {
-    if (sameJson(data, (where.frame.data as EffectData).data)) continue;
+    if (jsonEqual(data, (where.frame.data as EffectData).data)) continue;
     const stack = stackOf(out, where.fiber);
     out = withStack(
       out,

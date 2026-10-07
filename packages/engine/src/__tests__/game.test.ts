@@ -1,5 +1,14 @@
 import { assert, test } from "vitest";
-import { actors, check, current, init, legalInputs, view } from "../index.js";
+import {
+  actors,
+  check,
+  current,
+  defaultNodes,
+  define,
+  init,
+  legalInputs,
+  view,
+} from "../index.js";
 import { applyOrThrow, fuzz } from "../testing/index.js";
 import {
   bid,
@@ -110,4 +119,25 @@ test("types", () => {
   const inputs = legalInputs(sealedBids, s, "ann");
   const n: number = inputs[0]!.args.amount;
   void n;
+});
+
+test("a flow that starts with turns can be started after a setup that sets vars", () => {
+  // Setup's events are matched against abilities, which reads the bound
+  // actor before the turns frame has run once
+  const { rules, turns, step } = define<{ n: number }>().withNodes(
+    defaultNodes,
+  );
+  const game = rules({
+    players: 2,
+    setup: (tx) => void (tx.vars = { n: 0 }),
+    flow: turns(
+      { rounds: 1 },
+      step((tx) => void tx.vars.n++),
+    ),
+  });
+  assert.throws(
+    () => init(game, { players: ["ann", "bob"], seed: "x" }),
+    /without ending the game/,
+    "runs both turns, then reports the missing end",
+  );
 });

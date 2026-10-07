@@ -124,11 +124,7 @@ test("a round ends with wall tiling, scoring, and the marker's holder starting n
   for (;;) {
     const before = pass(s);
     if (s.vars.marker !== "center") marker = s.vars.marker;
-    s = applyOrThrow(
-      azul,
-      s,
-      bot(legalInputs(azul, s)) as GameInput<typeof azul>,
-    );
+    s = applyOrThrow(azul, s, bot(legalInputs(azul, s)));
     if (s.status !== "running" || pass(s) < before) break;
   }
   assert.strictEqual(s.status, "running", "the seed reaches round 2");
@@ -212,4 +208,16 @@ test("types: family handles need their indexes", () => {
 test("fuzz: random play never breaks an invariant", () => {
   const report = fuzz(azul, { seeds: 12, players, maxInputs: 1500 });
   assert.deepEqual(report.failures, []);
+});
+
+test("an input's args match the enumerated ones whatever their key order", () => {
+  const s = init(azul, { players: ["ann", "bob"], seed: "keys" });
+  const legal = legalInputs(azul, s).filter(draft.is)[0]!;
+  const { from, color, to } = legal.args;
+  // Same args, keys in another order, as a host might send them
+  const reordered = { ...legal, args: { to, color, from } };
+  assert.deepEqual(
+    applyOrThrow(azul, s, reordered),
+    applyOrThrow(azul, s, legal),
+  );
 });

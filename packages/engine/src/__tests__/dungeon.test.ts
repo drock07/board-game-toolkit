@@ -42,11 +42,7 @@ function moveUntil(s: State<Vars>, type: string, max = 40) {
       !legalInputs(dungeonCrawl, s).some(move.is)
     ) {
       const legal = legalInputs(dungeonCrawl, s);
-      s = applyOrThrow(
-        dungeonCrawl,
-        s,
-        (legal.find(skip.is) ?? bot(legal)) as Input,
-      );
+      s = applyOrThrow(dungeonCrawl, s, legal.find(skip.is) ?? bot(legal));
     }
   }
   return s;
@@ -153,11 +149,7 @@ test("random runs end in victory or defeat; defeat fires mid-combat from the out
     const bot = randomBot(`fuzz-${i}`);
     let s = init(dungeonCrawl, { players, seed: `fuzz-${i}` });
     for (let n = 0; n < 400 && s.status === "running"; n++)
-      s = applyOrThrow(
-        dungeonCrawl,
-        s,
-        bot(legalInputs(dungeonCrawl, s)) as Input,
-      );
+      s = applyOrThrow(dungeonCrawl, s, bot(legalInputs(dungeonCrawl, s)));
     if (s.status === "finished") {
       const r = s.result as { result: "victory" | "defeat"; log: string[] };
       results[r.result]++;

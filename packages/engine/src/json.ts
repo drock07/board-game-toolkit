@@ -1,5 +1,5 @@
 /**
- * JSON values. Game state, vars, locals, entity props and event payloads are
+ * JSON values. Game state, vars, entity props and effect data are
  * all plain JSON, so state can be saved, diffed and sent over the wire.
  *
  * Game-specific shapes are checked with `JsonCompatible` instead, which also
@@ -54,13 +54,18 @@ export type IsJsonCompatible<T> = [T] extends [JsonCompatible<T>]
   ? true
   : false;
 
-export type DeepReadonly<T> = T extends (infer U)[]
-  ? readonly DeepReadonly<U>[]
-  : T extends object
-    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-    : T;
+/** JSON with object keys sorted, so equal values always stringify equally. */
+export function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+        )
+      : v,
+  );
+}
 
-/** Structural equality for JSON values. Missing and `undefined` keys are equal. */
+/** Structural equality for JSON values: key order doesn't matter, and a missing key equals an `undefined` one. */
 export function jsonEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== "object" || typeof b !== "object" || !a || !b) return false;
@@ -71,7 +76,19 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
   if (Array.isArray(b)) return false;
   const ao = a as Record<string, unknown>;
   const bo = b as Record<string, unknown>;
-  const keys = new Set([...Object.keys(ao), ...Object.keys(bo)]);
-  for (const k of keys) if (!jsonEqual(ao[k], bo[k])) return false;
+  for (const k in ao) if (!jsonEqual(ao[k], bo[k])) return false;
+  for (const k in bo) if (!(k in ao) && bo[k] !== undefined) return false;
   return true;
+}
+
+/** Whether a value survives a JSON round trip unchanged: plain objects, arrays, strings, finite numbers, booleans and null. An object's `undefined` values are allowed (JSON drops them). */
+export function isPlainJson(v: unknown): boolean {
+  if (v === null || typeof v === "string" || typeof v === "boolean")
+    return true;
+  if (typeof v === "number") return Number.isFinite(v);
+  if (Array.isArray(v)) return v.every(isPlainJson);
+  if (typeof v !== "object") return false;
+  const proto = Object.getPrototypeOf(v) as unknown;
+  if (proto !== Object.prototype && proto !== null) return false;
+  return Object.values(v).every((x) => x === undefined || isPlainJson(x));
 }
