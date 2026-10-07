@@ -41,6 +41,7 @@ export type {
   PlainActionDef,
   PromptBuilder,
   Reader,
+  Scoped,
   SeqBuilder,
   SimultaneousBuilder,
   StepBuilder,

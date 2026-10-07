@@ -1,11 +1,13 @@
 import { isEffect, triggered } from "./effects.js";
 import {
   boundActor,
-  nearestEffect,
+  nearestFrame,
+  nodeOf,
   sameJson,
   scopeOf,
   stackOf,
   withStack,
+  type FrameAt,
 } from "./frames.js";
 import { createRandom, type RngState } from "./rng.js";
 import type {
@@ -31,9 +33,20 @@ export function transact<V>(
   body: (tx: Tx<V>) => void,
 ): State<V> {
   const at = log.length;
-  const effect = nearestEffect(game, state, fiber);
-  const draft =
-    effect && structuredClone((effect.frame.data as EffectData).data);
+  // An effect's scope is its data, handed out as a draft and kept if changed
+  const drafts = new Map<string, { where: FrameAt; data: unknown }>();
+  const scope = (id: string): unknown => {
+    const where = nearestFrame(state, fiber, id);
+    if (!where || nodeOf(game, id).kind !== "effect")
+      return scopeOf(game, state, fiber, id);
+    const key = `${where.fiber}:${where.index}`;
+    if (!drafts.has(key))
+      drafts.set(key, {
+        where,
+        data: structuredClone((where.frame.data as EffectData).data),
+      });
+    return drafts.get(key)!.data;
+  };
   const next: State<V> = {
     ...state,
     vars: structuredClone(state.vars),
@@ -75,12 +88,7 @@ export function transact<V>(
     get actor() {
       return boundActor(game, state, fiber);
     },
-    get scope() {
-      return scopeOf(game, state, fiber);
-    },
-    get effect() {
-      return draft;
-    },
+    scopeOf: scope,
     get vars() {
       return next.vars;
     },
@@ -168,15 +176,15 @@ export function transact<V>(
     log.push({ type: "vars", vars: next.vars });
   let out = next;
   // A reaction's changes to the effect it reacts to are kept in the effect's frame
-  if (effect && !sameJson(draft, (effect.frame.data as EffectData).data)) {
-    const stack = stackOf(out, effect.fiber);
-    const frame = stack[effect.index]!;
+  for (const { where, data } of drafts.values()) {
+    if (sameJson(data, (where.frame.data as EffectData).data)) continue;
+    const stack = stackOf(out, where.fiber);
     out = withStack(
       out,
-      effect.fiber,
+      where.fiber,
       stack.map((f, i) =>
-        i === effect.index
-          ? { ...frame, data: { ...(frame.data as EffectData), data: draft } }
+        i === where.index
+          ? { ...f, data: { ...(f.data as EffectData), data } }
           : f,
       ),
     );

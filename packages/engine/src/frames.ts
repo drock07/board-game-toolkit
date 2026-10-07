@@ -2,7 +2,6 @@ import {
   ROOT,
   type AbilityNode,
   type DeepReadonly,
-  type EffectData,
   type Fiber,
   type FiberId,
   type Frame,
@@ -68,13 +67,7 @@ export function reader<V>(
     get actor() {
       return boundActor(game, state, fiber);
     },
-    get scope() {
-      return scopeOf(game, state, fiber);
-    },
-    get effect() {
-      return (nearestEffect(game, state, fiber)?.frame.data as EffectData)
-        ?.data;
-    },
+    scopeOf: (node) => scopeOf(game, state, fiber, node),
     entities: (zone) => itemsOf(state, zone).map((id) => state.entities[id]!),
     count: (zone) => itemsOf(state, zone).length,
     zones: (family, player) => zonesOf(game, state, family, player),
@@ -198,18 +191,30 @@ export function boundActor<V>(
   return state.fibers[fiber]?.player;
 }
 
-/** The nearest frame's scope, looking out through parent fibers. */
+/** The nearest frame of node `id`, looking out through parent fibers. */
+export function nearestFrame<V>(
+  state: State<V>,
+  fiber: FiberId,
+  id: string,
+): FrameAt | undefined {
+  return framesOutAt(state, fiber).find((f) => f.frame.id === id);
+}
+
+/**
+ * What the nearest frame of node `id` shows the nodes under it (its kind's
+ * `scope`), or undefined outside one. Looking a scope up by its node, not
+ * by nearness alone, keeps one kind's scope from hiding another's.
+ */
 export function scopeOf<V>(
   game: GameDef<V>,
   state: State<V>,
   fiber: FiberId,
+  id: string,
 ): unknown {
-  for (const frame of framesOut(state, fiber)) {
-    const node = nodeOf(game, frame.id);
-    const scope = kindOf(game, node).scope?.(node, frame);
-    if (scope !== undefined) return scope;
-  }
-  return undefined;
+  const at = nearestFrame(state, fiber, id);
+  if (!at) return undefined;
+  const node = nodeOf(game, id);
+  return kindOf(game, node).scope?.(node, at.frame);
 }
 
 export const sameJson = (a: unknown, b: unknown) =>

@@ -9,9 +9,10 @@ import type {
 
 type Of<K extends string> = Extract<Node, { kind: K }>;
 
-/** An effect's frame, pushed by the engine when the effect is caused. */
+/** An effect's frame, pushed by the engine when the effect is caused. Its scope is the effect's data. */
 export const effect: Kind<Of<"effect">> = {
   children: () => [],
+  scope: (_n, f) => (f.data as EffectData).data,
   run(n, f, ctx) {
     const d = f.data as EffectData;
     const event: GameEvent = { type: "effect", name: n.name, data: d.data };

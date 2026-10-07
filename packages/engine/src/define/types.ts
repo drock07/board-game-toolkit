@@ -25,7 +25,16 @@ import type {
 
 // --- Typed state access ----------------------------------------------------
 
-export interface Reader<V> {
+/**
+ * Reads a node's scope: what the nearest frame of that node shows the nodes
+ * under it. For kind authors, who wrap it in typed accessors closed over the
+ * node's id, as an ability's `t.self` and `t.data` do.
+ */
+export interface Scoped {
+  scopeOf(node: string): unknown;
+}
+
+export interface Reader<V> extends Scoped {
   readonly players: readonly PlayerId[];
   readonly vars: DeepReadonly<V>;
   /** The player the flow is bound to here: whose turn it is, or whose ability is running. */
@@ -39,7 +48,7 @@ export interface Reader<V> {
   entity(id: EntityId): Entity;
 }
 
-export interface Tx<V> {
+export interface Tx<V> extends Scoped {
   readonly players: readonly PlayerId[];
   vars: V;
   readonly actor: PlayerId | undefined;
@@ -234,9 +243,10 @@ export interface Fired<P, T> {
 
 /** Reads the running ability's `Fired` from any reader or transaction inside its handler. */
 export interface Trigger<P, T> {
-  self(s: { entity(id: EntityId): Entity }): Entity<P>;
-  owner(s: object): PlayerId | undefined;
-  data(s: object): T;
+  readonly self: (s: Scoped & { entity(id: EntityId): Entity }) => Entity<P>;
+  readonly owner: (s: Scoped) => PlayerId | undefined;
+  /** An effect's data is live, and in a transaction a draft whose changes are kept. */
+  readonly data: (s: Scoped) => T;
 }
 
 /** An authored ability: lowered by `rules` next to the flow. */

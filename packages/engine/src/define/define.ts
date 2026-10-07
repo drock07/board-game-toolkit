@@ -29,13 +29,18 @@ import {
   type Node,
   type PlainActionDef,
   type Reader,
+  type Scoped,
   type Trigger,
   type Tx,
 } from "./types.js";
 
-const scopeIn = (s: object): AbilityScope => {
-  const scope = (s as { scope?: AbilityScope }).scope;
-  if (!scope) throw new Error("Not inside an ability");
+/** An effect's frame id, so an ability can read the data of the effect it reacts to. */
+const effectNodeId = (name: string) => `effect.${name}`;
+
+/** The running ability's scope, read through its node id. */
+const abilityScope = (s: Scoped, id: string): AbilityScope => {
+  const scope = s.scopeOf(id) as AbilityScope | undefined;
+  if (!scope) throw new Error(`Not inside ability "${id}"`);
   return scope;
 };
 
@@ -58,7 +63,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
   ): Action<V, N, A | void> {
     const impl: ActionImpl<V> =
       "enumerate" in def
-        ? (def as never)
+        ? def
         : {
             enumerate: () => [undefined],
             execute: (tx, _args, actor) => def.execute(tx as never, actor),
@@ -115,14 +120,14 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         lower(l: Lowerer<V>) {
           const id = l.id(`ability.${label}`);
           const t = {
-            self: (s: { entity(id: EntityId): Entity }) =>
-              s.entity(scopeIn(s).self!),
-            owner: (s: object) => scopeIn(s).owner,
+            self: (s: Scoped & { entity(id: EntityId): Entity }) =>
+              s.entity(abilityScope(s, id).self!),
+            owner: (s: Scoped) => abilityScope(s, id).owner,
             // An effect's data is the live one (a draft in a transaction)
-            data: (s: object) =>
+            data: (s: Scoped) =>
               effect
-                ? (s as { effect: unknown }).effect
-                : dataOf(scopeIn(s).event),
+                ? s.scopeOf(effectNodeId(effect.name))
+                : dataOf(abilityScope(s, id).event),
           } as Trigger<never, never>;
           const node: AbilityNode = {
             kind: "ability",
@@ -240,7 +245,7 @@ export function define<V>(box: { zones?: AnyZone[] } = {}): Core<V> {
         };
         return {
           kind: "effect" as const,
-          id: l.id(`effect.${e.name}`),
+          id: l.id(effectNodeId(e.name)),
           name: e.name,
         };
       });

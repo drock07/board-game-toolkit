@@ -182,7 +182,7 @@ export interface EffectData {
   phase: "before" | "resolve" | "after" | "done";
 }
 
-/** What an ability frame shows its handler through `s.scope`. */
+/** What an ability frame shows its handler through `s.scopeOf`. */
 export interface AbilityScope {
   /** The entity carrying it; absent for a game-wide ability. */
   self?: EntityId;
@@ -207,10 +207,11 @@ export interface Reader<V> {
   readonly vars: DeepReadonly<V>;
   /** The player the flow is bound to here (whose turn, whose ability), if any. */
   readonly actor: PlayerId | undefined;
-  /** The nearest enclosing frame's scope, e.g. an ability's `AbilityScope`. */
-  readonly scope: unknown;
-  /** The data of the nearest effect being run, if any. */
-  readonly effect: unknown;
+  /**
+   * What the nearest frame of node `node` shows the nodes under it: an
+   * ability's `AbilityScope`, an effect's data. Undefined outside one.
+   */
+  scopeOf(node: string): unknown;
   /** The zone's entities, top first. */
   entities(zone: ZoneRef): readonly Entity[];
   count(zone: ZoneRef): number;
@@ -229,9 +230,8 @@ export interface Tx<V> {
   readonly players: readonly PlayerId[];
   vars: V;
   readonly actor: PlayerId | undefined;
-  readonly scope: unknown;
-  /** The nearest effect's data, as a draft: changes are kept when the transaction ends. */
-  readonly effect: unknown;
+  /** As `Reader.scopeOf`. An effect's data is a draft: changes are kept when the transaction ends. */
+  scopeOf(node: string): unknown;
   entities(zone: ZoneRef): readonly Entity[];
   count(zone: ZoneRef): number;
   zones(family: FamilyRef, player?: PlayerId): ZoneRef[];
@@ -368,7 +368,7 @@ export interface Kind<N extends Node = Node> {
   check?(node: N, frame: Frame, ctx: KindCtx<unknown>): string | undefined;
   /** Whether this frame catches a raised outcome. */
   catches?(node: N, frame: Frame, outcome: string): boolean;
-  /** What this frame shows the nodes under it through `s.scope`. */
+  /** What this frame shows the nodes under it, read with `s.scopeOf(node.id)`. */
   scope?(node: N, frame: Frame): unknown;
   /** Called on the catching frame once everything above it is cancelled. */
   exited?(node: N, frame: Frame, outcome: string, ctx: KindCtx<unknown>): Next;
