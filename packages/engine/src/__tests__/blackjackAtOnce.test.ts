@@ -16,7 +16,6 @@ import {
   total,
   type Vars as BlackjackVars,
 } from "./blackjackAtOnce.js";
-import { turnNode } from "./turn.js";
 
 const players = ["ann", "bob", "cat"];
 const hit = blackjackAtOnce.action("hit");
@@ -93,7 +92,7 @@ test("an outcome escaping a fiber cancels its siblings; a guard cancels all of t
     quits: number;
   }
   const { rules, action, seq, step, outcomes, simultaneous, turn } =
-    define<Vars>().withNodes([...defaultNodes, turnNode]);
+    define<Vars>().withNodes(defaultNodes);
   const game = rules({
     players: 3,
     setup: (tx) => {

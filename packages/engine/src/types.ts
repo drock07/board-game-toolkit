@@ -31,9 +31,25 @@ export type Node =
   /** Repeats the body until `until` holds, checked before each pass. */
   /** Repeats the body until `until` holds (forever when absent), checked before each pass. */
   | { kind: "loop"; id: string; until?: string; body: Node }
-  | { kind: "prompt"; id: string; actions: string[] }
+  | { kind: "prompt"; id: string; label?: string; actions: string[] }
+  /** A prompt held open across several answers; see `kinds/turn.ts`. */
+  | {
+      kind: "turn";
+      id: string;
+      label?: string;
+      until?: string;
+      limits?: Record<string, number>;
+      first?: string[];
+      actions: string[];
+    }
   /** Waits for the first answer from any of `who` (a query; every player when absent). */
-  | { kind: "anyone"; id: string; who?: string; actions: string[] }
+  | {
+      kind: "anyone";
+      id: string;
+      label?: string;
+      who?: string;
+      actions: string[];
+    }
   /** Runs `body` once per player, all at once, each on its own fiber. */
   | { kind: "simultaneous"; id: string; body: Node }
   /** Runs the first case whose condition holds, or `else`. */
@@ -362,7 +378,11 @@ export interface KindCtx<V> extends ReadCtx<V> {
 }
 
 /** A node kind: how the engine runs nodes of this kind. Built-ins and custom kinds alike. */
-export interface Kind<N extends Node = Node> {
+/**
+ * A node kind: how the engine runs nodes of this kind. Built-ins and custom
+ * kinds alike. `S` is what it shows views, if anything (see `show`).
+ */
+export interface Kind<N extends Node = Node, S = unknown> {
   /** The node's child nodes, for indexing. */
   children(node: N): Node[];
   /**
@@ -370,6 +390,13 @@ export interface Kind<N extends Node = Node> {
    * a child it passed to has ended. `frame.i` counts the passes so far.
    */
   run(node: N, frame: Frame, ctx: KindCtx<unknown>): Next;
+  /**
+   * What players may see of this frame, as JSON: published in views under
+   * the kind's name (`view.shown.turn`), from the innermost such frame. Only
+   * the root flow and the viewer's own fibers are shown. Unlike `scope`, it
+   * goes to every player, so it must not hold hidden information.
+   */
+  show?(node: N, frame: Frame): S;
   /** For kinds that bind a player: whose turn it is while this frame is on the stack. */
   actor?(node: N, frame: Frame, ctx: ReadCtx<unknown>): PlayerId | undefined;
   /** For kinds that wait for input: the actions a player may take now. */
@@ -445,6 +472,17 @@ export interface HiddenEntity {
 }
 
 /** The state as a player may see it. Entities and zone lists are keyed by `ref`. */
+/** A prompt that's open, as players see it: who it waits on, and its label if it has one. */
+export interface Waiting {
+  label?: string;
+  actors: PlayerId[];
+}
+
+/**
+ * The state as a player may see it. Entities and zone lists are keyed by
+ * `ref`. `waiting` and `shown` describe the flow; `replay` doesn't rebuild
+ * them, because no event says when they change.
+ */
 export interface View<V> {
   player: PlayerId;
   vars: V;
@@ -452,4 +490,8 @@ export interface View<V> {
   entities: Record<Ref, Entity | HiddenEntity>;
   status: "running" | "finished";
   result?: unknown;
+  /** Every open prompt, in fiber order. */
+  waiting: Waiting[];
+  /** What kinds show players, by kind name: `turnNode.shown(view)` reads `shown.turn`. */
+  shown: Record<string, unknown>;
 }

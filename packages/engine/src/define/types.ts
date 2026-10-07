@@ -150,25 +150,38 @@ export type KindName = Exclude<keyof NodeBuilders<unknown>, "__vars">;
  * `unknown` vars: it only moves functions into the impl and never looks
  * inside them, so that check holds for every game.
  */
-export interface NodeDef<N extends KindName> {
+export interface NodeDef<N extends KindName, S = never> {
   readonly name: N;
   readonly build: NodeBuilders<unknown>[N];
+  /**
+   * What the innermost node of this kind shows players (its kind's `show`),
+   * read from a view: `turnNode.shown(view)?.counts.roll`. Undefined when
+   * no such node is running, or the kind shows nothing.
+   */
+  readonly shown: (view: {
+    readonly shown: Record<string, unknown>;
+  }) => S | undefined;
 }
 
 /**
- * Defines a node builder: `defineNode("turn", { build })`. The name is a
- * separate argument so it's inferred before `build` is checked against the
- * registry's type.
+ * Defines a node builder: `defineNode("turn", { build, kind })`. The name is
+ * a separate argument so it's inferred before `build` is checked against the
+ * registry's type. Pass the `kind` when it shows players something, so
+ * `shown` is typed; the kind's spec nodes must use the builder's name.
  */
-export function defineNode<N extends KindName>(
+export function defineNode<N extends KindName, S = never>(
   name: N,
-  def: { build: NodeBuilders<unknown>[N] },
-): NodeDef<N> {
-  return { name, build: def.build };
+  def: { build: NodeBuilders<unknown>[N]; kind?: Kind<never, S> },
+): NodeDef<N, S> {
+  return {
+    name,
+    build: def.build,
+    shown: (view) => view.shown[name] as S | undefined,
+  };
 }
 
 /** The builders a list of definitions gives, by name, bound to `V`. */
-export type Extended<V, Ds extends readonly NodeDef<KindName>[]> = {
+export type Extended<V, Ds extends readonly NodeDef<KindName, unknown>[]> = {
   [D in Ds[number] as D["name"]]: NodeBuilders<V>[D["name"]];
 };
 
@@ -271,7 +284,7 @@ export interface Core<V> {
     }): Ability<V, A>;
   };
   /** Adds node builders, bound to this game's types: `withNodes([...defaultNodes, turnNode])`. */
-  readonly withNodes: <const Ds extends readonly NodeDef<KindName>[]>(
+  readonly withNodes: <const Ds extends readonly NodeDef<KindName, unknown>[]>(
     defs: Ds,
   ) => Core<V> & Extended<V, Ds>;
 }
@@ -303,19 +316,27 @@ export type LoopBuilder<V> = <H>(
   opts: { until?: (s: Reader<V>) => boolean },
   body: Node<V, H>,
 ) => Node<V, H>;
-/** Waits for the current player to take one of the actions. */
-export type PromptBuilder<V> = <const H extends ActionLike<V>[]>(
-  ...actions: H
-) => Node<V, H[number]>;
+/** Options for a node that waits for input. */
+export interface WaitOptions {
+  /** What players are told it's waiting for: "Roll the dice". In `view.waiting`. */
+  label?: string;
+}
+
+/** Waits for the current player to take one of the actions. Options may come first: `prompt({ label }, ...actions)`. */
+export type PromptBuilder<V> = {
+  <const H extends ActionLike<V>[]>(
+    opts: WaitOptions,
+    ...actions: H
+  ): Node<V, H[number]>;
+  <const H extends ActionLike<V>[]>(...actions: H): Node<V, H[number]>;
+};
 /** Runs `body` once per player, all at once, each on its own fiber. */
 export type SimultaneousBuilder<V> = <H>(body: Node<V, H>) => Node<V, H>;
-/** Waits for every player to take one of the actions, in any order, once each. */
-export type EveryoneBuilder<V> = <const H extends ActionLike<V>[]>(
-  ...actions: H
-) => Node<V, H[number]>;
+/** Waits for every player to take one of the actions, in any order, once each. Options may come first. */
+export type EveryoneBuilder<V> = PromptBuilder<V>;
 /** Waits for the first answer from any of `who` (every player when absent). */
 export type AnyoneBuilder<V> = <const H extends ActionLike<V>[]>(
-  opts: { who?: (s: Reader<V>) => PlayerId[] },
+  opts: WaitOptions & { who?: (s: Reader<V>) => PlayerId[] },
   ...actions: H
 ) => Node<V, H[number]>;
 /** Runs the first case whose condition holds, or `otherwise`. */
@@ -342,8 +363,26 @@ export type OutcomesBuilder<V> = <
   body: Node<V, H>,
 ) => Node<V, H | ActionsIn<O[keyof O]["then"]>>;
 
+/**
+ * Holds a prompt open for the current player across several answers. It ends
+ * when an action returns "end" or `until` holds. `limits` caps how often each
+ * action may be taken this turn, and `first` lists the only actions allowed
+ * as the first answer. Players see its counts as `turnNode.shown(view)`.
+ */
+export type TurnBuilder<V> = <const H extends ActionLike<V>[]>(
+  opts: WaitOptions & {
+    until?: (s: Reader<V>) => boolean;
+    /** How many times each action may be taken this turn. */
+    limits?: { [K in H[number]["name"]]?: number };
+    /** The only actions allowed as the turn's first answer. */
+    first?: H[number]["name"][];
+  },
+  ...actions: H
+) => Node<V, H[number]>;
+
 export interface NodeBuilders<V> {
   seq: SeqBuilder<V>;
+  turn: TurnBuilder<V>;
   step: StepBuilder<V>;
   turns: TurnsBuilder<V>;
   loop: LoopBuilder<V>;

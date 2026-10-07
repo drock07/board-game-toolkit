@@ -1,7 +1,20 @@
 // The built-in node builders, each defined with its kind.
 import * as kinds from "../kinds/index.js";
 import type { Node as SpecNode } from "../types.js";
-import { defineNode, node } from "./types.js";
+import {
+  defineNode,
+  node,
+  type ActionLike,
+  type WaitOptions,
+} from "./types.js";
+
+/** A waiting builder's arguments: optional options, then actions. */
+const split = (
+  args: readonly (WaitOptions | ActionLike<unknown>)[],
+): [WaitOptions, ActionLike<unknown>[]] =>
+  args.length && !("name" in args[0]!)
+    ? [args[0] as WaitOptions, args.slice(1) as ActionLike<unknown>[]]
+    : [{}, args as ActionLike<unknown>[]];
 
 export const seqNode = defineNode("seq", {
   build: (...children) =>
@@ -51,12 +64,32 @@ export const loopNode = defineNode("loop", {
 });
 
 export const promptNode = defineNode("prompt", {
-  build: (...actions) =>
-    node(kinds.prompt, (l) => ({
+  build: (...args: (WaitOptions | ActionLike<unknown>)[]) => {
+    const [opts, actions] = split(args);
+    return node(kinds.prompt, (l) => ({
       kind: "prompt",
       id: l.id("prompt"),
+      ...(opts.label !== undefined && { label: opts.label }),
       actions: actions.map((a) => l.action(a)),
-    })),
+    }));
+  },
+});
+
+export const turnNode = defineNode("turn", {
+  kind: kinds.turn,
+  build: (opts, ...actions) =>
+    node(kinds.turn, (l) => {
+      const id = l.id("turn");
+      return {
+        kind: "turn",
+        id,
+        ...(opts.label !== undefined && { label: opts.label }),
+        ...(opts.until && { until: l.cond(`${id}.until`, opts.until) }),
+        ...(opts.limits && { limits: opts.limits as Record<string, number> }),
+        ...(opts.first && { first: opts.first as string[] }),
+        actions: actions.map((a) => l.action(a)),
+      };
+    }),
 });
 
 export const simultaneousNode = defineNode("simultaneous", {
@@ -75,6 +108,7 @@ export const anyoneNode = defineNode("anyone", {
       return {
         kind: "anyone",
         id,
+        ...(opts.label !== undefined && { label: opts.label }),
         ...(opts.who && { who: l.query(`${id}.who`, opts.who) }),
         actions: actions.map((a) => l.action(a)),
       };
@@ -83,7 +117,14 @@ export const anyoneNode = defineNode("anyone", {
 
 /** Shorthand for `simultaneous(prompt(...actions))`: one prompt per player, on their own fiber. */
 export const everyoneNode = defineNode("everyone", {
-  build: (...actions) => simultaneousNode.build(promptNode.build(...actions)),
+  build: (...args: (WaitOptions | ActionLike<unknown>)[]) =>
+    simultaneousNode.build(
+      (
+        promptNode.build as (
+          ...a: typeof args
+        ) => ReturnType<typeof promptNode.build>
+      )(...args),
+    ),
 });
 
 export const branchNode = defineNode("branch", {
@@ -128,6 +169,7 @@ export const defaultNodes = [
   turnsNode,
   loopNode,
   promptNode,
+  turnNode,
   everyoneNode,
   anyoneNode,
   simultaneousNode,

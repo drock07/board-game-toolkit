@@ -10,7 +10,6 @@ import {
 } from "../index.js";
 import { applyOrThrow, fuzz, randomBot } from "../testing/index.js";
 import { dungeonCrawl, SIZE, type Vars } from "./dungeon.js";
-import { turnNode } from "./turn.js";
 
 const move = dungeonCrawl.action("move");
 const attack = dungeonCrawl.action("attack");
@@ -171,7 +170,7 @@ test("random runs end in victory or defeat; defeat fires mid-combat from the out
 
 test("types: exits and outcomes", () => {
   const { step, outcomes, loop, action, turn, branch } =
-    define<Vars>().withNodes([...defaultNodes, turnNode]);
+    define<Vars>().withNodes(defaultNodes);
   step(() => ({ exit: "fled" }));
   // @ts-expect-error -- an exit names an outcome
   step(() => ({ exit: 1 }));

@@ -1,94 +1,96 @@
-import {
-  describeCond,
-  type Actor,
-  type CompiledGame,
-  type DeepReadonly,
-  type FlowNode,
-  type FlowState,
-  type NodeId,
-  type TriggerDef,
-} from "@drock07/board-game-toolkit-engine";
+import type { Spec, State } from "@drock07/board-game-toolkit-engine";
+import type { Kind, SpecNode } from "@drock07/board-game-toolkit-engine/kinds";
 import type { CSSProperties, ReactNode } from "react";
 import { badge, mono, t } from "./theme.js";
 
-export interface FlowActivity {
-  /** Frames per node, across every fiber. */
-  active: Map<NodeId, number>;
-  /** Nodes waiting on a prompt. */
-  waiting: Set<NodeId>;
+/** What the graph needs from a game: its spec, and its kinds to find children. */
+export interface GraphGame {
+  readonly spec: Spec;
+  readonly kinds: Record<string, Kind>;
 }
 
-/** Which nodes are running, and which wait for input, in a flow state. */
-export function flowActivity(flow?: DeepReadonly<FlowState>): FlowActivity {
-  const active = new Map<NodeId, number>();
-  const waiting = new Set<NodeId>();
-  for (const fiber of Object.values(flow?.fibers ?? {})) {
-    if (fiber.status === "done") continue;
-    for (const frame of fiber.stack)
-      active.set(frame.node, (active.get(frame.node) ?? 0) + 1);
-    const top = fiber.stack.at(-1);
-    // A fiber also blocks on its spawned fibers; only a prompt waits on input
-    if (fiber.status === "blocked" && top?.prompt) waiting.add(top.node);
+export interface FlowActivity {
+  /** Frames per node, across the root stack and every fiber. */
+  active: Map<string, number>;
+  /** Nodes waiting for input. */
+  waiting: Set<string>;
+}
+
+/** Which nodes are running, and which wait for input, in a state. */
+export function flowActivity(
+  game: GraphGame,
+  state?: Pick<State<unknown>, "flow" | "fibers">,
+): FlowActivity {
+  const active = new Map<string, number>();
+  const waiting = new Set<string>();
+  if (!state) return { active, waiting };
+  const stacks = [
+    state.flow,
+    ...Object.values(state.fibers).map((f) => f.stack),
+  ];
+  for (const stack of stacks) {
+    for (const frame of stack)
+      active.set(frame.id, (active.get(frame.id) ?? 0) + 1);
+    const top = stack.at(-1);
+    // A frame blocked on its child fibers isn't waiting for input
+    if (top && !top.children?.length) {
+      const node = findNode(game, top.id);
+      if (node && game.kinds[node.kind]?.actions) waiting.add(top.id);
+    }
   }
   return { active, waiting };
 }
 
-const actorText = (a: Actor | undefined) =>
-  a === undefined ? "any" : typeof a === "string" ? a : `list ${a.ref}`;
+const roots = (game: GraphGame): SpecNode[] => [
+  game.spec.flow,
+  ...(game.spec.abilities ?? []),
+  ...(game.spec.effects ?? []),
+];
 
-/** One-line facts about a node: its guards, conditions, refs and options. */
-export function nodeDetails(node: FlowNode): string[] {
-  const out: string[] = [];
-  const cond = (label: string, c: unknown) =>
-    out.push(`${label} ${describeCond(c as string)}`);
-  switch (node.kind) {
-    case "loop":
-      if (node.while !== undefined) cond("while", node.while);
-      if (node.until !== undefined) cond("until", node.until);
-      if (node.times !== undefined) out.push(`times ${node.times}`);
-      break;
-    case "each": {
-      const over = node.over;
-      out.push(
-        "ref" in over
-          ? `over list ${over.ref}`
-          : `over players ${over.players}${over.from ? ` from ${typeof over.from === "string" ? over.from : `list ${over.from.ref}`}` : ""}`,
-      );
-      if (node.until !== undefined)
-        cond(node.repeat ? "repeat until" : "until", node.until);
-      break;
+function findNode(game: GraphGame, id: string): SpecNode | undefined {
+  const visit = (n: SpecNode): SpecNode | undefined => {
+    if (n.id === id) return n;
+    for (const c of game.kinds[n.kind]?.children(n) ?? []) {
+      const hit = visit(c);
+      if (hit) return hit;
     }
-    case "step":
-      out.push(`run ${node.run}`);
-      break;
-    case "decision":
-      out.push(`actor ${actorText(node.actor)}`);
-      if (node.endWhen !== undefined) cond("end when", node.endWhen);
-      break;
-    case "choose":
-      out.push(
-        `actor ${actorText(node.actor)} · ${typeof node.options === "string" ? `options ${node.options}` : `${node.options.length} options`} · apply ${node.apply}`,
-      );
-      if (node.min !== undefined || node.max !== undefined)
-        out.push(`choose ${node.min ?? 1}–${node.max ?? 1}`);
-      break;
-    case "pause":
-      out.push(
-        `actor ${actorText(node.actor)}${node.label ? ` · “${node.label}”` : ""}`,
-      );
-      break;
-    case "exit":
-      out.push(`raise ${node.outcome}`);
-      break;
-    case "use":
-      out.push(`subflow ${node.subflow}`);
-      break;
-    default:
-      break;
+    return undefined;
+  };
+  for (const r of roots(game)) {
+    const hit = visit(r);
+    if (hit) return hit;
   }
-  if (node.locals) out.push(`locals ${node.locals}`);
-  for (const [outcome, c] of Object.entries(node.exits ?? {}))
-    cond(`exits ${outcome}:`, c);
+  return undefined;
+}
+
+const isNode = (v: unknown): v is SpecNode =>
+  typeof v === "object" && v !== null && "kind" in v && "id" in v;
+
+/**
+ * One-line facts about a node, from its spec: labels, the names of the
+ * conditions and queries it consults (`turns.until`), its actions, and any
+ * other plain settings. Child nodes are drawn, not listed.
+ */
+export function nodeDetails(node: SpecNode): string[] {
+  const out: string[] = [];
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    if (key === "kind" || key === "id" || isNode(value)) continue;
+    if (typeof value === "string" || typeof value === "number")
+      out.push(key === "label" ? `“${value}”` : `${key} ${value}`);
+    else if (Array.isArray(value) && value.every((v) => typeof v === "string"))
+      out.push(`${key} ${value.join(", ")}`);
+    else if (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      Object.values(value).every((v) => typeof v === "number")
+    )
+      out.push(
+        `${key} ${Object.entries(value)
+          .map(([k, v]) => `${k} ${String(v)}`)
+          .join(", ")}`,
+      );
+  }
   return out;
 }
 
@@ -107,7 +109,13 @@ const label = (text: string): ReactNode => (
   </div>
 );
 
-function Box({ node, activity }: { node: FlowNode; activity: FlowActivity }) {
+interface BoxProps {
+  game: GraphGame;
+  node: SpecNode;
+  activity: FlowActivity;
+}
+
+function Box({ game, node, activity }: BoxProps) {
   const frames = activity.active.get(node.id) ?? 0;
   const waiting = activity.waiting.has(node.id);
   const status = waiting ? "waiting" : frames ? "active" : "idle";
@@ -123,7 +131,6 @@ function Box({ node, activity }: { node: FlowNode; activity: FlowActivity }) {
     minWidth: 0,
     flexShrink: 0,
   };
-  const children = <Children node={node} activity={activity} />;
   return (
     <div
       data-node={node.id}
@@ -161,17 +168,12 @@ function Box({ node, activity }: { node: FlowNode; activity: FlowActivity }) {
           ))}
         </div>
       )}
-      {children}
-      {Object.entries(node.on ?? {}).map(([outcome, flow]) => (
-        <Branch key={outcome} text={`on ${outcome}`} dashed>
-          <Box node={flow} activity={activity} />
-        </Branch>
-      ))}
+      <Children game={game} node={node} activity={activity} />
     </div>
   );
 }
 
-/** A labelled child slot: a branch case, an action's `then`, an `on` flow. */
+/** A labelled child slot: a branch case, an outcome's handler. */
 function Branch({
   text,
   dashed,
@@ -208,19 +210,21 @@ const column: CSSProperties = {
   gap: 6,
 };
 
-function Children({
-  node,
-  activity,
-}: {
-  node: FlowNode;
-  activity: FlowActivity;
-}) {
-  const box = (n: FlowNode) => <Box key={n.id} node={n} activity={activity} />;
+/** Kinds that repeat their body, marked ↻. */
+const REPEATS = new Set(["loop", "turns"]);
+
+function Children({ game, node, activity }: BoxProps) {
+  const box = (n: SpecNode) => (
+    <Box key={n.id} game={game} node={n} activity={activity} />
+  );
+  // Built-ins whose children have roles get labelled slots; any other kind
+  // (custom ones included) lists what its `children()` returns
   switch (node.kind) {
-    case "seq":
+    case "seq": {
+      const { children } = node as Extract<SpecNode, { kind: "seq" }>;
       return (
         <div style={row}>
-          {node.children.flatMap((c, i) => [
+          {children.flatMap((c, i) => [
             ...(i
               ? [
                   <span
@@ -235,109 +239,75 @@ function Children({
           ])}
         </div>
       );
-    case "parallel":
+    }
+    case "branch": {
+      const n = node as Extract<SpecNode, { kind: "branch" }>;
       return (
         <div style={column}>
-          {label(`∥ join ${node.join}`)}
-          {node.children.map(box)}
-        </div>
-      );
-    case "loop":
-    case "each":
-      return (
-        <div style={{ ...row, alignItems: "center" }}>
-          {box(node.body)}
-          <span aria-hidden style={{ ...mono(14), color: t.faint }}>
-            ↻
-          </span>
-        </div>
-      );
-    case "branch":
-      return (
-        <div style={column}>
-          {node.cases.map((c, i) => (
-            <Branch key={i} text={`when ${describeCond(c.when as string)}`}>
+          {n.cases.map((c, i) => (
+            <Branch key={i} text={`when ${c.when}`}>
               {box(c.then)}
             </Branch>
           ))}
-          {node.else && <Branch text="else">{box(node.else)}</Branch>}
+          {n.else && <Branch text="else">{box(n.else)}</Branch>}
         </div>
       );
-    case "decision":
+    }
+    case "outcomes": {
+      const n = node as Extract<SpecNode, { kind: "outcomes" }>;
       return (
         <div style={column}>
-          <div style={{ ...row, flexWrap: "wrap" }}>
-            {Object.entries(node.actions).map(([name, a]) => (
-              <span
-                key={name}
-                style={{
-                  ...mono(11),
-                  color: t.fg,
-                  border: `1px solid ${t.line}`,
-                  borderRadius: 4,
-                  padding: "0 5px",
-                  background: t.surface,
-                }}
-                title={
-                  a.ends === false ? "doesn't end the decision" : undefined
-                }
-              >
-                {name}
-                {a.ends === false ? " ↺" : ""}
-              </span>
-            ))}
-          </div>
-          {Object.entries(node.actions).map(([name, a]) =>
-            a.then ? (
-              <Branch key={name} text={`${name} then`}>
-                {box(a.then)}
-              </Branch>
-            ) : null,
-          )}
+          {box(n.body)}
+          {Object.entries(n.outcomes).map(([name, o]) => (
+            <Branch
+              key={name}
+              text={`on ${name}${o.when ? ` (when ${o.when})` : ""}`}
+              dashed
+            >
+              {o.then ? box(o.then) : label("ends")}
+            </Branch>
+          ))}
         </div>
       );
-    case "use":
-      return "body" in node ? box((node as { body: FlowNode }).body) : null;
-    default:
-      return null;
+    }
   }
-}
-
-function triggerText(def: TriggerDef): string {
-  const on = def.on;
-  let s = `on ${on.type}`;
-  if (on.type === "moved") {
-    if (on.from) s += ` from ${on.from}`;
-    if (on.to) s += ` to ${on.to}`;
-  }
-  if ("entityType" in on && on.entityType) s += ` (${on.entityType})`;
-  if (on.type === "custom") s += ` ${on.name}`;
-  if (on.type === "flow") s += ` ${on.kind} ${on.node}`;
-  if (def.when !== undefined) s += ` when ${describeCond(def.when)}`;
-  if (def.priority) s += ` · priority ${def.priority}`;
-  return s;
+  const children = game.kinds[node.kind]?.children(node) ?? [];
+  if (!children.length) return null;
+  if (REPEATS.has(node.kind))
+    return (
+      <div style={{ ...row, alignItems: "center" }}>
+        {children.map(box)}
+        <span aria-hidden style={{ ...mono(14), color: t.faint }}>
+          ↻
+        </span>
+      </div>
+    );
+  return <div style={column}>{children.map(box)}</div>;
 }
 
 /**
- * The flow as nested boxes: sequences run left to right, branches, lanes and
- * `on` flows stack, and loops are marked ↻. Given a flow state, running
- * nodes are outlined and nodes waiting for input are filled.
+ * The flow as nested boxes: sequences run left to right, branches and
+ * outcomes stack, and repeating nodes are marked ↻. Abilities and effects
+ * follow the flow. Given a state, running nodes are outlined and nodes
+ * waiting for input are filled. Custom kinds are drawn from their
+ * `children()`.
  */
 export function FlowGraph({
   game,
-  flow,
+  state,
   style,
 }: {
-  game: CompiledGame;
-  /** The flow state to highlight, e.g. `state.flow`. */
-  flow?: DeepReadonly<FlowState>;
+  game: GraphGame;
+  /** The state to highlight. */
+  state?: Pick<State<unknown>, "flow" | "fibers">;
   style?: CSSProperties;
 }) {
-  const activity = flowActivity(flow);
+  const activity = flowActivity(game, state);
+  const extras = [...(game.spec.abilities ?? []), ...(game.spec.effects ?? [])];
   return (
     <div
       role="figure"
-      aria-label={`Flow of ${game.spec.id}`}
+      aria-label="Game flow"
       style={{
         ...column,
         gap: 14,
@@ -347,16 +317,9 @@ export function FlowGraph({
         ...style,
       }}
     >
-      <Box node={game.flow} activity={activity} />
-      {game.triggers.map(({ def }) => (
-        <div key={def.id} style={column}>
-          <div style={{ ...row, alignItems: "center" }}>
-            <span style={badge(t.bad, t.surface)}>trigger</span>
-            <span style={{ ...mono(12), fontWeight: 600 }}>{def.id}</span>
-            {label(triggerText(def))}
-          </div>
-          <Box node={def.flow} activity={activity} />
-        </div>
+      <Box game={game} node={game.spec.flow} activity={activity} />
+      {extras.map((n) => (
+        <Box key={n.id} game={game} node={n} activity={activity} />
       ))}
     </div>
   );

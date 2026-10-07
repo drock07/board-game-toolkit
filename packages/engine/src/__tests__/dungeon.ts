@@ -9,7 +9,6 @@ import {
   type Reader,
   type Tx,
 } from "../index.js";
-import { turnNode } from "./turn.js";
 
 export const SIZE = 5;
 const STARTING_HP = 20;
@@ -56,7 +55,7 @@ export interface Vars {
 }
 
 const { rules, action, seq, step, loop, branch, outcomes, turn } =
-  define<Vars>().withNodes([...defaultNodes, turnNode]);
+  define<Vars>().withNodes(defaultNodes);
 
 const MONSTERS = {
   rat: { name: "Rat", hp: 4, attack: 0, defense: 8 },

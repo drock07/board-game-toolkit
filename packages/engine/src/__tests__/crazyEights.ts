@@ -3,7 +3,6 @@
 // is public. First empty hand wins.
 import type { Entity, EntityId, PlayerId } from "../index.js";
 import { defaultNodes, define, entity, zone } from "../index.js";
-import { turnNode } from "./turn.js";
 
 export const SUITS = ["♠", "♥", "♦", "♣"] as const;
 export type Suit = (typeof SUITS)[number];
@@ -31,7 +30,7 @@ export const hand = zone("hand", {
 
 const { rules, action, seq, step, turns, turn } = define<Vars>({
   zones: [deck, discard, hand],
-}).withNodes([...defaultNodes, turnNode]);
+}).withNodes(defaultNodes);
 
 const HAND_SIZE = 5;
 

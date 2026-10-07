@@ -9,7 +9,6 @@ import {
   zone,
   type Reader,
 } from "../index.js";
-import { turnNode } from "./turn.js";
 
 export const CATEGORIES = [
   "aces",
@@ -50,7 +49,7 @@ export const dice = zone("dice", { holds: die });
 
 const { rules, action, seq, step, turns, turn } = define<Vars>({
   zones: [dice],
-}).withNodes([...defaultNodes, turnNode]);
+}).withNodes(defaultNodes);
 
 function counts(values: readonly number[]): number[] {
   const out = [0, 0, 0, 0, 0, 0, 0];

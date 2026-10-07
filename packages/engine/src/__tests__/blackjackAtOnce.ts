@@ -2,7 +2,6 @@
 // deck, public hands, and the dealer's second card face down until the end.
 import type { Entity, PlayerId } from "../index.js";
 import { defaultNodes, define, entity, zone } from "../index.js";
-import { turnNode } from "./turn.js";
 
 type Suit = "♠" | "♥" | "♦" | "♣";
 export interface Card {
@@ -23,7 +22,7 @@ export const hand = zone("hand", { holds: card, perPlayer: true });
 
 const { rules, action, seq, step, simultaneous, turn } = define<Vars>({
   zones: [deck, dealer, hand],
-}).withNodes([...defaultNodes, turnNode]);
+}).withNodes(defaultNodes);
 
 /** Best total: aces count 11 unless that busts. */
 export function total(cards: readonly Entity<Card>[]): number {

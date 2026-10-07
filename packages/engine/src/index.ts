@@ -17,7 +17,7 @@ export type {
   ZoneFamily,
   ZoneRef,
 } from "./define/handles.js";
-export { defaultNodes } from "./define/nodes.js";
+export { defaultNodes, turnNode } from "./define/nodes.js";
 export type {
   Ability,
   Action,
@@ -46,9 +46,12 @@ export type {
   SimultaneousBuilder,
   StepBuilder,
   Trigger,
+  TurnBuilder,
   TurnsBuilder,
   Tx,
+  WaitOptions,
 } from "./define/types.js";
+export type { TurnShown } from "./kinds/turn.js";
 
 // Running and viewing
 export {
@@ -63,6 +66,7 @@ export {
   viewEvents,
 } from "./define/play.js";
 export type { InitOptions } from "./play.js";
+export { viewEntities } from "./views.js";
 export { canSee } from "./zones.js";
 
 // Errors
@@ -101,6 +105,7 @@ export type { Die, Random, RngState } from "./rng.js";
 export type {
   Applied,
   DeepReadonly,
+  EffectRef,
   Entity,
   EntityId,
   Exit,
@@ -114,5 +119,6 @@ export type {
   View,
   ViewEvent,
   Visibility,
+  Waiting,
   ZoneId,
 } from "./types.js";

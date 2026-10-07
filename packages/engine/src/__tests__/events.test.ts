@@ -98,10 +98,14 @@ test("a draw: the drawer sees the card, the other player a placeholder", () => {
   );
   const moved = theirs[0]!;
   assert.ok(moved.type === "moved" && "hidden" in moved.entities[0]!);
-  assert.deepEqual(
-    replay(view(game, s, "bob"), theirs),
-    view(game, out.state, "bob"),
-  );
+  // Events rebuild everything but the flow's `waiting` and `shown`
+  const {
+    waiting: _w,
+    shown: _s,
+    ...replayed
+  } = replay(view(game, s, "bob"), theirs);
+  const { waiting: _w2, shown: _s2, ...fresh } = view(game, out.state, "bob");
+  assert.deepEqual(replayed, fresh);
   checkEvents(game, s, out.events, out.state);
 });
 

@@ -1,3 +1,6 @@
+import { RulesError } from "./errors.js";
+import { fiberIds, kindOf, nodeOf, stackOf } from "./frames.js";
+import { actorsOf, waitingFrames } from "./play.js";
 import type {
   Entity,
   EntityId,
@@ -9,8 +12,11 @@ import type {
   State,
   View,
   ViewEvent,
+  Waiting,
   ZoneId,
+  ZoneRef,
 } from "./types.js";
+import { ROOT } from "./types.js";
 import { canSee } from "./zones.js";
 
 /** An entity as `viewer` may see it: itself, or a placeholder. */
@@ -43,7 +49,57 @@ export function view<V>(
     entities,
     status: state.status,
     ...(state.result !== undefined && { result: state.result }),
+    waiting: waitingOf(game, state),
+    shown: shownTo(game, state, viewer),
   };
+}
+
+/**
+ * A zone's entities as a view shows them, top first: each is the entity, or
+ * a placeholder the viewer can't see into (narrow with an entity type's `is`).
+ */
+export function viewEntities<V, P>(
+  v: View<V>,
+  zone: ZoneRef<P>,
+): (Entity<P> | HiddenEntity)[] {
+  const refs = v.zones[zone.id];
+  if (!refs) throw new RulesError(`Unknown zone "${zone.id}"`);
+  return refs.map((ref) => v.entities[ref] as Entity<P> | HiddenEntity);
+}
+
+/** The open prompts: who each waits on, and its node's label. */
+function waitingOf<V>(game: GameDef<V>, state: State<V>): Waiting[] {
+  if (state.status === "finished") return [];
+  const out: Waiting[] = [];
+  for (const w of waitingFrames(game, state)) {
+    const actors = actorsOf(game, state, w);
+    if (!actors.length) continue;
+    const label = (w.node as { label?: unknown }).label;
+    out.push(typeof label === "string" ? { label, actors } : { actors });
+  }
+  return out;
+}
+
+/**
+ * What kinds show, by kind name, innermost frame last so it wins: the root
+ * stack, then each fiber that isn't another player's.
+ */
+function shownTo<V>(
+  game: GameDef<V>,
+  state: State<V>,
+  viewer: PlayerId,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const fiber of fiberIds(state)) {
+    const player = fiber === ROOT ? undefined : state.fibers[fiber]!.player;
+    if (player !== undefined && player !== viewer) continue;
+    for (const frame of stackOf(state, fiber)) {
+      const node = nodeOf(game, frame.id);
+      const shown = kindOf(game, node).show?.(node, frame);
+      if (shown !== undefined) out[node.kind] = shown;
+    }
+  }
+  return out;
 }
 
 /**
