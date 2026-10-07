@@ -239,7 +239,7 @@ export class GameHost<V, H> {
       );
       if (gen !== this.generation) return;
     }
-    // Events don't carry the flow's `waiting` and `shown`; take the commit's view
+    // The replayed view matches the commit's; take it, so nothing drifts
     this.displayed = view(this.game, this.committed, this.viewer);
     this.pumping = false;
     this.emit();

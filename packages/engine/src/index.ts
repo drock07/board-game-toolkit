@@ -1,6 +1,9 @@
-// The authoring API: declare a game's box (entity types, zones), its rules
-// and flow with `define`, then run it with `init`/`apply` and show it with
-// `view`/`viewEvents`. Custom node kinds are written against `./kinds`.
+/**
+ * The engine: declare a game with `define`, run it with `init` and
+ * `apply`, and show it with `view` and `viewEvents`.
+ *
+ * @module @drock07/board-game-toolkit-engine
+ */
 
 // Authoring
 export { define } from "./define/define.js";

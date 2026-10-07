@@ -9,6 +9,8 @@ interface TurnsData {
   start: number;
   /** Seats moved on from `start` to reach the current turn's player. */
   step: number;
+  /** Turns started, skipped seats not counted. */
+  taken: number;
 }
 
 const seatAt = (n: Of<"turns">, players: number, d: TurnsData) => {
@@ -43,7 +45,7 @@ export const turns: Kind<Of<"turns">, TurnsShown> = {
         throw new RulesError(
           `"${n.id}" starts with unknown player "${String(first)}"`,
         );
-      f.data = { start, step: -1 } satisfies TurnsData;
+      f.data = { start, step: -1, taken: 0 } satisfies TurnsData;
     }
     if (n.until !== undefined && ctx.holds(n.until)) return "done";
     const d = { ...(f.data as TurnsData) };
@@ -54,7 +56,7 @@ export const turns: Kind<Of<"turns">, TurnsShown> = {
       if (n.rounds !== undefined && d.step >= n.rounds * players.length)
         return "done";
       if (!among || among.includes(players[seatAt(n, players.length, d)]!)) {
-        f.data = d;
+        f.data = { ...d, taken: d.taken + 1 };
         return { pass: n.body };
       }
     }
@@ -71,7 +73,7 @@ export const turns: Kind<Of<"turns">, TurnsShown> = {
     if (!d || d.step < 0) return undefined;
     return {
       player: state.players[seatAt(n, state.players.length, d)]!,
-      turn: d.step + 1,
+      turn: d.taken,
       round: Math.floor(d.step / state.players.length) + 1,
     };
   },

@@ -267,7 +267,9 @@ export function settle<V>(
       if (top.children?.length) continue; // blocked on its children
       const node = nodeOf(game, top.id);
       const kind = kindOf(game, node);
-      if (kind.actions) continue; // waiting for input
+      // A waiting kind runs once, on entry (it may end at once, as a `turn`
+      // whose `until` already holds); after that it waits for input
+      if (kind.actions && top.i > 0) continue;
       const frame = { ...top };
       recent.push(node.id);
       if (recent.length > 12) recent.shift();
@@ -275,6 +277,8 @@ export function settle<V>(
       const next = kind.run(node, frame, ctx as KindCtx<unknown>);
       s = ctx.state;
       if (s.status === "finished") return s;
+      // Mark a waiting kind's frame entered, so it isn't run again
+      if (kind.actions && next === "wait") frame.i = 1;
       s = advance(game, s, log, fiber, frame, next);
       ran = true;
       break;

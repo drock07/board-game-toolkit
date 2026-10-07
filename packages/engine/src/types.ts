@@ -516,8 +516,8 @@ export interface Waiting {
 
 /**
  * The state as a player may see it. Entities and zone lists are keyed by
- * `ref`. `waiting` and `shown` describe the flow; `replay` doesn't rebuild
- * them, because no event says when they change.
+ * `ref`. `waiting` and `shown` describe the flow; `flow` events carry their
+ * changes, so `replay` rebuilds them too.
  */
 export interface View<V> {
   player: PlayerId;

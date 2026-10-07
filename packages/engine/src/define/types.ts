@@ -272,8 +272,10 @@ export interface Core<V> {
     }): Ability<V, A>;
     /**
      * A game-wide ability: a rule, carried by no entity. `who` answers its
-     * prompts (none binds no one). Use it for a reaction that must not depend
-     * on hidden cards, e.g. always asking an Attack's target.
+     * prompts; without it (or when it returns undefined), the player bound
+     * where the effect was caused answers, else the first seat. Use it for a
+     * reaction that must not depend on hidden cards, e.g. always asking an
+     * Attack's target.
      */
     <T, A = never>(def: {
       on: Effect<V, T> | Before<V, T>;
