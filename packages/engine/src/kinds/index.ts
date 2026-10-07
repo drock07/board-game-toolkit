@@ -1,10 +1,10 @@
 // The built-in node kinds, as modules the engine runs through its registry.
 // A custom kind is the same shape.
 import type { Kind } from "../types.js";
-import { branch, loop, outcomes, seq, step } from "./flow.js";
+import { branch, loop, outcomes, seq, step, type LoopShown } from "./flow.js";
 import { ability, effect } from "./interrupts.js";
 import { turn, type TurnShown } from "./turn.js";
-import { turns } from "./turns.js";
+import { turns, type TurnsShown } from "./turns.js";
 import { anyone, prompt, simultaneous } from "./waiting.js";
 
 export {
@@ -21,7 +21,7 @@ export {
   turn,
   turns,
 };
-export type { TurnShown };
+export type { LoopShown, TurnShown, TurnsShown };
 
 export const builtinKinds: Record<string, Kind> = {
   seq,

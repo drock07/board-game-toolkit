@@ -20,10 +20,17 @@ export const step: Kind<Of<"step">> = {
 };
 
 /** Repeats its body until `until` holds (forever when absent), checked before each pass. */
-export const loop: Kind<Of<"loop">> = {
+/** What `loop` shows players: passes started so far, this one included. */
+export interface LoopShown {
+  pass: number;
+}
+
+export const loop: Kind<Of<"loop">, LoopShown> = {
   children: (n) => [n.body],
   run: (n, _f, ctx) =>
     n.until !== undefined && ctx.holds(n.until) ? "done" : { pass: n.body },
+  // `i` counts passes started; before the first, there's nothing to show
+  show: (_n, f) => (f.i > 0 ? { pass: f.i } : undefined),
 };
 
 /** Runs the first case whose condition holds, or `else`, then ends. */

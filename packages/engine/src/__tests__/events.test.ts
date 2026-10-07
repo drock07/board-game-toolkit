@@ -83,29 +83,26 @@ test("a draw: the drawer sees the card, the other player a placeholder", () => {
   assert.ok(out.ok);
   assert.deepEqual(
     out.events.map((e) => e.type),
-    ["moved", "updated", "effect", "vars"],
+    ["moved", "updated", "effect", "vars", "flow"],
   );
   const mine = viewEvents(game, out.events, "ann");
   const theirs = viewEvents(game, out.events, "bob");
   assert.deepEqual(
     mine.map((e) => e.type),
-    ["moved", "updated", "effect", "vars"],
+    ["moved", "updated", "effect", "vars", "flow"],
   );
   // bob learns a card moved, not which one or that it was marked
   assert.deepEqual(
     theirs.map((e) => e.type),
-    ["moved", "vars"],
+    ["moved", "vars", "flow"],
   );
   const moved = theirs[0]!;
   assert.ok(moved.type === "moved" && "hidden" in moved.entities[0]!);
-  // Events rebuild everything but the flow's `waiting` and `shown`
-  const {
-    waiting: _w,
-    shown: _s,
-    ...replayed
-  } = replay(view(game, s, "bob"), theirs);
-  const { waiting: _w2, shown: _s2, ...fresh } = view(game, out.state, "bob");
-  assert.deepEqual(replayed, fresh);
+  // Flow events included, the replayed view is exactly the new one
+  assert.deepEqual(
+    replay(view(game, s, "bob"), theirs),
+    view(game, out.state, "bob"),
+  );
   checkEvents(game, s, out.events, out.state);
 });
 
@@ -115,7 +112,10 @@ test("the ending input carries the result", () => {
     s = applyOrThrow(game, s, draw.by(i % 2 ? "bob" : "ann"));
   const out = apply(game, s, draw.by("bob"));
   assert.ok(out.ok);
-  assert.deepEqual(out.events.at(-1), { type: "ended", result: { draws: 6 } });
+  assert.deepEqual(
+    out.events.find((e) => e.type === "ended"),
+    { type: "ended", result: { draws: 6 } },
+  );
   assert.deepEqual(
     replay(view(game, s, "ann"), viewEvents(game, out.events, "ann")).result,
     {

@@ -65,8 +65,8 @@ export function checkEvents<V>(
   events: readonly GameEvent<V>[],
   after: State<V>,
 ): void {
-  // What events rebuild; a view's `waiting` and `shown` come from the flow
-  const pick = (s: State<V> | View<V>) => ({
+  // What events rebuild of a state; a state's flow lives in its frames
+  const pick = (s: State<V>) => ({
     vars: s.vars,
     zones: s.zones,
     entities: s.entities,
@@ -79,8 +79,8 @@ export function checkEvents<V>(
     const mine = viewEvents(game, events, player);
     if (
       !jsonEqual(
-        pick(replay(view(game, before, player), mine)),
-        pick(view(game, after, player)),
+        replay(view(game, before, player), mine),
+        view(game, after, player),
       )
     )
       throw new Error(

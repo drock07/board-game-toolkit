@@ -19,6 +19,7 @@ import {
   type Applied,
   type EntityId,
   type FiberId,
+  type FiberShown,
   type Frame,
   type GameDef,
   type GameEvent,
@@ -29,6 +30,7 @@ import {
   type PlayerId,
   type ReadCtx,
   type State,
+  type Waiting,
   type ZoneId,
 } from "./types.js";
 import { zoneId } from "./zones.js";
@@ -222,6 +224,7 @@ export function apply<V>(
 ): Applied<V> {
   const problem = check(game, state, input);
   if (problem !== true) return { ok: false, reason: problem };
+  const before = flowOf(game, state);
   const w = waitingFor(game, state, input.player, input.action)!;
   const impl = game.impl.actions[input.action]!;
   const log: GameEvent<V>[] = [];
@@ -230,7 +233,10 @@ export function apply<V>(
     result = impl.execute(tx, input.args, input.player);
   });
   next.inputs++;
-  if (next.status === "finished") return { ok: true, state: next, events: log };
+  if (next.status === "finished") {
+    logFlow(game, before, next, log);
+    return { ok: true, state: next, events: log };
+  }
   // The waiting kind sees the answer and decides whether to keep waiting
   const frame = { ...stackOf(next, w.fiber).at(-1)! };
   const ctx = contextFor(game, next, log, w.fiber);
@@ -242,5 +248,49 @@ export function apply<V>(
       ctx as KindCtx<unknown>,
     ) ?? "done";
   next = advance(game, ctx.state, log, w.fiber, frame, verdict);
-  return { ok: true, state: settle(game, next, log), events: log };
+  const after = settle(game, next, log);
+  logFlow(game, before, after, log);
+  return { ok: true, state: after, events: log };
+}
+
+/** What the flow waits on, and what each stack's kinds show, root first. */
+export function flowOf<V>(
+  game: GameDef<V>,
+  state: State<V>,
+): { waiting: Waiting[]; fibers: FiberShown[] } {
+  const waiting: Waiting[] = [];
+  if (state.status === "running")
+    for (const w of waitingFrames(game, state)) {
+      const actors = actorsOf(game, state, w);
+      if (!actors.length) continue;
+      const label = (w.node as { label?: unknown }).label;
+      waiting.push(typeof label === "string" ? { label, actors } : { actors });
+    }
+  const fibers: FiberShown[] = [];
+  for (const fiber of fiberIds(state)) {
+    const shown: Record<string, unknown> = {};
+    for (const frame of stackOf(state, fiber)) {
+      const node = nodeOf(game, frame.id);
+      const out = kindOf(game, node).show?.(
+        node,
+        frame,
+        readCtx(game, state, fiber) as ReadCtx<unknown>,
+      );
+      if (out !== undefined) shown[node.kind] = out;
+    }
+    const player = fiber === ROOT ? undefined : state.fibers[fiber]!.player;
+    fibers.push(player === undefined ? { shown } : { player, shown });
+  }
+  return { waiting, fibers };
+}
+
+/** Logs a `flow` event if what the flow waits on or shows changed since `before`. */
+function logFlow<V>(
+  game: GameDef<V>,
+  before: ReturnType<typeof flowOf>,
+  after: State<V>,
+  log: GameEvent<V>[],
+): void {
+  const now = flowOf(game, after);
+  if (!jsonEqual(now, before)) log.push({ type: "flow", ...now });
 }

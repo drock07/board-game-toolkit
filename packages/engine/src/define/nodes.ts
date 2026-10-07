@@ -34,6 +34,7 @@ export const stepNode = defineNode("step", {
 });
 
 export const turnsNode = defineNode("turns", {
+  kind: kinds.turns,
   build: (opts, body) =>
     node(kinds.turns, (l) => {
       const name = l.id("turns");
@@ -51,6 +52,7 @@ export const turnsNode = defineNode("turns", {
 });
 
 export const loopNode = defineNode("loop", {
+  kind: kinds.loop,
   build: (opts, body) =>
     node(kinds.loop, (l) => {
       const name = l.id("loop");

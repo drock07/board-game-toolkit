@@ -251,9 +251,13 @@ export function shownAlong<V>(
   fiber: FiberId,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const { frame } of framesOutAt(state, fiber).reverse()) {
+  for (const { frame, fiber: at } of framesOutAt(state, fiber).reverse()) {
     const node = nodeOf(game, frame.id);
-    const shown = kindOf(game, node).show?.(node, frame);
+    const shown = kindOf(game, node).show?.(
+      node,
+      frame,
+      readCtx(game, state, at) as ReadCtx<unknown>,
+    );
     if (shown !== undefined) out[node.kind] = shown;
   }
   return out;

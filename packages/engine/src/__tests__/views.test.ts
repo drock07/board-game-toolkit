@@ -3,12 +3,17 @@
 // definitions, never from another player's fiber).
 import { assert, expect, test } from "vitest";
 import {
+  apply,
   defaultNodes,
   define,
   init,
   legalInputs,
+  loopNode,
+  replay,
   turnNode,
+  turnsNode,
   view,
+  viewEvents,
   type GameInput,
   type TurnShown,
 } from "../index.js";
@@ -141,4 +146,55 @@ test("playBots skips a bot seat with nothing to answer in an anyone window", () 
   });
   expect(inputs).toEqual([claim.by("bob")]);
   expect(states.at(-1)!.status).toBe("finished");
+});
+
+test("turns and loop show their counters: whose turn, which turn and round, which pass", () => {
+  const players = ["ann", "bob"];
+  let s = init(rollFive, { players, seed: "c" });
+  const at = () => turnsNode.shown(view(rollFive, s, "bob"));
+  expect(at()).toEqual({ player: "ann", turn: 1, round: 1 });
+  const turnOf = (p: string) => {
+    s = applyOrThrow(rollFive, s, rollFive.action("roll").by(p));
+    s = applyOrThrow(
+      rollFive,
+      s,
+      legalInputs(rollFive, s, p).find((i) => i.action === "score")!,
+    );
+  };
+  turnOf("ann");
+  expect(at()).toEqual({ player: "bob", turn: 2, round: 1 });
+  turnOf("bob");
+  expect(at()).toEqual({ player: "ann", turn: 3, round: 2 });
+  expect(loopNode.shown(view(rollFive, s, "bob"))).toBeUndefined();
+});
+
+test("a flow event updates each player's view as it plays back, so views replay exactly", () => {
+  const players = ["ann", "bob"];
+  const s = init(rollFive, { players, seed: "f" });
+  const out = apply(rollFive, s, rollFive.action("roll").by("ann"));
+  assert.ok(out.ok);
+  const mine = viewEvents(rollFive, out.events, "bob");
+  const flow = mine.find((e) => e.type === "flow");
+  assert.ok(flow?.type === "flow");
+  expect((flow.shown.turn as TurnShown).counts.roll).toBe(1);
+  expect(replay(view(rollFive, s, "bob"), mine)).toEqual(
+    view(rollFive, out.state, "bob"),
+  );
+});
+
+test("a loop shows which pass it's on", () => {
+  const { rules, action, loop, prompt } = define<{ n: number }>().withNodes(
+    defaultNodes,
+  );
+  const tap = action("tap", { execute: () => {} });
+  const game = rules({
+    players: 1,
+    setup: (tx) => void (tx.vars = { n: 0 }),
+    flow: loop({}, prompt(tap)),
+  });
+  let s = init(game, { players: ["ann"], seed: "x" });
+  expect(loopNode.shown(view(game, s, "ann"))).toEqual({ pass: 1 });
+  s = applyOrThrow(game, s, tap.by("ann"));
+  s = applyOrThrow(game, s, tap.by("ann"));
+  expect(loopNode.shown(view(game, s, "ann"))).toEqual({ pass: 3 });
 });

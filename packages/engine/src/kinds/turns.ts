@@ -23,7 +23,16 @@ const seatAt = (n: Of<"turns">, players: number, d: TurnsData) => {
  * (checked before each turn), after `rounds` passes around the table, or
  * when nobody is left to take a turn.
  */
-export const turns: Kind<Of<"turns">> = {
+/** What `turns` shows players: whose turn it is, and how far along it is (both from 1). */
+export interface TurnsShown {
+  player: PlayerId;
+  /** Turns started so far, this one included. */
+  turn: number;
+  /** Passes around the table started so far, this one included. */
+  round: number;
+}
+
+export const turns: Kind<Of<"turns">, TurnsShown> = {
   children: (n) => [n.body],
   run(n, f, ctx) {
     const players = ctx.state.players;
@@ -56,5 +65,14 @@ export const turns: Kind<Of<"turns">> = {
     const d = f.data as TurnsData | undefined;
     if (!d || d.step < 0) return undefined;
     return state.players[seatAt(n, state.players.length, d)];
+  },
+  show(n, f, { state }) {
+    const d = f.data as TurnsData | undefined;
+    if (!d || d.step < 0) return undefined;
+    return {
+      player: state.players[seatAt(n, state.players.length, d)]!,
+      turn: d.step + 1,
+      round: Math.floor(d.step / state.players.length) + 1,
+    };
   },
 };
