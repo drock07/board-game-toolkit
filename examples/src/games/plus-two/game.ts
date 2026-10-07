@@ -32,7 +32,8 @@ export interface Vars {
 // Uno-style color cards, not playing cards, so this game has its own type
 export const card = entity<Card>("card");
 export const deck = zone("deck", { holds: card, visibility: "hidden" });
-export const discard = zone("discard", { holds: card });
+// Only the top card of the pile shows
+export const discard = zone("discard", { holds: card, visibility: "top" });
 export const hand = zone("hand", {
   holds: card,
   perPlayer: true,

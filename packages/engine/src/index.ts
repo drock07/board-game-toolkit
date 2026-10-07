@@ -17,7 +17,7 @@ export type {
   ZoneFamily,
   ZoneRef,
 } from "./define/handles.js";
-export { defaultNodes, turnNode } from "./define/nodes.js";
+export { defaultNodes, loopNode, turnNode, turnsNode } from "./define/nodes.js";
 export type {
   Ability,
   Action,
@@ -51,7 +51,9 @@ export type {
   Tx,
   WaitOptions,
 } from "./define/types.js";
+export type { LoopShown } from "./kinds/flow.js";
 export type { TurnShown } from "./kinds/turn.js";
+export type { TurnsShown } from "./kinds/turns.js";
 
 // Running and viewing
 export {

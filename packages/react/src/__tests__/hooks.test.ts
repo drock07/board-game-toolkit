@@ -39,7 +39,11 @@ test("useGame renders the view and plays events through useGameEvent and useGame
   expect(effects).toEqual([{ by: "p1", count: 2 }]);
   expect(viewEntities(result.current.view, hand.of("p1"))).toHaveLength(2);
   expect(result.current.playing).toBe(false);
-  expect(result.current.log.map((e) => e.type)).toEqual(["moved", "effect"]);
+  expect(result.current.log.map((e) => e.type)).toEqual([
+    "moved",
+    "effect",
+    "flow",
+  ]);
 });
 
 test("useGameEffect doesn't hear an effect whispered to someone else", async () => {

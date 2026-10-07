@@ -1,9 +1,9 @@
 import { RulesError } from "./errors.js";
-import { fiberIds, kindOf, nodeOf, stackOf } from "./frames.js";
-import { actorsOf, waitingFrames } from "./play.js";
+import { flowOf } from "./play.js";
 import type {
   Entity,
   EntityId,
+  FiberShown,
   GameDef,
   GameEvent,
   HiddenEntity,
@@ -16,7 +16,6 @@ import type {
   ZoneId,
   ZoneRef,
 } from "./types.js";
-import { ROOT } from "./types.js";
 import { canSee } from "./zones.js";
 
 /** An entity as `viewer` may see it: itself, or a placeholder. */
@@ -31,6 +30,12 @@ export function seen<V>(
 }
 
 /** The state as `viewer` may see it. */
+/** The flow as `viewer` sees it: what it waits on, and what kinds show them. */
+function flowFor<V>(game: GameDef<V>, state: State<V>, viewer: PlayerId) {
+  const { waiting, fibers } = flowOf(game, state);
+  return { waiting, shown: shownFor(fibers, viewer) };
+}
+
 export function view<V>(
   game: GameDef<V>,
   state: State<V>,
@@ -50,8 +55,7 @@ export function view<V>(
     entities,
     status: state.status,
     ...(state.result !== undefined && { result: state.result }),
-    waiting: waitingOf(game, state),
-    shown: shownTo(game, state, viewer),
+    ...flowFor(game, state, viewer),
   };
 }
 
@@ -68,38 +72,12 @@ export function viewEntities<V, P>(
   return refs.map((ref) => v.entities[ref] as Entity<P> | HiddenEntity);
 }
 
-/** The open prompts: who each waits on, and its node's label. */
-function waitingOf<V>(game: GameDef<V>, state: State<V>): Waiting[] {
-  if (state.status === "finished") return [];
-  const out: Waiting[] = [];
-  for (const w of waitingFrames(game, state)) {
-    const actors = actorsOf(game, state, w);
-    if (!actors.length) continue;
-    const label = (w.node as { label?: unknown }).label;
-    out.push(typeof label === "string" ? { label, actors } : { actors });
-  }
-  return out;
-}
-
-/**
- * What kinds show, by kind name, innermost frame last so it wins: the root
- * stack, then each fiber that isn't another player's.
- */
-function shownTo<V>(
-  game: GameDef<V>,
-  state: State<V>,
-  viewer: PlayerId,
-): Record<string, unknown> {
+/** The shown records a viewer gets, merged: the root's and their own fibers', innermost last. */
+function shownFor(fibers: readonly FiberShown[], viewer: PlayerId) {
   const out: Record<string, unknown> = {};
-  for (const fiber of fiberIds(state)) {
-    const player = fiber === ROOT ? undefined : state.fibers[fiber]!.player;
-    if (player !== undefined && player !== viewer) continue;
-    for (const frame of stackOf(state, fiber)) {
-      const node = nodeOf(game, frame.id);
-      const shown = kindOf(game, node).show?.(node, frame);
-      if (shown !== undefined) out[node.kind] = shown;
-    }
-  }
+  for (const f of fibers)
+    if (f.player === undefined || f.player === viewer)
+      Object.assign(out, f.shown);
   return out;
 }
 
@@ -132,6 +110,13 @@ export function viewEvents<V>(
       case "effect":
         if (!ev.to || ev.to.includes(viewer)) out.push(ev);
         break;
+      case "flow":
+        out.push({
+          type: "flow",
+          waiting: ev.waiting,
+          shown: shownFor(ev.fibers, viewer),
+        });
+        break;
       default:
         out.push(ev);
     }
@@ -146,6 +131,9 @@ export interface Replayable<V, E> {
   entities: Record<string, E>;
   status: "running" | "finished";
   result?: unknown;
+  /** A view's flow; a state keeps its flow in frames. */
+  waiting?: Waiting[];
+  shown?: Record<string, unknown>;
 }
 
 /**
@@ -159,7 +147,7 @@ export function replay<V>(
 export function replay<V>(s: View<V>, events: readonly ViewEvent<V>[]): View<V>;
 export function replay<V, E extends { ref: Ref; zone: ZoneId; id?: EntityId }>(
   s: Replayable<V, E> & { player?: PlayerId },
-  events: readonly GameEvent<V, E>[],
+  events: readonly (GameEvent<V, E> | Extract<ViewEvent, { type: "flow" }>)[],
 ): Replayable<V, E> {
   // A view is keyed by ref, a state by id
   const key = (e: E) => (s.player !== undefined ? e.ref : e.id!);
@@ -181,7 +169,10 @@ export function replay<V, E extends { ref: Ref; zone: ZoneId; id?: EntityId }>(
       case "moved":
         for (const e of ev.entities) remove(key(e));
         for (const e of ev.entities) out.entities[key(e)] = e;
-        out.zones[ev.to] = [...ev.entities.map(key), ...out.zones[ev.to]!];
+        out.zones[ev.to] =
+          ev.at === "bottom"
+            ? [...out.zones[ev.to]!, ...ev.entities.map(key)]
+            : [...ev.entities.map(key), ...out.zones[ev.to]!];
         break;
       case "shuffled":
         // Refs changed, so drop the zone's old keys and add the new ones
@@ -204,6 +195,13 @@ export function replay<V, E extends { ref: Ref; zone: ZoneId; id?: EntityId }>(
         if (ev.result !== undefined) out.result = ev.result;
         break;
       case "effect":
+        break;
+      case "flow":
+        // A player's flow event replaces their view's; a state's frames hold its flow
+        if ("shown" in ev) {
+          out.waiting = ev.waiting;
+          out.shown = ev.shown;
+        }
         break;
     }
   }

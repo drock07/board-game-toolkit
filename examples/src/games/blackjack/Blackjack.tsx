@@ -80,8 +80,8 @@ export default function Blackjack() {
   // What the game waits on, by its prompt's label
   const label = g.legal.length ? g.view.waiting[0]?.label : undefined;
   // Zones list the top first; show cards in the order they were dealt
-  const player = zoneCards(g.view, playerZone).reverse();
-  const dealer = zoneCards(g.view, dealerZone).reverse();
+  const player = zoneCards(g.view, playerZone);
+  const dealer = zoneCards(g.view, dealerZone);
   const result = vars.result ?? null;
   const bust =
     player.length > 0 &&

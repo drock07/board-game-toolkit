@@ -26,7 +26,7 @@ const start = (seed: string) => init(blackjack, { players, seed });
 const waiting = (s: S) => view(blackjack, s, "p1").waiting[0]?.label;
 /** A hand's cards in deal order (zones list the top first). */
 const cards = (s: S, zone: typeof player) =>
-  s.zones[zone.id]!.map((id) => s.entities[id]!.props as PlayingCard).reverse();
+  s.zones[zone.id]!.map((id) => s.entities[id]!.props as PlayingCard);
 const bet = (s: S, amount: number) =>
   applyOrThrow(blackjack, s, placeBet.by("p1", { amount }));
 
@@ -64,11 +64,11 @@ describe("blackjack", () => {
     const s = bet(start("a"), 10);
     expect(s.vars.bankroll).toBe(90);
     expect(cards(s, player)).toHaveLength(2);
-    const dealt = s.zones[dealer.id]!.map((id) => s.entities[id]!).reverse();
+    const dealt = s.zones[dealer.id]!.map((id) => s.entities[id]!);
     expect(dealt.map((e) => e.faceUp)).toEqual([undefined, false]);
     // The view hides the hole card even though the dealer's zone is public
     const v = view(blackjack, s, "p1");
-    const [hole, up] = v.zones[dealer.id]!;
+    const [up, hole] = v.zones[dealer.id]!;
     expect(v.entities[hole!]).toMatchObject({ hidden: true });
     expect(v.entities[up!]).toMatchObject({ type: "card" });
   });

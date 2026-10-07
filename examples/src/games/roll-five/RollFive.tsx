@@ -1,5 +1,5 @@
 import { turnNode } from "@drock07/board-game-toolkit-engine";
-import { useGame } from "@drock07/board-game-toolkit-react";
+import { useGame, useGameEvent } from "@drock07/board-game-toolkit-react";
 import clsx from "clsx";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
@@ -7,7 +7,7 @@ import { rollFive } from ".";
 import { GameFrame } from "../../site/GameFrame";
 import { Die } from "../../ui/Die";
 import { findInput } from "../../ui/inputs";
-import { Button, Overlay, Stat } from "../../ui/kit";
+import { Button, Overlay, Stat, wait } from "../../ui/kit";
 import {
   CATEGORIES,
   MAX_ROLLS,
@@ -167,6 +167,9 @@ function ScoreSheet({
 
 export default function RollFive() {
   const g = useGame(rollFive, { players: ["p1"] });
+  // A beat after each roll lands: the dice and the turn's roll count
+  // update together, as the flow event plays back
+  useGameEvent(g, "flow", () => wait(250));
 
   const { vars } = g.view;
   const { dice, held } = vars;

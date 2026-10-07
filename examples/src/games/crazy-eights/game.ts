@@ -30,8 +30,8 @@ export interface Vars {
 // Colored cards, not the shared playing cards: their own entity type
 export const card = entity<Card>("card");
 export const deck = zone("deck", { holds: card, visibility: "hidden" });
-// Hidden, but the top card is dealt and played face up: only it shows
-export const discard = zone("discard", { holds: card, visibility: "hidden" });
+// Only the top card of the pile shows
+export const discard = zone("discard", { holds: card, visibility: "top" });
 export const hand = zone("hand", {
   holds: card,
   perPlayer: true,
@@ -73,10 +73,7 @@ export const playCard = action("playCard", {
     return true;
   },
   execute(tx, { card: id }) {
-    // The old top card turns face down: only the top of the pile shows
-    const under = tx.entities(discard)[0];
-    tx.move(id, discard, { faceUp: true });
-    if (under) tx.flip(under.id, false);
+    tx.move(id, discard);
     const top = topCard(tx);
     tx.vars.activeColor = top.color;
     if (top.value === 8) return { exit: "wild" };
@@ -155,7 +152,7 @@ export const crazyEights = rules({
         tx.shuffle(deck);
         for (let round = 0; round < 7; round++)
           for (const p of tx.players) tx.moveTop(deck, hand.of(p));
-        tx.moveTop(deck, discard, 1, { faceUp: true });
+        tx.moveTop(deck, discard);
         tx.vars.activeColor = topCard(tx).color;
         tx.vars.winner = null;
       }),

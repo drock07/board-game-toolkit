@@ -111,5 +111,11 @@ export function describeEvent(e: ViewEvent): string {
       return `${e.name} ${short(e.data)}`;
     case "ended":
       return `ended ${short(e.result)}`;
+    case "flow": {
+      const w = e.waiting
+        .map((x) => `${x.actors.join(", ")}${x.label ? ` (${x.label})` : ""}`)
+        .join("; ");
+      return `flow: ${w ? `waiting on ${w}` : "waiting on no one"}`;
+    }
   }
 }

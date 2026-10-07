@@ -72,7 +72,12 @@ export type Node =
       body: Node;
     };
 
-export type Visibility = "public" | "hidden" | "owner";
+/**
+ * Who sees a zone's entities: everyone, no one, the zone's owner, or (for
+ * "top") everyone sees only the top entity. In a "top" zone the engine
+ * manages `faceUp` itself.
+ */
+export type Visibility = "public" | "hidden" | "owner" | "top";
 
 export interface ZoneDef {
   visibility: Visibility;
@@ -261,8 +266,10 @@ export interface Reader<V> extends Scoped {
 }
 
 export interface MoveOptions {
-  /** The moved entities' `faceUp`. Omitted clears any override. */
+  /** The moved entities' `faceUp`. Omitted clears any override. Ignored in a "top" zone. */
   faceUp?: boolean;
+  /** Where they land: on top (the default) or at the bottom, keeping their order. */
+  at?: "top" | "bottom";
 }
 
 /**
@@ -404,7 +411,7 @@ export interface Kind<N extends Node = Node, S = unknown> {
    * the root flow and the viewer's own fibers are shown. Unlike `scope`, it
    * goes to every player, so it must not hold hidden information.
    */
-  show?(node: N, frame: Frame): S;
+  show?(node: N, frame: Frame, ctx: ReadCtx<unknown>): S | undefined;
   /** For kinds that bind a player: whose turn it is while this frame is on the stack. */
   actor?(node: N, frame: Frame, ctx: ReadCtx<unknown>): PlayerId | undefined;
   /** For kinds that wait for input: the actions a player may take now. */
@@ -451,8 +458,14 @@ export interface Input {
 export type GameEvent<V = unknown, E = Entity> =
   /** Added at the bottom of its zone. */
   | { type: "created"; entity: E }
-  /** Moved to the top of `to`, keeping their order; `from` is each one's old zone. */
-  | { type: "moved"; from: ZoneId[]; to: ZoneId; entities: E[] }
+  /** Moved to the top of `to` (or its bottom), keeping their order; `from` is each one's old zone. */
+  | {
+      type: "moved";
+      from: ZoneId[];
+      to: ZoneId;
+      at?: "bottom";
+      entities: E[];
+    }
   /** The zone's entities in their new order, top first, with new refs. */
   | { type: "shuffled"; zone: ZoneId; entities: E[] }
   | { type: "flipped"; entity: E }
@@ -463,10 +476,25 @@ export type GameEvent<V = unknown, E = Entity> =
   | { type: "vars"; vars: V }
   /** A caused effect, logged when caused; `to` limits who sees it. */
   | { type: "effect"; name: string; data: unknown; to?: readonly PlayerId[] }
-  | { type: "ended"; result: unknown };
+  | { type: "ended"; result: unknown }
+  /**
+   * What the flow waits on and what its kinds show changed, logged at the
+   * end of an input. `fibers` holds what each stack shows, the root first;
+   * a player's view gets only the root's and their own fibers', merged.
+   */
+  | { type: "flow"; waiting: Waiting[]; fibers: FiberShown[] };
+
+/** What one stack's kinds show, and the player its fiber belongs to, if any. */
+export interface FiberShown {
+  player?: PlayerId;
+  shown: Record<string, unknown>;
+}
 
 /** An event as a player may see it. */
-export type ViewEvent<V = unknown> = GameEvent<V, Entity | HiddenEntity>;
+export type ViewEvent<V = unknown> =
+  | Exclude<GameEvent<V, Entity | HiddenEntity>, { type: "flow" }>
+  /** The flow as this player sees it: replaces the view's `waiting` and `shown`. */
+  | { type: "flow"; waiting: Waiting[]; shown: Record<string, unknown> };
 
 export type Applied<V> =
   | { ok: true; state: State<V>; events: GameEvent<V>[] }

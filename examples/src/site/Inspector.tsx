@@ -251,7 +251,9 @@ export function Inspector({
                       key={g.log.length - i}
                       className={clsx(
                         "truncate",
-                        e.type === "vars" ? "text-label" : "text-ink-2",
+                        e.type === "vars" || e.type === "flow"
+                          ? "text-label"
+                          : "text-ink-2",
                       )}
                       title={describeEvent(e)}
                     >

@@ -24,7 +24,7 @@ import type {
   ZoneId,
   ZoneRef,
 } from "./types.js";
-import { entitiesOf, entityOf, itemsOf, zonesOf } from "./zones.js";
+import { entitiesOf, entityOf, itemsOf, parseZone, zonesOf } from "./zones.js";
 
 /** Runs `body` on a copy of `state`, appending what it did to `log`. */
 export function transact<V>(
@@ -59,6 +59,22 @@ export function transact<V>(
     fibers: { ...state.fibers },
   };
   const items = (zone: ZoneRef) => itemsOf(next, zone);
+  /**
+   * In a "top" zone the engine keeps the top entity face up and the rest
+   * face down, logging a `flipped` event for each it turns, so views and
+   * replays need no special case.
+   */
+  const settleTop = (zone: ZoneId) => {
+    const { name } = parseZone(game.spec, zone);
+    if (game.spec.zones[name]?.visibility !== "top") return;
+    items({ id: zone }).forEach((id, i) => {
+      const e = next.entities[id]!;
+      if (i === 0 ? e.faceUp === true : e.faceUp === undefined) return;
+      const { faceUp: _, ...rest } = e;
+      next.entities[id] = i === 0 ? { ...rest, faceUp: true } : rest;
+      log.push({ type: "flipped", entity: next.entities[id] });
+    });
+  };
   const place = (ids: readonly EntityId[], to: ZoneRef, opts?: MoveOptions) => {
     const from: ZoneId[] = [];
     for (const id of ids) {
@@ -67,7 +83,10 @@ export function transact<V>(
       from.push(e.zone);
       next.zones[e.zone] = items({ id: e.zone }).filter((x) => x !== id);
     }
-    next.zones[to.id] = [...ids, ...items(to)];
+    const bottom = opts?.at === "bottom";
+    next.zones[to.id] = bottom
+      ? [...items(to), ...ids]
+      : [...ids, ...items(to)];
     for (const id of ids) {
       const e = next.entities[id]!;
       const { faceUp: _, ...rest } = e;
@@ -80,8 +99,10 @@ export function transact<V>(
       type: "moved",
       from,
       to: to.id,
+      ...(bottom && { at: "bottom" as const }),
       entities: ids.map((id) => next.entities[id]!),
     });
+    for (const zone of new Set([...from, to.id])) settleTop(zone);
   };
   // Draws advance this transaction's own copy of the state
   const random = createRandom(() => next.rng);
@@ -109,6 +130,7 @@ export function transact<V>(
       next.zones[e.zone] = items({ id: e.zone }).filter((x) => x !== id);
       delete next.entities[id];
       log.push({ type: "destroyed", entity: e });
+      settleTop(e.zone);
     },
     update({ id }, patch) {
       const e = entityOf(next, id);
@@ -121,6 +143,7 @@ export function transact<V>(
       next.entities[id] = { id, ref, type: type.name, props, zone: zone.id };
       next.zones[zone.id] = [...items(zone), id];
       log.push({ type: "created", entity: next.entities[id] });
+      settleTop(zone.id);
       return id;
     },
     move(ids, to, opts) {
@@ -153,12 +176,14 @@ export function transact<V>(
         zone: zone.id,
         entities: order.map((id) => next.entities[id]!),
       });
+      settleTop(zone.id);
     },
     flip(id, faceUp) {
       const e = next.entities[id];
       if (!e) throw new RulesError(`Unknown entity "${id}"`);
       next.entities[id] = { ...e, faceUp };
       log.push({ type: "flipped", entity: next.entities[id] });
+      settleTop(e.zone);
     },
     random,
     end(result) {
